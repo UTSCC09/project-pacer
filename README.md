@@ -3,8 +3,8 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/github_username/repo_name">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+  <a href="https://github.com/UTSCC09/project-pacer/">
+    <img src="media/projectLogo.PNG" alt="Logo" width="400" height="200">
   </a>
 
 <h3 align="center">Pacer</h3>
