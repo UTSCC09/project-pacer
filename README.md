@@ -65,7 +65,7 @@ Students can execute their code independently and the teacher can see the output
 
 * Extended goal: \
 student code will be highlighted in red if they don’t match the teacher’s. \
-video stream is available. \
+video stream is available. 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -93,7 +93,7 @@ In-depth exploration of codemirror features to provide autocompletion, syntax hi
 Have the code windows movable/draggable, or have a color 3d frontend interface implemented with 3.js to intrigue children
 
 * Interaction with other hardwares \
-Hardwares(e.g. earphones) are utilized to allow real-time communications between multiple participants (in conjunction with WebRTC).
+Headphones are utilized to allow real-time communications between multiple participants (in conjunction with WebRTC).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
