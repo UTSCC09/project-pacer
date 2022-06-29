@@ -52,17 +52,18 @@ Pacer is a synchronous live code editor for primary school CS instructors and ch
 Each session (a code editor window) looks like [trinket.io](https://trinket.io/python/699b7d37d2) (with only save, load, and run functionaties planned, addtional features as bonus)
 
 * Editor Layout: \
-The teacher (as the admin) has multiple buttons in the side bar that link to each student session. Clicking on it brings up the student code editor and the teacher has the option to share it with the class and edit it as well. The students each has two windows, one is their teacher’s session anthor one is their own session. The teacher's session will be replaced by another student's if the teacher decides to share their screen. No concurrent code editing is necessary as only the teacher or the student can edit the file at one time.
+The teacher (as the admin) has multiple buttons in the side bar that link to each student session. Clicking on it brings up the student code editor and the teacher has the option to share it with the class and edit it as well. [kw: A chat box where all students and the teacher can ask/answer questions on, public/private message available.]The students each has two windows, one is their teacher’s session another one is their own session. The teacher's session will be replaced by another student's if the teacher decides to share their screen. No concurrent code editing is necessary as only the teacher or the student can edit the file at one time.
 
 * File Access: \
-Both the students and the teacher have the option to save/load files. Automatic saving will be performed after certain time interval in case of server failure. Teachers have the option to create a new file which will replace the existing teacher session on student window with a new session.
+Both the students and the teacher have the option to save/load files. Automatic saving will be performed after certain time interval in case of server failure. Teachers have the option to create a new file which will replace the existing teacher session on student window with a new session. [kw: Students are able to access the files save by the teacher at any time during class for references.]
 
 * Additional Features: \
 Students can request help from the teacher by clicking on a help button and inputting a message whereupon the teacher will receive a notification from the students with the message. \
 Students can execute their code independently and the teacher can see the output of the execution. 
 
 * Extended goal: \
-student code will be highlighted in red if they don’t match the teacher’s
+student code will be highlighted in red if they don’t match the teacher’s.
+[kw: video call].
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
