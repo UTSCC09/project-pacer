@@ -92,7 +92,7 @@ In-depth exploration of codemirror features to provide autocompletion, syntax hi
 * Non-trivial frontend: \
 Have the code windows movable/draggable, or have a color 3d frontend interface implemented with 3.js to intrigue children
 
-* Interaction with other hardwares \
+* Interaction with other hardwares: \
 Headphones are utilized to allow real-time communications between multiple participants (in conjunction with WebRTC).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
