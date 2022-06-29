@@ -27,24 +27,18 @@
   <ol>
     <li>
       <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
     </li>
     <li><a href="#team-members">Team Members</a></li>
+    <li><a href="#challenge-factors">Challenge Factors</a></li>
     <li>
-      <a href="#getting-started">Getting Started</a>
+      <a href="#roadmap">Roadmap</a>
       <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
+        <li><a href="#beta-version">Beta Version</a></li>
+        <li><a href="#final-version">Final Version</a></li>
       </ul>
     </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
+    <li><a href="#tech-stack">Tech Stack</a></li>
+    <li><a href="#deployment-method">Deployment Method</a></li>
   </ol>
 </details>
 
@@ -75,6 +69,8 @@ student code will be highlighted in red if they don’t match the teacher’s
 ## Team Members
 
 * Mengde Wang
+* Maxim Khaissarov
+* 
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
@@ -95,7 +91,7 @@ Have the code windows movable/draggable, or have a color 3d frontend interface i
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-## Schedule
+## Roadmap
 
 ### Beta Version
 
@@ -118,27 +114,32 @@ Have the code windows movable/draggable, or have a color 3d frontend interface i
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-### Tech Stack
+## Tech Stack
 
 * Frontend: 
 [React.js](https://reactjs.org/), [React-three-fiber](https://github.com/pmndrs/react-three-fiber) (Optional) \
 One of the most popular front-end framework that is based on JS with not-too steep learning curve which is ideal for our use case which does not rely heavily on front end. The react-three-fiber is a version of React that supports three.js. We will use this to implement 3D frontend if needed.
-* Reverse Proxy:
-[Nginx](https://www.nginx.com/)
 
-* Real-time + Persistent Storage: [Firestore](https://cloud.google.com/firestore)
+* Reverse Proxy:
+[Nginx](https://www.nginx.com/) \
+One of the most commonly used, high-performance and supports scaling if we take it into account in the future.
+
+* Real-time + Persistent Storage: [Firestore](https://cloud.google.com/firestore) \
+Firestore provides both fast real-time storage to cater synchronous editing and persistent storage to handle code files. Comparing to Redis, the persistent aspect is easier to control and easier to query. 
 
 * Code Formatting: [Codemirror](https://codemirror.net/) \
 A necessary public library for the text editor to recognize codes, style codes and implement editor features like linting, autocomplete and much more.
 
-* Communication: [Socket.io](https://socket.io/) and [WebRTC](https://webrtc.org/)
+* Communication: [Socket.io](https://socket.io/) and [WebRTC](https://webrtc.org/) \
+The plan is to use socket.io as client-server connection between students and teachers where students are clients that are served the teacher's code. When a student requests screensharing, it will use WebRTC connection to broadcast user screen across all members in the class room as a peer to peer service. This is subject to change as the project evolves. 
 
-* VM: [Digital Ocean](https://www.digitalocean.com/products)
+* VM: [Digital Ocean](https://www.digitalocean.com/products) \
+Chosen for the ease of setup and the Github student bundle also provides free credits for project use.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Deployment Method
 
-Deployment will be performed via docker images uploaded to the hosting VM. At setup, a dockerfile will be created for each dependency that requires one, after docker images are generated, they are uploaded to VM in production. Each new iteration of the app will be packaged as a docker image after git hub reviews are complete, and then it will be deployed to VM as a production build.
+At first, we will register free a domain name. Then create a VM on Digital Ocean using the static IP as the domain. Setup node related resources in VM as well. Deployment will be performed via docker images uploaded to the hosting VM. At setup, a dockerfile will be created for each dependency that requires one, after docker images are generated, they are uploaded to VM in production. Each new iteration of the app will be packaged as a docker image after git hub reviews are complete, and then it will be deployed to VM as a production build and tested.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
