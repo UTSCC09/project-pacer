@@ -62,7 +62,7 @@ Students can request help from the teacher by clicking on a help button and inpu
 Students can execute their code independently and the teacher can see the output of the execution. 
 
 * Extended goal: \
-student code will be highlighted in red if they don’t match the teacher’s.
+student code will be highlighted in red if they don’t match the teacher’s. \
 [kw: video call].
 
 <p align="right">(<a href="#top">back to top</a>)</p>
@@ -71,7 +71,7 @@ student code will be highlighted in red if they don’t match the teacher’s.
 
 * Mengde Wang
 * Maxim Khaissarov
-* 
+* Sijia Wei
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
