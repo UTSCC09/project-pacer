@@ -10,7 +10,7 @@
 <h3 align="center">Pacer</h3>
 
   <p align="center">
-    A solution for primary school education needs
+    A solution for primary school CS education needs
     <br />
     <br />
     <a href="https://github.com/UTSCC09/project-pacer/issues">Ongoing Work</a>
@@ -52,8 +52,23 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
+Pacer is a synchronous live code editor for primary school CS instructors and children aged 8 - 10. The project arises out of a studnet need for an effective means of imitating their instructors' code and sharing their code for debugging. Pacer provides a platform where the instructors can share their code live to students whereupon the students can notify the instructor if they have questions and share their code live with the rest of class for debugging. Additionally, the teacher can save code files into the backend database and the class can access them at any point with the right credentials. Last but not least, the teachers will gain live notifications of the students' code execution results. Here is a detailed breakdown of project components:
 
+* Base Component: \
+Each session (a code editor window) looks like [trinket.io](https://trinket.io/python/699b7d37d2) (with only save, load, and run functionaties planned, addtional features as bonus)
 
+* Editor Layout: \
+The teacher (as the admin) has multiple buttons in the side bar that link to each student session. Clicking on it brings up the student code editor and the teacher has the option to share it with the class and edit it as well. The students each has two windows, one is their teacher’s session anthor one is their own session. The teacher's session will be replaced by another student's if the teacher decides to share their screen. No concurrent code editing is necessary as only the teacher or the student can edit the file at one time.
+
+* File Access: \
+Both the students and the teacher have the option to save/load files. Automatic saving will be performed after certain time interval in case of server failure. Teachers have the option to create a new file which will replace the existing teacher session on student window with a new session.
+
+* Additional Features: \
+Students can request help from the teacher by clicking on a help button and inputting a message whereupon the teacher will receive a notification from the students with the message. \
+Students can execute their code independently and the teacher can see the output of the execution. 
+
+* Extended goal: \
+student code will be highlighted in red if they don’t match the teacher’s
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -64,123 +79,66 @@
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-### Built With
+## Challenge Factors
 
-* [Next.js](https://nextjs.org/)
-* [React.js](https://reactjs.org/)
-* [Vue.js](https://vuejs.org/)
-* [Angular](https://angular.io/)
-* [Svelte](https://svelte.dev/)
-* [Laravel](https://laravel.com)
-* [Bootstrap](https://getbootstrap.com)
-* [JQuery](https://jquery.com)
+* Real-time Interactions: \
+The web app allows the students to sync up with the teacher's code in real time. Conversely, the teacher can view will student code session as well as sharing and editing them live.
 
-<p align="right">(<a href="#top">back to top</a>)</p>
+* Webhooks: \
+Listens to student request for help and student execution results (in conjunction with WebRTC) to report to the teacher.
 
+* In depth web technology usage: \
+In-depth exploration of codemirror features to provide autocompletion, syntax highlight, linting, multi-language support and so on to all sessions. In-depth research on socket-io and WebRTC to provide seamless sharing experience.
 
-
-<!-- GETTING STARTED -->
-## Getting Started
-
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
-
-### Prerequisites
-
-This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
-
-### Installation
-
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
-   ```sh
-   git clone https://github.com/github_username/repo_name.git
-   ```
-3. Install NPM packages
-   ```sh
-   npm install
-   ```
-4. Enter your API in `config.js`
-   ```js
-   const API_KEY = 'ENTER YOUR API';
-   ```
+* Non-trivial frontend: \
+Have the code windows movable/draggable, or have a color 3d frontend interface implemented with 3.js to intrigue children
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+## Schedule
 
+### Beta Version
 
-<!-- USAGE EXAMPLES -->
-## Usage
-
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
-
-_For more examples, please refer to the [Documentation](https://example.com)_
-
-<p align="right">(<a href="#top">back to top</a>)</p>
-
-
-
-<!-- ROADMAP -->
-## Roadmap
-
-- [ ] Feature 1
-- [ ] Feature 2
-- [ ] Feature 3
-    - [ ] Nested Feature
-
-See the [open issues](https://github.com/github_username/repo_name/issues) for a full list of proposed features (and known issues).
+1. Project deployed on VM with all necessary docker images
+2. Code editor session complete with all editor featurs in place (e.g. linting)
+3. A classroom where teachers have access to all student sessions and be able to modify student codes. Student has access to their sessions and the teacher's.
+4. Teacher can receive student's code execution results.
+5. Hook up with the backend database with functional save and load abilities.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+### Final Version
 
-
-<!-- CONTRIBUTING -->
-## Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. Students can request for help from the teacher
+2. The teacher can project a student's session to other students
+3. Implement classroom authorization and improve network security measures
+4. Complete front end interface (3d interface or drag and drop ability)
+5. Implement extented goal of text highlight if time permits
+6. testing
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+### Tech Stack
 
+* Frontend: 
+[React.js](https://reactjs.org/), [React-three-fiber](https://github.com/pmndrs/react-three-fiber) (Optional) \
+One of the most popular front-end framework that is based on JS with not-too steep learning curve which is ideal for our use case which does not rely heavily on front end. The react-three-fiber is a version of React that supports three.js. We will use this to implement 3D frontend if needed.
+* Reverse Proxy:
+[Nginx](https://www.nginx.com/)
 
-<!-- LICENSE -->
-## License
+* Real-time + Persistent Storage: [Firestore](https://cloud.google.com/firestore)
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
+* Code Formatting: [Codemirror](https://codemirror.net/) \
+A necessary public library for the text editor to recognize codes, style codes and implement editor features like linting, autocomplete and much more.
+
+* Communication: [Socket.io](https://socket.io/) and [WebRTC](https://webrtc.org/)
+
+* VM: [Digital Ocean](https://www.digitalocean.com/products)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+## Deployment Method
 
-
-<!-- CONTACT -->
-## Contact
-
-Your Name - [@twitter_handle](https://twitter.com/twitter_handle) - email@email_client.com
-
-Project Link: [https://github.com/github_username/repo_name](https://github.com/github_username/repo_name)
-
-<p align="right">(<a href="#top">back to top</a>)</p>
-
-
-
-<!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
-
-* []()
-* []()
-* []()
+Deployment will be performed via docker images uploaded to the hosting VM. At setup, a dockerfile will be created for each dependency that requires one, after docker images are generated, they are uploaded to VM in production. Each new iteration of the app will be packaged as a docker image after git hub reviews are complete, and then it will be deployed to VM as a production build.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
