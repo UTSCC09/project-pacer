@@ -49,7 +49,7 @@
 Pacer is a synchronous live code editor for primary school CS instructors and children aged 8 - 10. The project arises out of a studnet need for an effective means of imitating their instructors' code and sharing their code for debugging. Pacer provides a platform where the instructors can share their code live to students whereupon the students can notify the instructor if they have questions and share their code live with the rest of class for debugging. Additionally, the teacher can save code files into the backend database and the class can access them at any point with the right credentials. Last but not least, the teachers will gain live notifications of the students' code execution results. Here is a detailed breakdown of project components:
 
 * Base Component: \
-Each session (a code editor window) looks like [trinket.io](https://trinket.io/python/699b7d37d2) (with only save, load, and run functionaties planned, addtional features as bonus)
+Each session (a code editor window) looks like [trinket.io](https://trinket.io/python/699b7d37d2) (with only save, load, and run functionaties planned, addtional features as bonus).
 
 * Editor Layout: \
 The teacher (as the admin) has multiple buttons in the side bar that link to each student session. Clicking on it brings up the student code editor and the teacher has the option to share it with the class and edit it as well. The students each has two windows, one is their teacher’s session another one is their own session. The teacher's session will be replaced by another student's if the teacher decides to share their screen. No concurrent code editing is necessary as only the teacher or the student can edit the file at one time.
@@ -60,12 +60,12 @@ Both the students and the teacher have the option to save/load files. Automatic 
 * Additional Features: \
 Lectures delivery and communications between teachers and students are through audio. \
 Students can request help from the teacher by clicking on a help button and inputting a message whereupon the teacher will receive a notification from the students with the message. \
-Students can execute their code independently and the teacher can see the output of the execution. \
+Students can execute their code independently and the teacher can see the output of the execution. 
 
 
 * Extended goal: \
 student code will be highlighted in red if they don’t match the teacher’s. \
-video stream is available.
+video stream is available. \
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
