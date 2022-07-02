@@ -1,0 +1,12 @@
+# OS Files
+Thumbs.db
+.DS_Store
+
+# node.js
+node_modules
+uploads
+db
+*-lock.json
+
+# env
+.env
