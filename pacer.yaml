@@ -2,6 +2,8 @@ version: "3.9"
 
 services:
   pacer-svc:
+    env_file:
+      - ".env"
     image: pacer-svc-img
     hostname: pacer-svc
     container_name: pacer-svc
@@ -14,6 +16,30 @@ services:
     restart: "always"
     volumes:
       - pacer_volume:/app
+    networks:
+      - pacernetwork
+    depends_on:
+      - "pacer-backend"
+
+  pacer-backend:
+    env_file:
+      - ".env"
+    image: pacer-backend-img
+    container_name: pacer-backend
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    restart: "always"
+    volumes:
+      - pacer_backend_volume:/app
+    networks:
+      - pacernetwork
 
 volumes:
   pacer_volume:
+  pacer_backend_volume:
+
+networks:
+  pacernetwork:
