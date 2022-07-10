@@ -1,30 +1,19 @@
-version: "3"
-services:
-  pacer-main:
-    image: nginx:latest
-    container_name: pacer-container
-    ports:
-      - 5000:80
-    volumes:
-      - ./frontend/nginx/:/etc/nginx/conf.d/:ro
-      - ./frontend/public:/usr/share/nginx/html
-    restart: unless-stopped
+version: "3.9"
 
-  reverse-proxy:
-    image: valian/docker-nginx-auto-ssl:1.0.0
-    container_name: reverse-proxy
-    restart: on-failure
+services:
+  pacer-svc:
+    image: pacer-svc-img
+    hostname: pacer-svc
+    container_name: pacer-svc
+    build:
+      context: frontend
+      dockerfile: Dockerfile
     ports:
-      - 80:80
-      - 443:443
+      - "80:80"
+      - "443:443"
+    restart: "always"
     volumes:
-      - ./.ssl-data:/etc/resty-auto-ssl
-    environment:
-      ALLOWED_DOMAINS: 'pacer.codes'
-      SITES: 'pacer.codes=pacer-container:80'
-      FORCE_HTTPS: "true"
-    depends_on:
-      - pacer-container
+      - pacer_volume:/app
 
 volumes:
-  .ssl-data:
+  pacer_volume:
