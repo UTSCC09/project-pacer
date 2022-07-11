@@ -1,21 +1,14 @@
 {
   "files": {
-    "main.css": "/UTSCC09/project-pacerstatic/css/main.a617e044.chunk.css",
-    "main.js": "/UTSCC09/project-pacerstatic/js/main.266e05e7.chunk.js",
-    "main.js.map": "/UTSCC09/project-pacerstatic/js/main.266e05e7.chunk.js.map",
-    "runtime-main.js": "/UTSCC09/project-pacerstatic/js/runtime-main.0ea9aeeb.js",
-    "runtime-main.js.map": "/UTSCC09/project-pacerstatic/js/runtime-main.0ea9aeeb.js.map",
-    "static/js/2.8a32cf65.chunk.js": "/UTSCC09/project-pacerstatic/js/2.8a32cf65.chunk.js",
-    "static/js/2.8a32cf65.chunk.js.map": "/UTSCC09/project-pacerstatic/js/2.8a32cf65.chunk.js.map",
-    "index.html": "/UTSCC09/project-pacerindex.html",
-    "static/css/main.a617e044.chunk.css.map": "/UTSCC09/project-pacerstatic/css/main.a617e044.chunk.css.map",
-    "static/js/2.8a32cf65.chunk.js.LICENSE.txt": "/UTSCC09/project-pacerstatic/js/2.8a32cf65.chunk.js.LICENSE.txt",
-    "static/media/logo.103b5fa1.svg": "/UTSCC09/project-pacerstatic/media/logo.103b5fa1.svg"
+    "main.css": "/static/css/main.073c9b0a.css",
+    "main.js": "/static/js/main.cf416f28.js",
+    "static/media/logo.svg": "/static/media/logo.103b5fa18196d5665a7e12318285c916.svg",
+    "index.html": "/index.html",
+    "main.073c9b0a.css.map": "/static/css/main.073c9b0a.css.map",
+    "main.cf416f28.js.map": "/static/js/main.cf416f28.js.map"
   },
   "entrypoints": [
-    "static/js/runtime-main.0ea9aeeb.js",
-    "static/js/2.8a32cf65.chunk.js",
-    "static/css/main.a617e044.chunk.css",
-    "static/js/main.266e05e7.chunk.js"
+    "static/css/main.073c9b0a.css",
+    "static/js/main.cf416f28.js"
   ]
 }
