@@ -1,5 +1,7 @@
 import React from 'react';
 import CodeMirror from '@uiw/react-codemirror';
+import Storage from './components/Storage';
+import { upperPythonKeys, lowerPythonKeys, javaKeys } from './bin/pythonAutoCompleteLib'
 import {EditorState, Compartment} from "@codemirror/state"
 import { python, pythonLanguage } from '@codemirror/lang-python';
 import {CompletionContext} from "@codemirror/autocomplete";
@@ -11,7 +13,14 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
-import { upperPythonKeys, lowerPythonKeys, javaKeys } from './components/pythonAutoCompleteLib'
+import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid';
+import EditorOptionsBar from './components/EditorOptions';
+import RightMenu from './components/RightMenu';
+import { CssBaseline } from '@mui/material';
+import Toolbar from '@mui/material/Toolbar';
+
+const drawerWidth = 240;
 
 function myPythonCompletions(context: CompletionContext) {
   let word = context.matchBefore(/\w*/)
@@ -53,11 +62,6 @@ function App() {
 
   let editorLanguage = new Compartment
 
-  const handleLanguageChange = React.useCallback((e) => {
-    console.log('value:', e.target.value);
-    setLanguage(e.target.value)
-  }, []);
-
   const onChange = React.useCallback((value, viewUpdate) => {
     console.log('value:', value);
     setCode(value)
@@ -74,31 +78,51 @@ function App() {
     extensions[1] = globalJavaScriptCompletions
   }
   return (
-    <div>
-    <FormControl fullWidth>
-      <InputLabel id="demo-simple-select-label">Language</InputLabel>
-      <Select
-        labelId="demo-simple-select-label"
-        id="demo-simple-select"
-        value={language}
-        label="Language"
-        onChange={handleLanguageChange}
-      >
-        <MenuItem value={"javascript"}>Javascript</MenuItem>
-        <MenuItem value={"python"}>Python</MenuItem>
-        <MenuItem value={"java"}>Java</MenuItem>
-      </Select>
-    </FormControl>
-      <CodeMirror
-      value={code}
-      height="200px"
-      theme="dark"
-      extensions={extensions}
-      onChange={onChange}
-      hint="true"
-      />
+    <CssBaseline>
+      <Box sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` } }}>
+        <Toolbar />
+        <Grid container rowSpacing={0.5} columnSpacing={3}>
+          <Grid item xs={5}>
+              <p>Server Screen (remote):</p>
+              {/* server display */}
+              <CodeMirror
+                value=""
+                height="600px"
+                theme="dark"
+                hint="true"
+              />
+            </Grid>
+          <Grid item xs={7}>
+            <Grid item xs={12}>
+              <EditorOptionsBar language={language} onLanguageChange={e => setLanguage(e.target.value)} />
+            </Grid>
+            <Grid item xs={12}>
+              <p>Client Screen (local):</p>
+            </Grid>
+            <Grid item xs={12}>
+              {/* client display */}
+              <CodeMirror
+                value={code}
+                height="600px"
+                theme="dark"
+                extensions={extensions}
+                onChange={onChange}
+                hint="true"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Storage value={code}></Storage>
+          </Grid>
+          
+          </Grid>
+        </Grid>
+      </Box>
+      <RightMenu drawerWidth={drawerWidth} />
     
-    </div>
+    </CssBaseline>
+    
+      
+    
   );
 }
 
