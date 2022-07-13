@@ -17,48 +17,20 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import EditorOptionsBar from './components/EditorOptions';
 import RightMenu from './components/RightMenu';
+import LoginPage from './components/LoginPage';
 import { CssBaseline } from '@mui/material';
 import Toolbar from '@mui/material/Toolbar';
 
 const drawerWidth = 240;
 
-function myPythonCompletions(context: CompletionContext) {
-  let word = context.matchBefore(/\w*/)
-  if (word.from == word.to && !context.explicit)
-    return null
-  if (word.text[0] === word.text[0].toUpperCase() && /^[a-zA-Z]+$/.test(word.text[0])) {
-    return {
-      from: word.from,
-      options: upperPythonKeys
-    }
-  }
-  return {
-    from: word.from,
-    options: lowerPythonKeys
-  }
-}
 
-function myJavaCompletions(context: CompletionContext) {
-  let word = context.matchBefore(/\w*/)
-  if (word.from == word.to && !context.explicit)
-    return null
-  return {
-    from: word.from,
-    options: javaKeys
-  }
-}
 
-const globalPythonCompletions = pythonLanguage.data.of({
-  autocomplete: myPythonCompletions
-})
-
-const globalJavaScriptCompletions = javaLanguage.data.of({
-  autocomplete: myJavaCompletions
-})
 
 function App() {
-  const [code, setCode] = useState("console.log('hello world!');")
-  const [language, setLanguage] = React.useState('javascript');
+  const [code, setCode] = useState(() => "console.log('hello world!');");
+  const [role, setRole] = useState(() => "");
+  const [openLogin, setOpenLogin] = useState(() => role !== "");
+  const [language, setLanguage] = React.useState(() => 'javascript');
 
   let editorLanguage = new Compartment
 
@@ -79,9 +51,11 @@ function App() {
   }
   return (
     <CssBaseline>
+      <LoginPage open={openLogin} setOpen={e => setOpenLogin(e)} role={role} setRole={e => setRole(e)}/>
       <Box sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` } }}>
         <Toolbar />
         <Grid container rowSpacing={0.5} columnSpacing={3}>
+          <Grid item xs={12}><p>Currently logged in as {role}:</p></Grid>
           <Grid item xs={5}>
               <p>Server Screen (remote):</p>
               {/* server display */}
@@ -120,10 +94,41 @@ function App() {
       <RightMenu drawerWidth={drawerWidth} />
     
     </CssBaseline>
-    
-      
-    
   );
 }
+
+function myPythonCompletions(context: CompletionContext) {
+  let word = context.matchBefore(/\w*/)
+  if (word.from == word.to && !context.explicit)
+    return null
+  if (word.text[0] === word.text[0].toUpperCase() && /^[a-zA-Z]+$/.test(word.text[0])) {
+    return {
+      from: word.from,
+      options: upperPythonKeys
+    }
+  }
+  return {
+    from: word.from,
+    options: lowerPythonKeys
+  }
+}
+
+function myJavaCompletions(context: CompletionContext) {
+  let word = context.matchBefore(/\w*/)
+  if (word.from == word.to && !context.explicit)
+    return null
+  return {
+    from: word.from,
+    options: javaKeys
+  }
+}
+
+const globalPythonCompletions = pythonLanguage.data.of({
+  autocomplete: myPythonCompletions
+})
+
+const globalJavaScriptCompletions = javaLanguage.data.of({
+  autocomplete: myJavaCompletions
+})
 
 export default App;
