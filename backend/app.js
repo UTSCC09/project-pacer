@@ -6,10 +6,10 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.json());
 
 const http = require("http");
-const PORT = 3000;
+const PORT = 8080;
 const version = '1.0.0';
 
-app.get('/', (req, res) => res.send({ version }));
+app.get('/api', (req, res) => res.send({ version }));
 
 http.createServer(app).listen(PORT, function (err) {
   if (err) console.log(err);

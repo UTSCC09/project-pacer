@@ -8,5 +8,8 @@ uploads
 db
 *-lock.json
 
+# react
+**/build/
+
 # env
 .env

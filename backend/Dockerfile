@@ -10,5 +10,4 @@ RUN yarn install --non-interactive --ignore-optional
 
 COPY . .
 
-EXPOSE 3000
 CMD [ "node", "app.js" ]

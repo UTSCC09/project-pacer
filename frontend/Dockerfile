@@ -11,8 +11,9 @@ ENV PATH /app/node_modules/.bin:$PATH
 
 COPY package*.json ./
 
+RUN yarn cache clean
 # will execute npm install in /home/app because of WORKDIR
-RUN yarn install --non-interactive --ignore-optional
+RUN yarn install --non-interactive --ignore-optional --network-timeout 1000000
 
 COPY . ./
 RUN PUBLIC_URL=/ yarn run build

@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
-import IconButton from '@mui/material/IconButton';
+import PersonIcon from '@mui/icons-material/Person';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -19,9 +19,12 @@ function RightMenu({drawerWidth}) {
       <Toolbar />
       <Divider />
       <List>
-        {['Item1', 'Item2', 'Item3', 'Item4'].map((text, index) => (
+        {['Student1', 'Student2', 'Student3', 'Student4'].map((text, index) => (
           <ListItem key={text} disablePadding>
             <ListItemButton>
+              <ListItemIcon>
+                <PersonIcon />
+              </ListItemIcon>
               <ListItemText primary={text} />
             </ListItemButton>
           </ListItem>
@@ -32,6 +35,9 @@ function RightMenu({drawerWidth}) {
         {['Item5', 'Item6', 'Item7'].map((text, index) => (
           <ListItem key={text} disablePadding>
             <ListItemButton>
+              <ListItemIcon>
+                <PersonIcon />
+              </ListItemIcon>
               <ListItemText primary={text} />
             </ListItemButton>
           </ListItem>
