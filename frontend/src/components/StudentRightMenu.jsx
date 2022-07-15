@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
-import PersonIcon from '@mui/icons-material/Person';
+import HelpIcon from '@mui/icons-material/SupportAgent';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -11,43 +11,35 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
+import { Button } from '@mui/material';
+import { authenticationService } from '../_services';
 
-function RightMenu({drawerWidth}) {
+function StudentRightMenu({drawerWidth}) {
+
+  function requestHelp() {
+    console.log("help requested")
+  }
 
   const drawer = (
     <div>
       <Toolbar />
       <Divider />
       <List>
-        {['Student1', 'Student2', 'Student3', 'Student4'].map((text, index) => (
-          <ListItem key={text} disablePadding>
-            <ListItemButton>
-              <ListItemIcon>
-                <PersonIcon />
-              </ListItemIcon>
-              <ListItemText primary={text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-      <Divider />
-      <List>
-        {['Item5', 'Item6', 'Item7'].map((text, index) => (
-          <ListItem key={text} disablePadding>
-            <ListItemButton>
-              <ListItemIcon>
-                <PersonIcon />
-              </ListItemIcon>
-              <ListItemText primary={text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+        <ListItem key='Request Help' disablePadding>
+          <ListItemButton onClick={() => requestHelp()}>
+            <ListItemIcon>
+              <HelpIcon />
+            </ListItemIcon>
+            <ListItemText primary='Request Help' />
+          </ListItemButton>
+        </ListItem>
       </List>
     </div>
   );
 
   return (
     <Box>
+      
       <AppBar
         position="fixed"
         sx={{
@@ -56,10 +48,21 @@ function RightMenu({drawerWidth}) {
           zIndex: (theme) => theme.zIndex.drawer + 1
         }}
       >
-        <Toolbar>
+        <Toolbar sx={{ justifyContent: "space-between" }}>
           <Typography variant="h6" noWrap component="div">
             Pacer
           </Typography>
+          <Button position="fixed" component="div" className="logoutButton"
+          variant="contained"
+          color="error"
+          sx={{
+            color: "#fff",
+            zIndex: (theme) => theme.zIndex.drawer + 2,
+          }}
+          onClick={authenticationService.logout}
+        >
+          Logout
+        </Button>
         </Toolbar>
       </AppBar>
       <Box
@@ -83,4 +86,4 @@ function RightMenu({drawerWidth}) {
   );
 }
 
-export default RightMenu
+export default StudentRightMenu

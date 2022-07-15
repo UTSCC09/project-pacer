@@ -4,6 +4,10 @@ import './index.css';
 import App from './App.jsx';
 import * as serviceWorker from './serviceWorker';
 
+// setup fake backend
+import { configureFakeBackend } from './_helpers';
+configureFakeBackend();
+
 ReactDOM.render(
   <React.StrictMode>
     <App />

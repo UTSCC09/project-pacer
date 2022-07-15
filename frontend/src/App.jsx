@@ -1,134 +1,71 @@
-import React from 'react';
-import CodeMirror from '@uiw/react-codemirror';
-import Storage from './components/Storage';
-import { upperPythonKeys, lowerPythonKeys, javaKeys } from './bin/pythonAutoCompleteLib'
-import {EditorState, Compartment} from "@codemirror/state"
-import { python, pythonLanguage } from '@codemirror/lang-python';
-import {CompletionContext} from "@codemirror/autocomplete";
-import { javascript, javascriptLanguage } from '@codemirror/lang-javascript';
-import { java, javaLanguage } from '@codemirror/lang-java'
-import './App.css';
-import { useState } from 'react';
-import InputLabel from '@mui/material/InputLabel';
-import MenuItem from '@mui/material/MenuItem';
-import FormControl from '@mui/material/FormControl';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
-import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
-import EditorOptionsBar from './components/EditorOptions';
-import RightMenu from './components/RightMenu';
-import LoginPage from './components/LoginPage';
-import { CssBaseline } from '@mui/material';
-import Toolbar from '@mui/material/Toolbar';
+import { useState, useEffect, useCallback } from "react";
+import { BrowserRouter, Routes, Route, Link, Navigate } from "react-router-dom";
 
-const drawerWidth = 240;
+import "./App.css";
+import {
+  history,
+  Role,
+} from "./_helpers";
+import { authenticationService } from "./_services";
+import { PrivateRoute } from "./_components";
 
+import StudentPage from "./StudentPage";
 
+import LoginPage from "./LoginPage";
+import { CssBaseline } from "@mui/material";
+import TeacherPage from "./TeacherPage";
 
+function logout() {
+  authenticationService.logout();
+  history.push("/login");
+}
 
 function App() {
-  const [code, setCode] = useState(() => "console.log('hello world!');");
-  const [role, setRole] = useState(() => "");
-  const [openLogin, setOpenLogin] = useState(() => role !== "");
-  const [language, setLanguage] = React.useState(() => 'javascript');
+  const [curUser, setCurUser] = useState(() => null);
+  const [isAdmin, setIsAdmin] = useState(() => false);
 
-  let editorLanguage = new Compartment
-
-  const onChange = React.useCallback((value, viewUpdate) => {
-    console.log('value:', value);
-    setCode(value)
+  useEffect(() => {
+    authenticationService.currentUser.subscribe((x) => {
+      setCurUser(x);
+      setIsAdmin(x && x.role === Role.Admin);
+    });
   }, []);
 
-  let extensions = [javascript({ jsx: true })]
-  if (language === "javascript") {
-    extensions[0] = javascript({ jsx: true })
-  } else if (language === "python") {
-    extensions[0] = python()
-    extensions[1] = globalPythonCompletions
-  } else {
-    extensions[0] = java()
-    extensions[1] = globalJavaScriptCompletions
-  }
   return (
-    <CssBaseline>
-      <LoginPage open={openLogin} setOpen={e => setOpenLogin(e)} role={role} setRole={e => setRole(e)}/>
-      <Box sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` } }}>
-        <Toolbar />
-        <Grid container rowSpacing={0.5} columnSpacing={3}>
-          <Grid item xs={12}><p>Currently logged in as {role}:</p></Grid>
-          <Grid item xs={5}>
-              <p>Server Screen (remote):</p>
-              {/* server display */}
-              <CodeMirror
-                value=""
-                height="600px"
-                theme="dark"
-                hint="true"
+    <BrowserRouter history={history}>
+      <CssBaseline>
+        <Routes>
+          <Route
+            path="/student"
+            element={
+              <PrivateRoute isAllowed={!!curUser && !isAdmin}>
+                <StudentPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/teacher"
+            element={
+              <PrivateRoute isAllowed={!!curUser && isAdmin}>
+                <TeacherPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            exact
+            path="/login"
+            element={
+              <LoginPage
+                isAdmin={isAdmin}
+                setIsAdmin={(e) => setIsAdmin(e)}
               />
-            </Grid>
-          <Grid item xs={7}>
-            <Grid item xs={12}>
-              <EditorOptionsBar language={language} onLanguageChange={e => setLanguage(e.target.value)} />
-            </Grid>
-            <Grid item xs={12}>
-              <p>Client Screen (local):</p>
-            </Grid>
-            <Grid item xs={12}>
-              {/* client display */}
-              <CodeMirror
-                value={code}
-                height="600px"
-                theme="dark"
-                extensions={extensions}
-                onChange={onChange}
-                hint="true"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Storage value={code}></Storage>
-          </Grid>
-          
-          </Grid>
-        </Grid>
-      </Box>
-      <RightMenu drawerWidth={drawerWidth} />
-    
-    </CssBaseline>
+            }
+          />
+          <Route path="*" element={<Navigate to="/login" />} />
+        </Routes>
+      </CssBaseline>
+    </BrowserRouter>
   );
 }
-
-function myPythonCompletions(context: CompletionContext) {
-  let word = context.matchBefore(/\w*/)
-  if (word.from == word.to && !context.explicit)
-    return null
-  if (word.text[0] === word.text[0].toUpperCase() && /^[a-zA-Z]+$/.test(word.text[0])) {
-    return {
-      from: word.from,
-      options: upperPythonKeys
-    }
-  }
-  return {
-    from: word.from,
-    options: lowerPythonKeys
-  }
-}
-
-function myJavaCompletions(context: CompletionContext) {
-  let word = context.matchBefore(/\w*/)
-  if (word.from == word.to && !context.explicit)
-    return null
-  return {
-    from: word.from,
-    options: javaKeys
-  }
-}
-
-const globalPythonCompletions = pythonLanguage.data.of({
-  autocomplete: myPythonCompletions
-})
-
-const globalJavaScriptCompletions = javaLanguage.data.of({
-  autocomplete: myJavaCompletions
-})
 
 export default App;

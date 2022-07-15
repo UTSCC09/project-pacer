@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import Backdrop from "@mui/material/Backdrop";
+import { useState, useEffect } from 'react';
+import { authenticationService } from './_services';
 import Box from "@mui/material/Box";
 import Stack from '@mui/material/Stack';
 import Button from "@mui/material/Button";
@@ -10,54 +10,70 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import FormControl from "@mui/material/FormControl";
 import FormLabel from "@mui/material/FormLabel";
 import Alert from '@mui/material/Alert';
+import { history } from './_helpers';
+import { useNavigate } from "react-router-dom";
+import "./LoginPage.css";
 
-function LoginPage({ open, setOpen, role, setRole }) {
+let adminIdentified = false;
+
+function LoginPage({isAdmin, setIsAdmin}) {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    adminIdentified = false
+    if (authenticationService.currentUserValue) { 
+      console.log("already logged in")
+      console.log(authenticationService.currentUserValue)
+      console.log(authenticationService.currentUserValue.role)
+      if (authenticationService.currentUserValue.role === "Admin") 
+      navigate("/teacher", { replace: true });
+      else navigate('/student', { replace: true });
+    }
+  }, []);
 
   const [showAlert, setShowAlert] = useState(false);
   const handleLogin = () => {
-    if (!role) {
-        console.log("here")
+    if (!adminIdentified) {
         setShowAlert(true)
+        return
     }
-    else {
-        setShowAlert(false)
-        setOpen(false);
+    // else {
+    //     setShowAlert(false)
+    //     setOpen(false);
+    // }
+    if (isAdmin) {
+      console.log("logging as admin")
+      authenticationService.login("admin", "admin")
+      .then(
+          user => {
+              navigate("/teacher", { replace: true });
+          },
+          error => {
+              console.log(error)
+          }
+      );
+    } else {
+      console.log("logging as student")
+      authenticationService.login("user", "user")
+      .then(
+          user => {
+              navigate("/student", { replace: true });
+          },
+          error => {
+              console.log(error)
+          }
+      );
     }
-  };
-  const handleToggle = () => {
-    setOpen(!open);
   };
 
-  const updateRole = (role) => {
-    console.log(role)
-    setRole(role);
+  const updateRole = (adminChange) => {
+    adminIdentified = true;
+    setIsAdmin(adminChange);
+
   }
 
   return (
-    <Box display="flex" justifyContent="flex-end">
-      <Button
-        variant="contained"
-        color="error"
-        onClick={handleToggle}
-        sx={{
-          color: "#fff",
-          zIndex: (theme) => theme.zIndex.drawer + 2,
-          mr: 3,
-          mt: 1.5,
-        }}
-      >
-        Logout
-      </Button>
-      <Backdrop
-        sx={{
-          bgcolor: "secondary.main",
-          color: "#fff",
-          zIndex: (theme) => theme.zIndex.drawer + 2,
-        }}
-        open={open}
-      >
-        
-        
+    <Box display="flex" justifyContent="center" className="LoginBox">
         <Stack spacing={2}>
         {showAlert && <Alert severity="error">Select a role first!</Alert>}
         <FormControl>
@@ -67,8 +83,8 @@ function LoginPage({ open, setOpen, role, setRole }) {
             aria-labelledby="role-select"
             name="role-select-group"
           >
-            <FormControlLabel onChange={e => updateRole(e.target.value)} value="teacher" control={<BpRadio />} label="Teacher" />
-            <FormControlLabel onChange={e => updateRole(e.target.value)} value="student" control={<BpRadio />} label="Student" />
+            <FormControlLabel onChange={e => updateRole(true)} value={true} control={<BpRadio />} label="Teacher" />
+            <FormControlLabel onChange={e => updateRole(false)} value={false} control={<BpRadio />} label="Student" />
           </RadioGroup>
         </FormControl>
         <Button 
@@ -80,7 +96,6 @@ function LoginPage({ open, setOpen, role, setRole }) {
           SignIn
         </Button>
         </Stack>
-      </Backdrop>
     </Box>
   );
 }
