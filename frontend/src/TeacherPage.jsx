@@ -26,7 +26,7 @@ const drawerWidth = 240;
 
 // let StudentEditor = cloneElement(CodeMirror, {value:"", height:"600px", theme:"dark", hint:"true"})
 
-function TeacherPage() {
+function TeacherPage({uploadFileFormHandler}) {
   const [code, setCode] = useState(() => "console.log('hello world!');");
   const [language, setLanguage] = useState(() => 'javascript');
   const [displayStudent, setDisplayStudent] = useState(() => false);
@@ -95,6 +95,12 @@ function TeacherPage() {
             </Grid>
             <Grid item xs={12}>
               <Storage value={code}></Storage>
+            </Grid>
+            <Grid item xs={12}>
+            <form onSubmit={uploadFileFormHandler}>
+                <input type="file" className="input" />
+                <button type="submit">Upload</button>
+            </form>
             </Grid>
           </Grid>
         </Grid>

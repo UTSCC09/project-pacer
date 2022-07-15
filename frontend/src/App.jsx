@@ -15,10 +15,43 @@ import LoginPage from "./LoginPage";
 import { CssBaseline } from "@mui/material";
 import TeacherPage from "./TeacherPage";
 
+import { storage } from "./_components/FireBase";
+import { ref } from "@firebase/storage"
+import { ref as fileStorageRef, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
+
 function logout() {
   authenticationService.logout();
   history.push("/login");
 }
+
+const uploadFileFormHandler = (event) => {
+  event.preventDefault();
+  const file = event.target[0].files[0];
+  uploadFile(file);
+};
+const uploadFile = (f) => {
+  if (!f) {
+    console.log('Upload failed. Try a different file.');
+  }
+  const fileStorageRef = ref(storage, `/files/${f.name}`);
+  const uploadFileTaskStatus = uploadBytesResumable(fileStorageRef, f);
+  uploadFileTaskStatus.on(
+    "state_changed",
+    (u) => {
+      let p = 100;
+      if (u.totalBytes > 0) {
+        p = Math.round((u.bytesTransferred / u.totalBytes) * 100);
+      }
+    },
+    (err) => console.log(err),
+    () => {
+      // when the file is uploaded successfully:
+      getDownloadURL(uploadFileTaskStatus.snapshot.ref)
+        .then((url) => console.log(url));
+      f.text().then((text) => console.log(text));
+    }
+  );
+};
 
 function App() {
   const [curUser, setCurUser] = useState(() => null);
@@ -39,7 +72,7 @@ function App() {
             path="/student"
             element={
               <PrivateRoute isAllowed={!!curUser && !isAdmin}>
-                <StudentPage />
+                <StudentPage fileUploadHandler={uploadFileFormHandler}/>
               </PrivateRoute>
             }
           />
@@ -47,7 +80,7 @@ function App() {
             path="/teacher"
             element={
               <PrivateRoute isAllowed={!!curUser && isAdmin}>
-                <TeacherPage />
+                <TeacherPage fileUploadHandler={uploadFileFormHandler}/>
               </PrivateRoute>
             }
           />

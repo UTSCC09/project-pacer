@@ -23,7 +23,7 @@ import { authenticationService } from './_services';
 
 const drawerWidth = 240;
 
-function StudentPage() {
+function StudentPage({uploadFileFormHandler}) {
   const [code, setCode] = useState(() => "console.log('hello world!');");
   const [language, setLanguage] = useState(() => 'javascript');
 
@@ -82,6 +82,12 @@ function StudentPage() {
             </Grid>
             <Grid item xs={12}>
               <Storage value={code}></Storage>
+            </Grid>
+            <Grid item xs={12}>
+            <form onSubmit={uploadFileFormHandler}>
+                <input type="file" className="input" />
+                <button type="submit">Upload</button>
+            </form>
             </Grid>
           </Grid>
         </Grid>
