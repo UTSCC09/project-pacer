@@ -21,6 +21,10 @@ import LoginPage from './components/LoginPage';
 import { CssBaseline } from '@mui/material';
 import Toolbar from '@mui/material/Toolbar';
 
+import { storage } from "./firebase";
+import { ref } from "@firebase/storage"
+import { ref as fileStorageRef, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
+
 const drawerWidth = 240;
 
 
@@ -31,6 +35,36 @@ function App() {
   const [role, setRole] = useState(() => "");
   const [openLogin, setOpenLogin] = useState(() => role !== "");
   const [language, setLanguage] = React.useState(() => 'javascript');
+
+  // for Firebase:
+  const uploadFileFormHandler = (event) => {
+    event.preventDefault();
+    const file = event.target[0].files[0];
+    uploadFile(file);
+  };
+  const uploadFile = (f) => {
+    if (!f) {
+      console.log('Upload failed. Try a different file.');
+    }
+    const fileStorageRef = ref(storage, `/files/${f.name}`);
+    const uploadFileTaskStatus = uploadBytesResumable(fileStorageRef, f);
+    uploadFileTaskStatus.on(
+      "state_changed",
+      (u) => {
+        let p = 100;
+        if (u.totalBytes > 0) {
+          p = Math.round((u.bytesTransferred / u.totalBytes) * 100);
+        }
+      },
+      (err) => console.log(err),
+      () => {
+        // when the file is uploaded successfully:
+        getDownloadURL(uploadFileTaskStatus.snapshot.ref)
+          .then((url) => console.log(url));
+        f.text().then((text) => setCode(text));
+      }
+    );
+  };
 
   let editorLanguage = new Compartment
 
@@ -87,12 +121,17 @@ function App() {
             <Grid item xs={12}>
               <Storage value={code}></Storage>
           </Grid>
-          
+
           </Grid>
         </Grid>
       </Box>
       <RightMenu drawerWidth={drawerWidth} />
-    
+
+      <form onSubmit={uploadFileFormHandler}>
+        <input type="file" className="input" />
+        <button type="submit">Upload</button>
+      </form>
+
     </CssBaseline>
   );
 }
