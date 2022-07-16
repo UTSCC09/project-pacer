@@ -21,19 +21,15 @@ const Role = {
 
 let users = [
 //   {
-//     id: 1,
+//     id: 0,
 //     username: "admin",
 //     password: "admin",
-//     firstName: "Admin",
-//     lastName: "User",
 //     role: Role.Admin,
 //   },
 //   {
-//     id: 2,
+//     id: 0,
 //     username: "user",
 //     password: "user",
-//     firstName: "Normal",
-//     lastName: "User",
 //     role: Role.User,
 //   },
 ];
@@ -78,8 +74,6 @@ app.post(
       return res.json({
         id: user.id,
         username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
         role: user.role,
     });
     });
@@ -125,7 +119,11 @@ app.post(
         role: role,
       }
       users.push(newUser)
-      return res.json(newUser)
+      return res.json({
+        id: 0,
+        username: username,
+        role: role
+      })
     });
   }
 );
