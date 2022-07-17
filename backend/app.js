@@ -73,10 +73,6 @@ io.on('connection', async (socket) => {
     console.log("[Server] - fetch code:  " + value);
     console.log("[Server] - fetch code: length  " + sockets.length)
     console.log("[Server] - fetch code: adminId  " + adminId)
-    console.log(sockets[0].id,sockets[0].role,
-       sockets[1].id,sockets[1].role,
-        sockets[2].id,sockets[2].role,
-        sockets[3].id,sockets[3].role);
 
     var studentId = '';
     var count = 0;

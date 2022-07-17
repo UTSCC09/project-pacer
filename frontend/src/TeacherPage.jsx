@@ -101,8 +101,7 @@ function TeacherPage({uploadFileFormHandler}) {
 
   },[])
 
-
-
+  
   useEffect(() => { 
     socket.emit("set attributes", "admin")
   })
