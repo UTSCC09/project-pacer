@@ -16,9 +16,10 @@ export function configureFakeBackend() {
             // wrap in timeout to simulate server api call
             setTimeout(() => {
                 // authenticate - public
-                if (url.endsWith('/users/authenticate') && opts.method === 'POST') {
+                if (url.endsWith('/api/login') && opts.method === 'POST') {
                     const params = JSON.parse(opts.body);
                     const user = users.find(x => x.username === params.username && x.password === params.password);
+                    if (user && user.role !== params.role) return error('Incorrect role selected');
                     if (!user) return error('Username or password is incorrect');
                     return ok({
                         id: user.id,

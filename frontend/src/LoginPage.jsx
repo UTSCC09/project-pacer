@@ -15,11 +15,22 @@ import { useNavigate } from "react-router-dom";
 import "./LoginPage.css";
 // [kw]
 import React from 'react';
+import { Input, InputLabel } from '@mui/material';
 
 let adminIdentified = false;
 
 function LoginPage({isAdmin, setIsAdmin}) {
+  const [username, setUsername] = useState(() => '');
+  const [password, setPassword] = useState(() => '');
   const navigate = useNavigate();
+
+  function updateUserName(e) {
+    setUsername(e.target.value)
+  }
+
+  function updatePassword(e) {
+    setPassword(e.target.value)
+  }
 
   useEffect(() => {
     adminIdentified = false
@@ -33,38 +44,46 @@ function LoginPage({isAdmin, setIsAdmin}) {
     }
   }, []);
 
-  const [showAlert, setShowAlert] = useState(false);
-  const handleLogin = () => {
+  const [showAlert, setShowAlert] = useState("");
+  const handleLogin = (e) => {
+    e.preventDefault()
     if (!adminIdentified) {
-        setShowAlert(true)
+        setShowAlert("Select a role first!")
         return
     }
-    // else {
-    //     setShowAlert(false)
-    //     setOpen(false);
-    // }
     if (isAdmin) {
       console.log("logging as admin")
-      authenticationService.login("admin", "admin")
-      .then(
-          user => {
-              navigate("/teacher", { replace: true });
-          },
-          error => {
-              console.log(error)
-          }
-      );
+      authenticationService.signin(username, password, "Admin", function(err, res) {
+        if (err) return setShowAlert(String(err))
+        navigate("/teacher", { replace: true });
+      })
     } else {
       console.log("logging as student")
-      authenticationService.login("user", "user")
-      .then(
-          user => {
-              navigate("/student", { replace: true });
-          },
-          error => {
-              console.log(error)
-          }
-      );
+      authenticationService.signin(username, password, "User", function(err,res) {
+        if (err) return setShowAlert(String(err))
+        navigate("/student", { replace: true });
+      })
+    }
+  };
+
+  const handleSignup = (e) => {
+    e.preventDefault()
+    if (!adminIdentified) {
+        setShowAlert("Select a role first!")
+        return
+    }
+    if (isAdmin) {
+      console.log("signing up as admin")
+      authenticationService.signup(username, password, "Admin", function(err, res) {
+        if (err) return setShowAlert(String(err))
+        navigate("/teacher", { replace: true });
+      })
+    } else {
+      console.log("signing up as student")
+      authenticationService.signup(username, password, "User", function(err,res) {
+        if (err) return setShowAlert(String(err))
+        navigate("/student", { replace: true });
+      })
     }
   };
 
@@ -77,26 +96,51 @@ function LoginPage({isAdmin, setIsAdmin}) {
   return (
     <Box display="flex" justifyContent="center" className="LoginBox">
         <Stack spacing={2}>
-        {showAlert && <Alert severity="error">Select a role first!</Alert>}
-        <FormControl>
-          <p>Role Select:</p>
-          <RadioGroup
-            row
-            aria-labelledby="role-select"
-            name="role-select-group"
+        {showAlert && <Alert severity="error">{showAlert}</Alert>}
+        <from className="loginForm">
+          <Stack spacing={2}>
+          <FormControl required>
+            <InputLabel htmlFor="username">User</InputLabel>
+            <Input id="username" name="username" value={username} autoFocus onChange={updateUserName} />
+          </FormControl>
+          <FormControl required>
+            <InputLabel htmlFor="password">Password</InputLabel>
+            <Input id="password" type="password" name="password" value={password} onChange={updatePassword} />
+          </FormControl>
+          <FormControl required>
+            <p>Login/Signup As:</p>
+            <RadioGroup
+              row
+              aria-labelledby="role-select"
+              name="role-select-group"
+            >
+              <FormControlLabel onChange={e => updateRole(true)} value={true} control={<BpRadio />} label="Teacher" />
+              <FormControlLabel onChange={e => updateRole(false)} value={false} control={<BpRadio />} label="Student" />
+            </RadioGroup>
+          </FormControl>
+          <Box display="flex" flexDirection="row" justifyContent="space-between">
+          <Button 
+            variant="contained"
+            type="submit"
+            color="success"
+            onClick={handleLogin}
+            sx={{ color: "#fff" }}
           >
-            <FormControlLabel onChange={e => updateRole(true)} value={true} control={<BpRadio />} label="Teacher" />
-            <FormControlLabel onChange={e => updateRole(false)} value={false} control={<BpRadio />} label="Student" />
-          </RadioGroup>
-        </FormControl>
-        <Button 
-          variant="contained"
-          color="success"
-          onClick={handleLogin}
-          sx={{ color: "#fff" }}
-        >
-          SignIn
-        </Button>
+            SignIn
+          </Button>
+          <Button 
+            variant="contained"
+            type="submit"
+            color="success"
+            onClick={handleSignup}
+            sx={{ color: "#fff" }}
+          >
+            SignUp
+          </Button>
+          </Box>
+          
+          </Stack>
+        </from>
         </Stack>
     </Box>
   );
