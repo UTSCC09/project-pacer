@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
@@ -22,12 +22,20 @@ import { javascript, javascriptLanguage } from '@codemirror/lang-javascript';
 import { java, javaLanguage } from '@codemirror/lang-java'
 import { authenticationService } from './_services';
 import runCode from './_helpers/codeRunner';
+// [kw]
+import React from 'react';
+import { socket } from  './_services';
+
 
 const drawerWidth = 240;
+
+var request = false;
+var adminId ='';
 
 function StudentPage({uploadFileFormHandler}) {
   const [code, setCode] = useState(() => "console.log('hello world!');");
   const [language, setLanguage] = useState(() => 'javascript');
+  const [lecCode, setLecCode] = useState(() => "console.log('hello students!');");
 
   let extensions = [javascript({ jsx: true })]
   if (language === "javascript") {
@@ -40,10 +48,67 @@ function StudentPage({uploadFileFormHandler}) {
     extensions[1] = globalJavaScriptCompletions
   }
 
-  const onChange = useCallback((value, viewUpdate) => {
+  // const onChange = useCallback((value, viewUpdate) => {
+  //   console.log('value:', value);
+  //   const editor = viewUpdate.state.values[0].prevUserEvent
+
+  //   setCode(value)
+
+  //   if (request && editor){
+  //     socket.emit('onChange', value, adminId)
+  //   }
+    
+  // }, []);
+
+
+  // [kw]
+  useEffect(() => {    
+    socket.on("connect", () => {
+      console.log("[Client - student] Open - socket.id: " + socket.id)
+      console.log("[Client - student] Check connection: " + socket.connected)
+    })
+
+    socket.on('fetch request', (Id) => {
+      request = true
+      adminId = Id
+      // socket.emit('onChange',code, Id)
+      console.log("request received, ready!!", code)
+    });
+
+    socket.on('stop request', () => {
+      request = false
+      adminId = ''
+      // socket.emit("close student", adminId)
+      console.log("Thanks for the help!!",request, adminId)
+    });
+
+    socket.on('onChange', (value, adminId) => {
+      if (request) setCode(value)
+
+    });
+  },[])
+
+
+  useEffect(() => {    
+    socket.emit("set attributes", "user")
+  })
+
+
+  const onChange = (value, viewUpdate) => {
     console.log('value:', value);
+    const editor = viewUpdate.state.values[0].prevUserEvent
+
+    if (request && editor){
+      socket.emit('onChange', value, adminId)
+    }
     setCode(value)
-  }, []);
+  };
+
+
+  socket.on('onLecChange', (value, id) => {
+      setLecCode(value)
+  });
+  // end of [kw]
 
   const run = () => {
     runCode(code, language)
@@ -63,7 +128,15 @@ function StudentPage({uploadFileFormHandler}) {
           <Grid item xs={5}>
             <p>Server Screen (remote):</p>
             {/* server display */}
-            <CodeMirror value="" height="600px" theme="dark" hint="true" />
+            {/* <CodeMirror value="" height="600px" theme="dark" hint="true" /> */}
+            <CodeMirror 
+                value={lecCode}
+                height="600px"
+                theme="dark"
+                extensions={extensions}
+                hint="true"
+                readOnly="true"
+              />
           </Grid>
           <Grid item xs={7}>
             <Grid item xs={12}>
