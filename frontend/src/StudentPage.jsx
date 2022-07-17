@@ -3,6 +3,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
+import Stack from '@mui/material/Stack';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Box from '@mui/material/Box';
 import Button from "@mui/material/Button";
@@ -20,6 +21,7 @@ import {CompletionContext} from "@codemirror/autocomplete";
 import { javascript, javascriptLanguage } from '@codemirror/lang-javascript';
 import { java, javaLanguage } from '@codemirror/lang-java'
 import { authenticationService } from './_services';
+import runCode from './_helpers/codeRunner';
 // [kw]
 import React from 'react';
 import { socket } from  './_services';
@@ -108,6 +110,10 @@ function StudentPage({uploadFileFormHandler}) {
   });
   // end of [kw]
 
+  const run = () => {
+    runCode(code, language)
+  }
+
   return (
     <>
       <Box
@@ -154,7 +160,11 @@ function StudentPage({uploadFileFormHandler}) {
               />
             </Grid>
             <Grid item xs={12}>
+              
+              <Stack spacing={2} direction="row">
+              <Button onClick={run} variant="contained">Run</Button>
               <Storage value={code}></Storage>
+              </Stack>
             </Grid>
             <Grid item xs={12}>
             <form onSubmit={uploadFileFormHandler}>

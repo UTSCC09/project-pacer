@@ -3,6 +3,10 @@ const express = require("express");
 const cors = require('cors');
 const bcrypt = require("bcrypt");
 const { body, validationResult } = require("express-validator");
+
+const dotenv = require("dotenv");
+dotenv.config();
+
 const app = express();
 
 const http = require("http");
@@ -43,6 +47,9 @@ let users = [
 //     role: Role.User,
 //   },
 ];
+
+const webhookRoutes = require('./routes/webhookRoutes');
+app.use('/api', webhookRoutes);
 
 const saltRounds = 10;
 
@@ -141,6 +148,20 @@ app.post(
 app.post("/api/signout/", function (req, res) {
   console.log("hit signout endpoint")
   return res.json(null);
+});
+
+// `Not Found` request handler
+app.use((req, res, next) => {
+  const error = new Error('Not Found');
+  error.status = 404;
+  throw error;
+});
+
+
+// thrown erros handler
+app.use((error, req, res, next) => {
+  res.status(error.status || 500);
+  res.json({ message: error.message || 'Internal Server Error' });
 });
 
 // [kw] socket io

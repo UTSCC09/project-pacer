@@ -8,7 +8,7 @@ import {
   history,
   Role,
 } from "./_helpers";
-import { authenticationService } from "./_services";
+import { authenticationService, webhookService } from "./_services";
 import { PrivateRoute } from "./_components";
 
 import StudentPage from "./StudentPage";
@@ -56,9 +56,23 @@ const uploadFile = (f) => {
   );
 };
 
+let subscriber = null
+let endpoint = null
+webhookService.subscribe("classtest", (err, res) => {
+  if (err) console.log(err);
+  console.log(res)
+  subscriber = res.id
+  webhookService.addEndpoint(subscriber, "http://localhost:8080/webhook/helprequesttest", ["help.requested"], (err, res) => {
+    if (err) console.log(err);
+    console.log(res)
+    endpoint = res.id
+  })
+})
+
 function App() {
   const [curUser, setCurUser] = useState(() => null);
   const [isAdmin, setIsAdmin] = useState(() => false);
+  const [subscriber, setSubscriber] = useState(() => {})
 
   useEffect(() => {
     authenticationService.currentUser.subscribe((x) => {
