@@ -2,6 +2,8 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
+// [kw]
+import React from 'react';
 
 function EditorOptionsBar({language, onLanguageChange}) {
     return (

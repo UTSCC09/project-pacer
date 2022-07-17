@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Link, Navigate } from "react-router-dom";
+// [kw]
+import React from 'react';
 
 import "./App.css";
 import {
@@ -29,6 +31,7 @@ const uploadFileFormHandler = (event) => {
   const file = event.target[0].files[0];
   uploadFile(file);
 };
+
 const uploadFile = (f) => {
   if (!f) {
     console.log('Upload failed. Try a different file.');

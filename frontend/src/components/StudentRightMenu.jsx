@@ -13,6 +13,8 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import { Button } from '@mui/material';
 import { authenticationService } from '../_services';
+// [kw]
+import React from 'react';
 
 function StudentRightMenu({drawerWidth}) {
 

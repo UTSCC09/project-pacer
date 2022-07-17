@@ -12,21 +12,29 @@ import ListItemText from "@mui/material/ListItemText";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { Button } from "@mui/material";
-import { authenticationService } from "../_services";
+import { authenticationService, socket } from "../_services";
+// [kw]
+import React, { useEffect } from 'react';
 
 function getConnectedStudents() {
     return ["Student1", "Student2", "Student3", "Student4"]
 }
 
 
-
 function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName }) {
 
-    function loadStudentSession(studentName) {
-        setDisplayStudent(true)
-        console.log(studentName)
-        setStudentName(studentName)
-    }
+  function loadStudentSession(studentName) {
+      setDisplayStudent(true)
+      console.log(studentName)
+      setStudentName(studentName)
+      socket.emit("fetch code", parseInt(studentName.at(-1)), socket.id)
+  }
+
+
+  // useEffect(() => {
+  //   console.log("current Socket Id:", socket.id)
+  //   }, []
+  // )
     
   const drawer = (
     <div>
