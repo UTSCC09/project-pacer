@@ -20,24 +20,38 @@ import { javascript, javascriptLanguage } from '@codemirror/lang-javascript';
 import { java, javaLanguage } from '@codemirror/lang-java'
 import { authenticationService } from './_services';
 import TeacherRightMenu from './components/TeacherRightMenu';
+// [kw]
+import React from 'react';
+// [kw] socket io setup
+import { io } from 'socket.io-client'
+import { socket } from  './_services';
+
+// const socket = io('http://localhost:8080/', {
+//   transports: ['websocket'],
+// })
 
 const drawerWidth = 240;
 
+var sid = '';
 
 // let StudentEditor = cloneElement(CodeMirror, {value:"", height:"600px", theme:"dark", hint:"true"})
 
 function TeacherPage({uploadFileFormHandler}) {
-  const [code, setCode] = useState(() => "console.log('hello world!');");
+  const [code, setCode] = useState(() => "console.log('Welcome to class!');");
+  const [stuCode, setStuCode] = useState(() => "no student here");
   const [language, setLanguage] = useState(() => 'javascript');
   const [displayStudent, setDisplayStudent] = useState(() => false);
   const [studentName, setStudentName] = useState(() => "")
+  // const [sid, setSid] = useState(() => "")
 
   const studentEditorRef = useRef()
 
   useEffect(() => {
     const studentEditor = studentEditorRef.current
     console.log(studentEditor)
+    // setStuCode("no student here")
     }, [studentName])
+
 
   let extensions = [javascript({ jsx: true })]
   if (language === "javascript") {
@@ -50,10 +64,65 @@ function TeacherPage({uploadFileFormHandler}) {
     extensions[1] = globalJavaScriptCompletions
   }
 
-  const onChange = useCallback((value, viewUpdate) => {
-    console.log('value:', value);
-    setCode(value)
-  }, []);
+  // const onChange = useCallback((value, viewUpdate) => {
+  //   console.log('value:', value);
+  //   setCode(value)
+  // }, []);
+
+
+  // [kw]
+  useEffect(() => {    
+    socket.on("connect", () => {
+      console.log("[New Client - teacher] Open - socket.id: " + socket.id)
+      console.log("[New Client - teacher] Check connection: " + socket.connected)
+    })
+
+    // socket.emit("set attributes", "admin")
+    socket.emit('onLecChange', code)
+
+    socket.on('onChange', (value, id) => {
+      // if(socket.id !== id){
+      console.log("[onChange] value: "+ value);
+      console.log("editor id " + sid)
+      sid = id
+      setStuCode(value)
+      // } 
+    });
+
+    socket.on('no student', msg => {
+      console.log("no student get called")
+      sid = '';
+      setStuCode(msg)
+    });
+
+    // socket.on("close student", () => {
+    //   setStuCode("no student here")
+    // })
+
+  },[])
+
+
+
+  useEffect(() => { 
+    socket.emit("set attributes", "admin")
+  })
+
+
+  const onChange = (value, viewUpdate) => {
+    console.log("value:", value)
+    socket.emit('onLecChange', value)
+  }
+
+  const onStuChange = (value, viewUpdate) => {
+    const editor = viewUpdate.state.values[0].prevUserEvent
+    // console.log("value:", value)
+
+    if(editor) socket.emit('onChange', value, sid)
+
+  }
+
+
+  // end of [kw]
 
 
   return (
@@ -67,11 +136,21 @@ function TeacherPage({uploadFileFormHandler}) {
       >
         <Toolbar />
         <Grid container rowSpacing={0.5} columnSpacing={3}>
+
           {displayStudent ? <Grid item xs={5}>
             <p>Code session for student {studentName}:</p>
             {/* server display */}
-            <CodeMirror ref={studentEditorRef} value="abc" height="600px" theme="dark" hint="true" />
+            {/* <CodeMirror ref={studentEditorRef} value="abc" height="600px" theme="dark" hint="true" /> */}
+            <CodeMirror
+                value={stuCode}
+                height="600px"
+                theme="dark"
+                extensions={extensions}
+                onChange={onStuChange}
+                hint="true"
+              />
           </Grid> : null}
+
           <Grid item xs={displayStudent ? 7 : 12}>
             <Grid item xs={12}>
               <EditorOptionsBar
@@ -103,6 +182,7 @@ function TeacherPage({uploadFileFormHandler}) {
             </form>
             </Grid>
           </Grid>
+
         </Grid>
       </Box>
       <TeacherRightMenu drawerWidth={drawerWidth} setDisplayStudent={setDisplayStudent} setStudentName={setStudentName} />

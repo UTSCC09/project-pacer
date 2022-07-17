@@ -13,6 +13,8 @@ import Alert from '@mui/material/Alert';
 import { history } from './_helpers';
 import { useNavigate } from "react-router-dom";
 import "./LoginPage.css";
+// [kw]
+import React from 'react';
 
 let adminIdentified = false;
 
