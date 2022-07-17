@@ -1,12 +1,25 @@
 import { BehaviorSubject } from 'rxjs';
 
-import { handleResponse } from './../_helpers';
+export const getCurrentUser = async() => {
+  try {
+    const response = await fetch('http://localhost:8080/api/whoami', {credentials: 'include'});
+     const data = await response.json();
+    // enter you logic when the fetch is successful
+     console.log(data);
+     currentUserSubject.next(data);
+   } catch(error) {
+// enter your logic for when there is an error (ex. error toast)
+      console.log(error)
+     } 
+}
 
-const currentUserSubject = new BehaviorSubject(JSON.parse(localStorage.getItem('currentUser')));
+
+const currentUserSubject = new BehaviorSubject(getCurrentUser());
 
 function send(method, url, data, callback) {
     const config = {
       method: method,
+      credentials: 'include'
     };
     if (!["GET", "DELETE"].includes(method)) {
       config.headers = {
@@ -33,13 +46,15 @@ export const authenticationService = {
     signup,
     logout,
     currentUser: currentUserSubject.asObservable(),
-    get currentUserValue () { return currentUserSubject.value }
+    get currentUserValue () { getCurrentUser() }
 };
+
+
 
 function signin(username, password, role, callback) {
     send("POST", "http://localhost:8080/api/signin", { username, password, role }, function (err, res) {
         if (err) return callback(err, null);
-        localStorage.setItem('currentUser', JSON.stringify(res));
+        console.log(res)
         currentUserSubject.next(res);
         return callback(null, res);
       });
@@ -48,7 +63,6 @@ function signin(username, password, role, callback) {
 function signup(username, password, role, callback) {
     send("POST", "http://localhost:8080/api/signup", { username, password, role }, function (err, res) {
         if (err) return callback(err, null);
-        localStorage.setItem('currentUser', JSON.stringify(res));
         currentUserSubject.next(res);
         return callback(null, res);
       });
@@ -59,7 +73,6 @@ function logout() {
     send("POST", "http://localhost:8080/api/signout", { }, function (err) {
         if (err) return console.log(err);
         console.log("logging out")
-        localStorage.removeItem('currentUser');
         currentUserSubject.next(null);
       });
 }

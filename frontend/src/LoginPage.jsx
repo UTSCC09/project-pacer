@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { authenticationService } from './_services';
+import { authenticationService, getCurrentUser } from './_services';
 import Box from "@mui/material/Box";
 import Stack from '@mui/material/Stack';
 import Button from "@mui/material/Button";
@@ -19,7 +19,8 @@ import { Input, InputLabel } from '@mui/material';
 
 let adminIdentified = false;
 
-function LoginPage({isAdmin, setIsAdmin}) {
+function LoginPage({curUser, isAdmin, setIsAdmin}) {
+  console.log(curUser)
   const [username, setUsername] = useState(() => '');
   const [password, setPassword] = useState(() => '');
   const navigate = useNavigate();
@@ -34,11 +35,9 @@ function LoginPage({isAdmin, setIsAdmin}) {
 
   useEffect(() => {
     adminIdentified = false
-    if (authenticationService.currentUserValue) { 
+    if (curUser) {
       console.log("already logged in")
-      console.log(authenticationService.currentUserValue)
-      console.log(authenticationService.currentUserValue.role)
-      if (authenticationService.currentUserValue.role === "Admin") 
+      if (isAdmin) 
       navigate("/teacher", { replace: true });
       else navigate('/student', { replace: true });
     }

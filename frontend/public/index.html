@@ -46,42 +46,44 @@
     <textarea class="hidden" id="python-decoder"></textarea>
     <div class="hidden" id="python-out"></div>
     <div class="hidden" id="python-err"></div>
-    <py-script>
-      import sys
-      import io
-      from js import document, console
-      from pyodide import create_proxy
-
-      def _eventlog(e):
-        # create file-like string to capture output
-        codeOut = io.StringIO()
-        codeErr = io.StringIO()
-
-        # capture output and errors
-        sys.stdout = codeOut
-        sys.stderr = codeErr
-
-        try:
-          exec(e.target.value)
-        except Exception as e:
-          pyscript.write('python-err', type(e).__name__)
-        else:
-          s = codeErr.getvalue()
-          pyscript.write('python-err', s)
-
-          s = codeOut.getvalue()
-          pyscript.write('python-out', s)
-        finally:
-          # restore stdout and stderr
-          sys.stdout = sys.__stdout__
-          sys.stderr = sys.__stderr__
-          codeOut.close()
-          codeErr.close()
-
-      eventlog = create_proxy(_eventlog)
-
-      document.getElementById("python-decoder").addEventListener("input", eventlog)
-    </py-script>
+    <div defer class="hidden">
+      <py-script class="hidden">
+        import sys
+        import io
+        from js import document, console
+        from pyodide import create_proxy
+  
+        def _eventlog(e):
+          # create file-like string to capture output
+          codeOut = io.StringIO()
+          codeErr = io.StringIO()
+  
+          # capture output and errors
+          sys.stdout = codeOut
+          sys.stderr = codeErr
+  
+          try:
+            exec(e.target.value)
+          except Exception as e:
+            pyscript.write('python-err', type(e).__name__)
+          else:
+            s = codeErr.getvalue()
+            pyscript.write('python-err', s)
+  
+            s = codeOut.getvalue()
+            pyscript.write('python-out', s)
+          finally:
+            # restore stdout and stderr
+            sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
+            codeOut.close()
+            codeErr.close()
+  
+        eventlog = create_proxy(_eventlog)
+  
+        document.getElementById("python-decoder").addEventListener("input", eventlog)
+      </py-script>
+    </div>
     <div id="python-out" ></div>
   </body>
 </html>

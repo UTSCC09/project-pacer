@@ -5,9 +5,7 @@ import { authenticationService } from './../_services';
 import { history, Role } from '../_helpers';
 
 function PrivateRoute({ isAllowed, redirectPath='/login', children }) {
-        const currentUser = authenticationService.currentUserValue;
         console.log(isAllowed)
-        console.log(currentUser)
 
         if (!isAllowed) {
             console.log("is not allowed")
