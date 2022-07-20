@@ -22,11 +22,6 @@ import { storage } from "./_components/FireBase";
 import { ref } from "@firebase/storage"
 import { ref as fileStorageRef, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
 
-function logout() {
-  authenticationService.logout();
-  history.push("/login");
-}
-
 const uploadFileFormHandler = (event) => {
   event.preventDefault();
   const file = event.target[0].files[0];

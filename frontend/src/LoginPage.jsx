@@ -96,7 +96,7 @@ function LoginPage({curUser, isAdmin, setIsAdmin}) {
     <Box display="flex" justifyContent="center" className="LoginBox">
         <Stack spacing={2}>
         {showAlert && <Alert severity="error">{showAlert}</Alert>}
-        <from className="loginForm">
+        <form className="loginForm">
           <Stack spacing={2}>
           <FormControl required>
             <InputLabel htmlFor="username">User</InputLabel>
@@ -139,7 +139,7 @@ function LoginPage({curUser, isAdmin, setIsAdmin}) {
           </Box>
           
           </Stack>
-        </from>
+        </form>
         </Stack>
     </Box>
   );
