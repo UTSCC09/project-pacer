@@ -15,11 +15,14 @@ import { Button } from '@mui/material';
 import { authenticationService } from '../_services';
 // [kw]
 import React from 'react';
+import Notifications from './Notifications';
 
 function StudentRightMenu({drawerWidth}) {
+  const [notificationToggle, setNotificationToggle] = React.useState(() => null);
 
   function requestHelp() {
     console.log("help requested")
+    setNotificationToggle(!notificationToggle)
   }
 
   const drawer = (
@@ -84,6 +87,7 @@ function StudentRightMenu({drawerWidth}) {
           {drawer}
         </Drawer>
       </Box>
+    <Notifications msg="Help Requested!" variant="success" open={notificationToggle} />
     </Box>
   );
 }

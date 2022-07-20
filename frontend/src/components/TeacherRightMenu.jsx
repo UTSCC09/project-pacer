@@ -22,6 +22,12 @@ function getConnectedStudents() {
 
 
 function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName }) {
+  const [notificationToggle, setNotificationToggle] = React.useState(() => null);
+
+  function requestHelp() {
+    console.log("help requested")
+    setNotificationToggle(!notificationToggle)
+  }
 
   function loadStudentSession(studentName) {
       setDisplayStudent(true)

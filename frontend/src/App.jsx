@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Link, Navigate } from "react-router-dom";
+import { SnackbarProvider } from 'notistack';
 // [kw]
 import React from 'react';
 
@@ -8,7 +9,7 @@ import {
   history,
   Role,
 } from "./_helpers";
-import { authenticationService, getCurrentUser, webhookService } from "./_services";
+import { authenticationService, getCurrentUser } from "./_services";
 import { PrivateRoute } from "./_components";
 
 import StudentPage from "./StudentPage";
@@ -85,8 +86,8 @@ function App() {
         console.log(x)
         setCurUser(x ? x.username : null);
         setIsAdmin(x && x.role === Role.Admin);
+        setLoadingComplete(true)
       });
-      setLoadingComplete(true)
     }
     fetchUserInfo()
   }, []);
@@ -96,6 +97,7 @@ function App() {
     console.log(isAdmin)
     return (
       <BrowserRouter history={history}>
+        <SnackbarProvider maxSnack={3}>
         <CssBaseline>
           <Routes>
             <Route
@@ -128,6 +130,7 @@ function App() {
             <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
         </CssBaseline>
+        </SnackbarProvider>
       </BrowserRouter>
     );
   } else {

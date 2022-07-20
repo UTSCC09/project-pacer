@@ -100,7 +100,7 @@ function TeacherPage({uploadFileFormHandler}) {
     // socket.on("close student", () => {
     //   setStuCode("no student here")
     // })
-
+    console.log("load teacher page complete")
   },[])
 
   

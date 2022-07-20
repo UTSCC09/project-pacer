@@ -86,6 +86,8 @@ function StudentPage({uploadFileFormHandler}) {
       if (request) setCode(value)
 
     });
+
+    console.log("load student page complete")
   },[])
 
 
