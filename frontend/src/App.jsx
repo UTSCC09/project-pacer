@@ -54,6 +54,11 @@ const uploadFile = (f) => {
   );
 };
 
+function logout() {
+  authenticationService.logout();
+  history.push("/login");
+}
+
 // let subscriber = null
 // let endpoint = null
 // webhookService.subscribe("classtest", (err, res) => {
@@ -105,8 +110,7 @@ function App() {
               path="/student"
               element={
                 <PrivateRoute isAllowed={!!curUser && !isAdmin}>
-                  <StudentPage fileUploadHandler={uploadFileFormHandler} 
-                               socket={socket}
+                  <StudentPage socket={socket}
                                curUser={curUser}
                   />
                 </PrivateRoute>
@@ -117,8 +121,7 @@ function App() {
               element={
                 <PrivateRoute isAllowed={!!curUser && isAdmin}>
                   {/* <TeacherPage fileUploadHandler={uploadFileFormHandler}/> */}
-                  <TeacherPage  fileUploadHandler={uploadFileFormHandler} 
-                                socket={socket} 
+                  <TeacherPage  socket={socket} 
                                 curUser={curUser}
                   />
                 </PrivateRoute>

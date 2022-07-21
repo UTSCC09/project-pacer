@@ -1,4 +1,5 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
+import Peer from "simple-peer";
 import CodeMirror from "@uiw/react-codemirror";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
@@ -12,7 +13,12 @@ import EditorOptionsBar from "./components/EditorOptions";
 import Toolbar from "@mui/material/Toolbar";
 import StudentRightMenu from "./components/StudentRightMenu";
 import Storage from "./components/Storage";
+import CallIcon from '@mui/icons-material/Call';
 
+
+// for file up/downloading (via fb):
+import { storage } from "./_components/FireBase";
+import { ref, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
 import { upperPythonKeys, lowerPythonKeys, javaKeys } from "./_helpers";
 
 import { EditorState, Compartment } from "@codemirror/state";
@@ -26,15 +32,29 @@ import runCode from "./_helpers/codeRunner";
 import React from "react";
 // import { socket } from "./_services";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
+import "./StudentPage.css";
 
 const drawerWidth = 200;
 
 var request = false;
 var adminId = "";
 
-// function StudentPage({ uploadFileFormHandlers, socket }) {
-function StudentPage({ uploadFileFormHandler, socket, curUser }) {
-  const [code, setCode] = useState(() => "console.log('hello world!');");
+// for cloud sync (via fb) [experimental - TODO]:
+let t = 0; // ns
+
+const servers = {
+  iceServers: [
+    {
+      urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
+    },
+  ],
+  iceCandidatePoolSize: 10,
+};
+
+function StudentPage({ socket, curUser }) {
+  const [code, setCode] = useState(() => ""); // like a cache: keeping this since downloading & uploading the file on each update is very inefficient
+  const [codePath, setCodePath] = useState(""); // set init val to ""
+  const [codeFilename, setCodeFilename] = useState("");
   const [language, setLanguage] = useState(() => "javascript");
   const [flag, setFlag] = useState(() => false);
   const [lecCode, setLecCode] = useState(
@@ -42,6 +62,14 @@ function StudentPage({ uploadFileFormHandler, socket, curUser }) {
   );
   const [out, setOut] = useState(() => null);
   const [err, setErr] = useState(() => null);
+  const [callStream, setCallStream] = useState(() => null);
+  const [receivingCall, setReceivingCall] = useState(() => false);
+  const [caller, setCaller] = useState(() => "");
+  const [callerSignal, setCallerSignal] = useState(() => null);
+  const [callAccepted, setCallAccepted] = useState(() => false);
+
+  const localVideo = useRef();
+  const remoteVideo = useRef();
 
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
@@ -60,7 +88,94 @@ function StudentPage({ uploadFileFormHandler, socket, curUser }) {
   //   socket.emit("set attributes", "student", curUser);
   // },[]);
 
+  // for cloud sync (via fb) [experimental - TODO]:
+  useEffect(() => {
+    setTimeout(() => {
+      if (t == 1) {
+        t = 0;
+        const f = new File([code], codeFilename);
+        uploadFile(f);
+      } else {
+        t++;
+      }
+    }, 1000);
+  });
 
+  // for file uploading (via fb):
+  const uploadFileFormHandler = (event) => {
+    event.preventDefault();
+    uploadFile(event.target[0].files[0])
+      .then((res) => {
+        res.file.text().then((code) => {
+          setCode(code);
+          setCodePath(res.codePath);
+          setCodeFilename(res.file.name);
+        });
+      });
+  };
+
+  // for file uploading (via fb):
+  const uploadFile = (f) => {
+    return new Promise(function (res, rej) {
+      if (!f) {
+        console.log('Upload failed. Try a different file.');
+        rej();
+      }
+      const cp = `/files/users/${authenticationService.currentUser.source._value.username}/${f.name}`;
+      const fileStorageRef = ref(storage, cp);
+      const uploadFileTaskStatus = uploadBytesResumable(fileStorageRef, f);
+      uploadFileTaskStatus.on(
+        "state_changed",
+        (u) => {
+          let p = 100;
+          if (u.totalBytes > 0) {
+            p = Math.round((u.bytesTransferred / u.totalBytes) * 100);
+          }
+        },
+        (err) => {
+          console.log(err);
+          rej();
+        },
+        () => {
+          // when the file is uploaded successfully:
+          //getDownloadURL(uploadFileTaskStatus.snapshot.ref).then((url) => console.log(url));
+          res({"file": f, "codePath": cp});
+        }
+      );
+    });
+  };
+
+  // for file downloading (via fb):
+  const makeDownloadFileRequest = (url) => {
+    return new Promise(function (res, rej) {
+      let xhr = new XMLHttpRequest();
+      // handle xhr response:
+      xhr.responseType = 'text';
+      xhr.onload = (event) => {
+        if (xhr.status == 200) {
+          res({"code": xhr.response});
+        } else {
+          console.log(xhr.status);
+          rej();
+        }
+      };
+      xhr.onerror = () => {
+        console.log(xhr.status);
+        rej();
+      };
+      xhr.open('GET', url);
+      xhr.send(); // is xhr onload async
+    });
+  }
+
+  // for file downloading (via fb):
+  const downloadFile = (fileLocation) => {
+    const fileStorageRef = ref(storage, fileLocation);
+    return getDownloadURL(fileStorageRef)
+      .then((url) => makeDownloadFileRequest(url));
+  };
+
+  // [kw]
   useEffect(() => {
     // socket.on("connect", () => {
     //   console.log("[Client - student] Open - socket.id: " + socket.id);
@@ -109,6 +224,29 @@ function StudentPage({ uploadFileFormHandler, socket, curUser }) {
     socket.on("onChange", (value, adminId) => {
       if (request) setCode(value);
     });
+    // for file downloading (via fb):
+    if (code === "" && codePath === "" && codeFilename === "") {
+      let cp = "/files/defaults/ystudent.txt";
+      downloadFile(cp)
+        .then((res) => {
+          const f = new File([res.code], "whateveryouwant.txt");
+          return uploadFile(f);
+        })
+        .then((res) => {
+          res.file.text().then((code) => {
+            setCode(code);
+            setCodePath(res.codePath);
+            setCodeFilename(res.file.name);
+          });
+        });
+    } // for when code + codePath correspond to session, so an uploaded file can take over code slide
+
+
+    socket.on("hey", (data) => {
+      setReceivingCall(true);
+      setCaller(data.from);
+      setCallerSignal(data.signal);
+    })
 
     socket.on("onLecChange", (value, id) => {
       console.log(`from student page: before teacher's code ${lecCode}`)
@@ -154,6 +292,69 @@ function StudentPage({ uploadFileFormHandler, socket, curUser }) {
     setErr(null);
   };
 
+  const setupCall = async (teacherSocketId) => {
+    console.log(teacherSocketId)
+    console.log("seting up call")
+    const localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+    console.log("hardware setup complete")
+    setCallStream(localStream)
+    if (localVideo.current) {
+      localVideo.current.srcObject = localStream;
+    }
+    const peer = new Peer({
+      initiator: true,
+      trickle: false,
+      stream: callStream
+    })
+    
+    peer.on("signal", data => {
+      socket.emit("callUser", {userToCall: teacherSocketId, signalData: data, from: "yourID"}) //yourID
+    })
+
+    peer.on("stream", stream => {
+      if (remoteVideo.current) {
+        remoteVideo.current.srcObject = stream;
+      }
+    })
+
+    socket.on("callAccepted", signal => {
+      setCallAccepted(true);
+      peer.signal(signal);
+    })
+  }
+
+  const acceptCall = () => {
+    setCallAccepted(true);
+    const peer = new Peer({
+      initiator: false,
+      trickle: false,
+      config: servers,
+      stream: callStream,
+    });
+    peer.on("signal", data => {
+      socket.emit("acceptCall", { signal: data, to: caller })
+    })
+
+    peer.on("stream", stream => {
+      remoteVideo.current.srcObject = stream;
+    });
+
+    peer.signal(callerSignal);
+  }
+
+  let LocalVideo;
+  if (callStream) {
+    LocalVideo = (
+      <video playsInline muted ref={localVideo} autoPlay />
+    );
+  }
+
+  let RemoteVideo;
+  if (callAccepted) {
+    RemoteVideo = (
+      <video playsInline ref={remoteVideo} autoPlay />
+    );
+  }
 
   return (
     <>
@@ -250,6 +451,8 @@ function StudentPage({ uploadFileFormHandler, socket, curUser }) {
         </Grid>
       </Box>
       <StudentRightMenu drawerWidth={drawerWidth} socket={socket} />
+      <Stack direction="row">{LocalVideo}{RemoteVideo}</Stack>
+      <button className="call-button" onClick={() => setupCall("testid")}>Call</button>
     </>
   );
 }
