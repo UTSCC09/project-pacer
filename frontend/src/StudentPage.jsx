@@ -30,7 +30,7 @@ import { authenticationService } from "./_services";
 import runCode from "./_helpers/codeRunner";
 // [kw]
 import React from "react";
-import { socket } from "./_services";
+// import { socket } from "./_services";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
 import "./StudentPage.css";
 
@@ -51,11 +51,12 @@ const servers = {
   iceCandidatePoolSize: 10,
 };
 
-function StudentPage() {
+function StudentPage({ socket, curUser }) {
   const [code, setCode] = useState(() => ""); // like a cache: keeping this since downloading & uploading the file on each update is very inefficient
   const [codePath, setCodePath] = useState(""); // set init val to ""
   const [codeFilename, setCodeFilename] = useState("");
   const [language, setLanguage] = useState(() => "javascript");
+  const [flag, setFlag] = useState(() => false);
   const [lecCode, setLecCode] = useState(
     () => "console.log('hello students!');"
   );
@@ -80,18 +81,12 @@ function StudentPage() {
     extensions[0] = java();
     extensions[1] = globalJavaScriptCompletions;
   }
+  
 
-  // const onChange = useCallback((value, viewUpdate) => {
-  //   console.log('value:', value);
-  //   const editor = viewUpdate.state.values[0].prevUserEvent
 
-  //   setCode(value)
-
-  //   if (request && editor){
-  //     socket.emit('onChange', value, adminId)
-  //   }
-
-  // }, []);
+  // useEffect(() => {
+  //   socket.emit("set attributes", "student", curUser);
+  // },[]);
 
   // for cloud sync (via fb) [experimental - TODO]:
   useEffect(() => {
@@ -182,22 +177,47 @@ function StudentPage() {
 
   // [kw]
   useEffect(() => {
-    socket.on("connect", () => {
-      console.log("[Client - student] Open - socket.id: " + socket.id);
-      console.log("[Client - student] Check connection: " + socket.connected);
+    // socket.on("connect", () => {
+    //   console.log("[Client - student] Open - socket.id: " + socket.id);
+    //   console.log("[Client - student] Check connection: " + socket.connected);
+    // });
+
+    console.log("[StudentPage] socket id:", socket.id)
+
+    socket.emit("set attributes", "student", curUser);
+
+    socket.volatile.emit('student join', curUser);
+
+
+    socket.on("connection broadcast", (SktId, role, curUser) => {
+      // todo: here is the data for webRTC implementation
+      console.log(`connection broadcast: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
+    });
+
+    socket.on("disconnection broadcast", (SktId, role, curUser) => {
+      console.log(`disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`);
+    });
+
+    socket.on("teacher join", (tSktId) => {
+      // todo-kw: revisit this setting
+      adminId = tSktId;
+      socket.emit('student join', curUser);
+      console.log("[StudentPage - teacher join] join request from student: ", socket.id);
     });
 
     socket.on("fetch request", (Id) => {
       request = true;
+      setFlag(true)
       adminId = Id;
-      // socket.emit('onChange',code, Id)
-      console.log("request received, ready!!", code);
+      // socket.emit("fetch init", code);
+      console.log("emitted code", code);
+      // console.log("request received, ready!!", code);
     });
 
     socket.on("stop request", () => {
       request = false;
+      setFlag(false)
       adminId = "";
-      // socket.emit("close student", adminId)
       console.log("Thanks for the help!!", request, adminId);
     });
 
@@ -228,16 +248,25 @@ function StudentPage() {
       setCallerSignal(data.signal);
     })
 
+    socket.on("onLecChange", (value, id) => {
+      console.log(`from student page: before teacher's code ${lecCode}`)
+      setLecCode(value);
+      console.log(`from student page: teacher's code ${lecCode}`)
+    });
+
     console.log("load student page complete");
   }, []);
 
   useEffect(() => {
-    socket.emit("set attributes", "user");
-  });
+      socket.emit("fetch init", code);
+  },[flag])
+
+
+
 
   const onChange = (value, viewUpdate) => {
-    //console.log('value:', value);
-    const editor = viewUpdate.state.values[0].prevUserEvent
+    // console.log("value:", value);
+    const editor = viewUpdate.state.values[0].prevUserEvent;
 
     if (request && editor) {
       socket.emit("onChange", value, adminId);
@@ -245,16 +274,18 @@ function StudentPage() {
     setCode(value);
   };
 
-  socket.on("onLecChange", (value, id) => {
-    setLecCode(value);
-  });
-  // end of [kw]
+
+  // socket.on("onLecChange", (value, id) => {
+  //   setLecCode(value);
+  // });
+
 
   const run = () => {
     const { out, err } = runCode(code, language);
     setOut(out);
     setErr(err);
   };
+
 
   const clearExecutionRes = () => {
     setOut(null);
@@ -419,7 +450,7 @@ function StudentPage() {
           </Grid>
         </Grid>
       </Box>
-      <StudentRightMenu drawerWidth={drawerWidth} />
+      <StudentRightMenu drawerWidth={drawerWidth} socket={socket} />
       <Stack direction="row">{LocalVideo}{RemoteVideo}</Stack>
       <button className="call-button" onClick={() => setupCall("testid")}>Call</button>
     </>

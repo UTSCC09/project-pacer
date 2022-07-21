@@ -24,21 +24,14 @@ import TeacherRightMenu from "./components/TeacherRightMenu";
 import runCode from "./_helpers/codeRunner";
 // [kw]
 import React from "react";
-// [kw] socket io setup
-import { io } from "socket.io-client";
-import { socket } from "./_services";
+// import { socket } from "./_services";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
 
 // for file up/downloading (via fb):
 import { storage } from "./_components/FireBase";
 import { ref, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
 
-// const socket = io('http://localhost:8080/', {
-//   transports: ['websocket'],
-// })
-
 const drawerWidth = 200;
-
 var sid = "";
 
 // for cloud sync (via fb) [experimental - TODO]:
@@ -46,7 +39,7 @@ let t = 0; // ns
 
 // let StudentEditor = cloneElement(CodeMirror, {value:"", height:"600px", theme:"dark", hint:"true"})
 
-function TeacherPage() {
+function TeacherPage({ socket, curUser }) {
   const [code, setCode] = useState("");
   const [codePath, setCodePath] = useState("");
   const [codeFilename, setCodeFilename] = useState("");
@@ -58,15 +51,10 @@ function TeacherPage() {
   const [err, setErr] = useState(() => null);
   const [stuOut, setStuOut] = useState(() => null);
   const [stuErr, setStuErr] = useState(() => null);
-  // const [sid, setSid] = useState(() => "")
+  // stuJoin {'socket id': 'student name', ...}
+  // todo: use stuJoin store joined sutdents to backend
+  const [stuJoin, setStuJoin] = useState(() => {});
 
-  const studentEditorRef = useRef();
-
-  useEffect(() => {
-    const studentEditor = studentEditorRef.current;
-    console.log(studentEditor);
-    // setStuCode("no student here")
-  }, [studentName]);
 
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
@@ -79,9 +67,9 @@ function TeacherPage() {
     extensions[1] = globalJavaScriptCompletions;
   }
 
-  // const onChange = useCallback((value, viewUpdate) => {
-  //   console.log('value:', value);
-  //   setCode(value)
+  // useEffect(() => {
+  //   socket.emit("set attributes", 'teacher', curUser);
+  //   console.log("[Teacher Page]: now it is loaded");
   // }, []);
 
   // for cloud sync (via fb) [experimental - TODO]:
@@ -173,21 +161,56 @@ function TeacherPage() {
 
   // [kw]
   useEffect(() => {
-    socket.on("connect", () => {
-      console.log("[New Client - teacher] Open - socket.id: " + socket.id)
-      console.log("[New Client - teacher] Check connection: " + socket.connected)
-    })
 
-    // socket.emit("set attributes", "admin")
+    // socket.on("connect", () => {
+    //   console.log("[New Client - teacher] Open - socket.id: " + socket.id);
+    //   console.log(
+    //     "[New Client - teacher] Check connection: " + socket.connected
+    //   );
+    // });
+    console.log("[TeacherPage] socket id:", socket.id)
+
+    socket.emit("set attributes", 'teacher', curUser);
+
     socket.emit("onLecChange", code);
 
+    socket.emit('teacher join');
+
+    // socket.emit("connection broadcast",'user', curUser );
+
+    socket.on("connection broadcast", (SktId, role, curUser) => {
+      console.log(`[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
+    });
+
+    socket.on("disconnection broadcast", (SktId, role, curUser) => {
+      console.log(`[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`);
+    });
+
+
+    // socket.on("student join", sSktId => {
+    socket.on("student join", (sSktId, username) => {
+      console.log("[TeacherPage - student join] joining student socket id: ",sSktId, " and student name: ", username);
+      // todo: use stuJoin(username here) store joined sutdents to backend
+      socket.emit("onLecChange", code);
+      setStuJoin({sSktId: username});
+    });
+
+    socket.on("fetch init", (code) => {
+      // console.log("student code:",code)
+      setStuCode(code);
+    });
+
+    socket.on("help request", (stuId, username) => {
+      // todo: data for help request implementation
+      console.log(`[TeacherPage - help request] student [${username}] need help; student socket id: ${stuId} `)
+    });
+
+
     socket.on("onChange", (value, id) => {
-      // if(socket.id !== id){
       console.log("[onChange] value: " + value);
       console.log("editor id " + sid);
       sid = id;
       setStuCode(value);
-      // }
     });
 
     socket.on("no student", (msg) => {
@@ -196,9 +219,6 @@ function TeacherPage() {
       setStuCode(msg);
     });
 
-    // socket.on("close student", () => {
-    //   setStuCode("no student here")
-    // })
     console.log("load teacher page complete");
 
     // for file downloading (via fb):
@@ -220,25 +240,19 @@ function TeacherPage() {
 
   },[])
 
-
-  useEffect(() => {
-    socket.emit("set attributes", "admin")
-  })
-
   const onChange = (value, viewUpdate) => {
     console.log("value:", value);
     socket.emit("onLecChange", value);
     setCode(value)
   };
 
+
   const onStuChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
-    // console.log("value:", value)
     setStuCode(value)
     if (editor) socket.emit("onChange", value, sid);
   };
 
-  // end of [kw]
 
   const run = () => {
     console.log(code)
@@ -247,10 +261,12 @@ function TeacherPage() {
     setErr(err);
   };
 
+
   const clearExecutionRes = () => {
     setOut(null);
     setErr(null);
   };
+
 
   const runStuCode = () => {
     console.log(stuCode)
@@ -258,6 +274,7 @@ function TeacherPage() {
     setStuOut(out);
     setStuErr(err);
   };
+
 
   const clearStuExecutionRes = () => {
     setStuOut(null);
@@ -288,7 +305,6 @@ function TeacherPage() {
                 <p>Code session for student {studentName}:</p>
               </Grid>
               {/* server display */}
-              {/* <CodeMirror ref={studentEditorRef} value="abc" height="600px" theme="dark" hint="true" /> */}
               <Grid item xs={12}>
                 <CodeMirror
                   value={stuCode}

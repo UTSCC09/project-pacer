@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Link, Navigate } from "react-router-dom";
 import { SnackbarProvider } from 'notistack';
 // [kw]
 import React from 'react';
+import { socket } from "./_services";
+
 
 import "./App.css";
 import {
@@ -75,6 +77,10 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(() => "");
   const [loadingComplete, setLoadingComplete] = useState(() => false);
 
+  socket.on("connect", () => {
+    console.log("[form App]socket.id: " + socket.id);
+  });
+
   useEffect(() => {
     async function fetchUserInfo() {
       const user = await getCurrentUser()
@@ -104,7 +110,9 @@ function App() {
               path="/student"
               element={
                 <PrivateRoute isAllowed={!!curUser && !isAdmin}>
-                  <StudentPage />
+                  <StudentPage socket={socket}
+                               curUser={curUser}
+                  />
                 </PrivateRoute>
               }
             />
@@ -112,7 +120,10 @@ function App() {
               path="/teacher"
               element={
                 <PrivateRoute isAllowed={!!curUser && isAdmin}>
-                  <TeacherPage />
+                  {/* <TeacherPage fileUploadHandler={uploadFileFormHandler}/> */}
+                  <TeacherPage  socket={socket} 
+                                curUser={curUser}
+                  />
                 </PrivateRoute>
               }
             />
@@ -124,6 +135,7 @@ function App() {
                   curUser={curUser}
                   isAdmin={isAdmin}
                   setIsAdmin={(e) => setIsAdmin(e)}
+                  socket={socket}
                 />
               }
             />

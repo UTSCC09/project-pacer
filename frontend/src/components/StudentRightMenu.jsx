@@ -17,12 +17,20 @@ import { authenticationService } from '../_services';
 import React from 'react';
 import Notifications from './Notifications';
 
-function StudentRightMenu({drawerWidth}) {
+// function StudentRightMenu({drawerWidth}) {
+function StudentRightMenu({drawerWidth, socket}) {
+
   const [notificationToggle, setNotificationToggle] = React.useState(() => null);
 
   function requestHelp() {
     console.log("help requested")
+    socket.emit("help request");
     setNotificationToggle(!notificationToggle)
+  }
+
+  function logoutHandler(){
+    socket.emit("disconnection broadcast");
+    authenticationService.logout();
   }
 
   const drawer = (
@@ -64,7 +72,9 @@ function StudentRightMenu({drawerWidth}) {
             color: "#fff",
             zIndex: (theme) => theme.zIndex.drawer + 2,
           }}
-          onClick={authenticationService.logout}
+          onClick={logoutHandler}
+          // onClick={authenticationService.logout}
+
         >
           Logout
         </Button>
