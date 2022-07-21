@@ -121,7 +121,7 @@ function TeacherPage({ uploadFileFormHandler }) {
   const onStuChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
     // console.log("value:", value)
-
+    setStuCode(value)
     if (editor) socket.emit("onChange", value, sid);
   };
 
@@ -233,7 +233,12 @@ function TeacherPage({ uploadFileFormHandler }) {
                 />
               </Grid>
               <Grid item xs={12}>
-                <Stack spacing={2} direction="row">
+                <Stack
+                  spacing={3}
+                  direction="row"
+                  justifyContent="center"
+                  alignItems="space-evenly"
+                >
                   <Button onClick={run} variant="contained">
                     Run
                   </Button>

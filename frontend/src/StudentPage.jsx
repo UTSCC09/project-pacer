@@ -1,4 +1,5 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
+import Peer from "simple-peer";
 import CodeMirror from "@uiw/react-codemirror";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
@@ -12,6 +13,7 @@ import EditorOptionsBar from "./components/EditorOptions";
 import Toolbar from "@mui/material/Toolbar";
 import StudentRightMenu from "./components/StudentRightMenu";
 import Storage from "./components/Storage";
+import CallIcon from '@mui/icons-material/Call';
 
 import { upperPythonKeys, lowerPythonKeys, javaKeys } from "./_helpers";
 
@@ -26,11 +28,21 @@ import runCode from "./_helpers/codeRunner";
 import React from "react";
 import { socket } from "./_services";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
+import "./StudentPage.css";
 
 const drawerWidth = 200;
 
 var request = false;
 var adminId = "";
+
+const servers = {
+  iceServers: [
+    {
+      urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
+    },
+  ],
+  iceCandidatePoolSize: 10,
+};
 
 function StudentPage({ uploadFileFormHandler }) {
   const [code, setCode] = useState(() => "console.log('hello world!');");
@@ -40,6 +52,14 @@ function StudentPage({ uploadFileFormHandler }) {
   );
   const [out, setOut] = useState(() => null);
   const [err, setErr] = useState(() => null);
+  const [callStream, setCallStream] = useState(() => null);
+  const [receivingCall, setReceivingCall] = useState(() => false);
+  const [caller, setCaller] = useState(() => "");
+  const [callerSignal, setCallerSignal] = useState(() => null);
+  const [callAccepted, setCallAccepted] = useState(() => false);
+
+  const localVideo = useRef();
+  const remoteVideo = useRef();
 
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
@@ -89,6 +109,12 @@ function StudentPage({ uploadFileFormHandler }) {
       if (request) setCode(value);
     });
 
+    socket.on("hey", (data) => {
+      setReceivingCall(true);
+      setCaller(data.from);
+      setCallerSignal(data.signal);
+    })
+
     console.log("load student page complete");
   }, []);
 
@@ -121,6 +147,70 @@ function StudentPage({ uploadFileFormHandler }) {
     setOut(null);
     setErr(null);
   };
+
+  const setupCall = async (teacherSocketId) => {
+    console.log(teacherSocketId)
+    console.log("seting up call")
+    const localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+    console.log("hardware setup complete")
+    setCallStream(localStream)
+    if (localVideo.current) {
+      localVideo.current.srcObject = localStream;
+    }
+    const peer = new Peer({
+      initiator: true,
+      trickle: false,
+      stream: callStream
+    })
+    
+    peer.on("signal", data => {
+      socket.emit("callUser", {userToCall: teacherSocketId, signalData: data, from: "yourID"}) //yourID
+    })
+
+    peer.on("stream", stream => {
+      if (remoteVideo.current) {
+        remoteVideo.current.srcObject = stream;
+      }
+    })
+
+    socket.on("callAccepted", signal => {
+      setCallAccepted(true);
+      peer.signal(signal);
+    })
+  }
+
+  const acceptCall = () => {
+    setCallAccepted(true);
+    const peer = new Peer({
+      initiator: false,
+      trickle: false,
+      config: servers,
+      stream: callStream,
+    });
+    peer.on("signal", data => {
+      socket.emit("acceptCall", { signal: data, to: caller })
+    })
+
+    peer.on("stream", stream => {
+      remoteVideo.current.srcObject = stream;
+    });
+
+    peer.signal(callerSignal);
+  }
+
+  let LocalVideo;
+  if (callStream) {
+    LocalVideo = (
+      <video playsInline muted ref={localVideo} autoPlay />
+    );
+  }
+
+  let RemoteVideo;
+  if (callAccepted) {
+    RemoteVideo = (
+      <video playsInline ref={remoteVideo} autoPlay />
+    );
+  }
 
   return (
     <>
@@ -217,6 +307,8 @@ function StudentPage({ uploadFileFormHandler }) {
         </Grid>
       </Box>
       <StudentRightMenu drawerWidth={drawerWidth} />
+      <Stack direction="row">{LocalVideo}{RemoteVideo}</Stack>
+      <button className="call-button" onClick={() => setupCall("testid")}>Call</button>
     </>
   );
 }
