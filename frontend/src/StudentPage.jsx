@@ -24,7 +24,7 @@ import { authenticationService } from "./_services";
 import runCode from "./_helpers/codeRunner";
 // [kw]
 import React from "react";
-import { socket } from "./_services";
+// import { socket } from "./_services";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
 
 const drawerWidth = 200;
@@ -32,7 +32,8 @@ const drawerWidth = 200;
 var request = false;
 var adminId = "";
 
-function StudentPage({ uploadFileFormHandler }) {
+// function StudentPage({ uploadFileFormHandlers, socket }) {
+function StudentPage({ uploadFileFormHandler, socket }) {
   const [code, setCode] = useState(() => "console.log('hello world!');");
   const [language, setLanguage] = useState(() => "javascript");
   const [lecCode, setLecCode] = useState(
@@ -52,36 +53,38 @@ function StudentPage({ uploadFileFormHandler }) {
     extensions[1] = globalJavaScriptCompletions;
   }
 
-  // const onChange = useCallback((value, viewUpdate) => {
-  //   console.log('value:', value);
-  //   const editor = viewUpdate.state.values[0].prevUserEvent
 
-  //   setCode(value)
-
-  //   if (request && editor){
-  //     socket.emit('onChange', value, adminId)
-  //   }
-
-  // }, []);
-
-  // [kw]
   useEffect(() => {
-    socket.on("connect", () => {
-      console.log("[Client - student] Open - socket.id: " + socket.id);
-      console.log("[Client - student] Check connection: " + socket.connected);
+    // socket.on("connect", () => {
+    //   console.log("[Client - student] Open - socket.id: " + socket.id);
+    //   console.log("[Client - student] Check connection: " + socket.connected);
+    // });
+
+    console.log("[StudentPage] socket id:", socket.id)
+
+
+    // later
+    socket.volatile.emit('student join');
+
+
+    socket.on("teacher join", (tSktId) => {
+      // todo: revisit this setting
+      adminId = tSktId;
+      // socket.emit('student join', tSktId);
+      socket.emit('student join');
+      console.log("[StudentPage - teacher join] join request from student: ", socket.id);
     });
+
 
     socket.on("fetch request", (Id) => {
       request = true;
       adminId = Id;
-      // socket.emit('onChange',code, Id)
       console.log("request received, ready!!", code);
     });
 
     socket.on("stop request", () => {
       request = false;
       adminId = "";
-      // socket.emit("close student", adminId)
       console.log("Thanks for the help!!", request, adminId);
     });
 
@@ -92,9 +95,11 @@ function StudentPage({ uploadFileFormHandler }) {
     console.log("load student page complete");
   }, []);
 
+
   useEffect(() => {
     socket.emit("set attributes", "user");
   });
+
 
   const onChange = (value, viewUpdate) => {
     console.log("value:", value);
@@ -106,10 +111,11 @@ function StudentPage({ uploadFileFormHandler }) {
     setCode(value);
   };
 
+
   socket.on("onLecChange", (value, id) => {
     setLecCode(value);
   });
-  // end of [kw]
+
 
   const run = () => {
     const { out, err } = runCode(code, language);
@@ -117,10 +123,12 @@ function StudentPage({ uploadFileFormHandler }) {
     setErr(err);
   };
 
+
   const clearExecutionRes = () => {
     setOut(null);
     setErr(null);
   };
+
 
   return (
     <>

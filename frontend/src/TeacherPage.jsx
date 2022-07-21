@@ -24,22 +24,15 @@ import TeacherRightMenu from "./components/TeacherRightMenu";
 import runCode from "./_helpers/codeRunner";
 // [kw]
 import React from "react";
-// [kw] socket io setup
-import { io } from "socket.io-client";
-import { socket } from "./_services";
+// import { socket } from "./_services";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
 
-// const socket = io('http://localhost:8080/', {
-//   transports: ['websocket'],
-// })
 
 const drawerWidth = 200;
-
 var sid = "";
 
-// let StudentEditor = cloneElement(CodeMirror, {value:"", height:"600px", theme:"dark", hint:"true"})
-
-function TeacherPage({ uploadFileFormHandler }) {
+function TeacherPage({ uploadFileFormHandler, socket }) {
+// function TeacherPage({ uploadFileFormHandler }) {
   const [code, setCode] = useState(() => "console.log('Welcome to class!');");
   const [stuCode, setStuCode] = useState(() => "no student here");
   const [language, setLanguage] = useState(() => "javascript");
@@ -49,15 +42,9 @@ function TeacherPage({ uploadFileFormHandler }) {
   const [err, setErr] = useState(() => null);
   const [stuOut, setStuOut] = useState(() => null);
   const [stuErr, setStuErr] = useState(() => null);
-  // const [sid, setSid] = useState(() => "")
+  // stuJoin {'socket id': 'student name', ...}
+  const [stuJoin, setStuJoin] = useState(() => {});
 
-  const studentEditorRef = useRef();
-
-  useEffect(() => {
-    const studentEditor = studentEditorRef.current;
-    console.log(studentEditor);
-    // setStuCode("no student here")
-  }, [studentName]);
 
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
@@ -70,30 +57,32 @@ function TeacherPage({ uploadFileFormHandler }) {
     extensions[1] = globalJavaScriptCompletions;
   }
 
-  // const onChange = useCallback((value, viewUpdate) => {
-  //   console.log('value:', value);
-  //   setCode(value)
-  // }, []);
 
-  // [kw]
   useEffect(() => {
-    socket.on("connect", () => {
-      console.log("[New Client - teacher] Open - socket.id: " + socket.id);
-      console.log(
-        "[New Client - teacher] Check connection: " + socket.connected
-      );
-    });
 
-    // socket.emit("set attributes", "admin")
+    // socket.on("connect", () => {
+    //   console.log("[New Client - teacher] Open - socket.id: " + socket.id);
+    //   console.log(
+    //     "[New Client - teacher] Check connection: " + socket.connected
+    //   );
+    // });
+    console.log("[TeacherPage] socket id:", socket.id)
+
     socket.emit("onLecChange", code);
 
+    socket.emit('teacher join');
+
+    socket.on("student join", sSktId => {
+      console.log("[TeacherPage - student join] joining student: ",sSktId);
+      setStuJoin({sSktId: "student name"});
+    });
+
+
     socket.on("onChange", (value, id) => {
-      // if(socket.id !== id){
       console.log("[onChange] value: " + value);
       console.log("editor id " + sid);
       sid = id;
       setStuCode(value);
-      // }
     });
 
     socket.on("no student", (msg) => {
@@ -102,15 +91,14 @@ function TeacherPage({ uploadFileFormHandler }) {
       setStuCode(msg);
     });
 
-    // socket.on("close student", () => {
-    //   setStuCode("no student here")
-    // })
     console.log("load teacher page complete");
   }, []);
 
+
   useEffect(() => {
-    socket.emit("set attributes", "admin");
+    socket.emit("set attributes", 'admin');
   });
+
 
   const onChange = (value, viewUpdate) => {
     console.log("value:", value);
@@ -118,14 +106,12 @@ function TeacherPage({ uploadFileFormHandler }) {
     setCode(value)
   };
 
+
   const onStuChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
-    // console.log("value:", value)
-
     if (editor) socket.emit("onChange", value, sid);
   };
 
-  // end of [kw]
 
   const run = () => {
     console.log(code)
@@ -134,10 +120,12 @@ function TeacherPage({ uploadFileFormHandler }) {
     setErr(err);
   };
 
+
   const clearExecutionRes = () => {
     setOut(null);
     setErr(null);
   };
+
 
   const runStuCode = () => {
     console.log(stuCode)
@@ -145,6 +133,7 @@ function TeacherPage({ uploadFileFormHandler }) {
     setStuOut(out);
     setStuErr(err);
   };
+
 
   const clearStuExecutionRes = () => {
     setStuOut(null);
@@ -175,7 +164,6 @@ function TeacherPage({ uploadFileFormHandler }) {
                 <p>Code session for student {studentName}:</p>
               </Grid>
               {/* server display */}
-              {/* <CodeMirror ref={studentEditorRef} value="abc" height="600px" theme="dark" hint="true" /> */}
               <Grid item xs={12}>
                 <CodeMirror
                   value={stuCode}

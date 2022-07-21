@@ -19,9 +19,10 @@ import { Input, InputLabel } from '@mui/material';
 
 let adminIdentified = false;
 
-function LoginPage({curUser, isAdmin, setIsAdmin}) {
+function LoginPage({curUser, isAdmin, setIsAdmin, socket}) {
   const [username, setUsername] = useState(() => '');
   const [password, setPassword] = useState(() => '');
+  const [socketid, setSocketid] = useState(socket.id);
   const navigate = useNavigate();
 
   function updateUserName(e) {
@@ -53,12 +54,14 @@ function LoginPage({curUser, isAdmin, setIsAdmin}) {
     if (isAdmin) {
       console.log("logging as admin")
       authenticationService.signin(username, password, "Admin", function(err, res) {
+        // authenticationService.signin(username, password, "Admin", socketid, function(err, res) {
         if (err) return setShowAlert(String(err))
         navigate("/teacher", { replace: true });
       })
     } else {
       console.log("logging as student")
       authenticationService.signin(username, password, "User", function(err,res) {
+        // authenticationService.signin(username, password, "User", socketid, function(err,res) {
         if (err) return setShowAlert(String(err))
         navigate("/student", { replace: true });
       })
