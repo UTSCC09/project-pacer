@@ -15,6 +15,10 @@ import StudentRightMenu from "./components/StudentRightMenu";
 import Storage from "./components/Storage";
 import CallIcon from '@mui/icons-material/Call';
 
+
+// for file up/downloading (via fb):
+import { storage } from "./_components/FireBase";
+import { ref, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
 import { upperPythonKeys, lowerPythonKeys, javaKeys } from "./_helpers";
 
 import { EditorState, Compartment } from "@codemirror/state";
@@ -35,6 +39,9 @@ const drawerWidth = 200;
 var request = false;
 var adminId = "";
 
+// for cloud sync (via fb) [experimental - TODO]:
+let t = 0; // ns
+
 const servers = {
   iceServers: [
     {
@@ -44,8 +51,10 @@ const servers = {
   iceCandidatePoolSize: 10,
 };
 
-function StudentPage({ uploadFileFormHandler }) {
-  const [code, setCode] = useState(() => "console.log('hello world!');");
+function StudentPage() {
+  const [code, setCode] = useState(() => ""); // like a cache: keeping this since downloading & uploading the file on each update is very inefficient
+  const [codePath, setCodePath] = useState(""); // set init val to ""
+  const [codeFilename, setCodeFilename] = useState("");
   const [language, setLanguage] = useState(() => "javascript");
   const [lecCode, setLecCode] = useState(
     () => "console.log('hello students!');"
@@ -84,6 +93,93 @@ function StudentPage({ uploadFileFormHandler }) {
 
   // }, []);
 
+  // for cloud sync (via fb) [experimental - TODO]:
+  useEffect(() => {
+    setTimeout(() => {
+      if (t == 1) {
+        t = 0;
+        const f = new File([code], codeFilename);
+        uploadFile(f);
+      } else {
+        t++;
+      }
+    }, 1000);
+  });
+
+  // for file uploading (via fb):
+  const uploadFileFormHandler = (event) => {
+    event.preventDefault();
+    uploadFile(event.target[0].files[0])
+      .then((res) => {
+        res.file.text().then((code) => {
+          setCode(code);
+          setCodePath(res.codePath);
+          setCodeFilename(res.file.name);
+        });
+      });
+  };
+
+  // for file uploading (via fb):
+  const uploadFile = (f) => {
+    return new Promise(function (res, rej) {
+      if (!f) {
+        console.log('Upload failed. Try a different file.');
+        rej();
+      }
+      const cp = `/files/users/${authenticationService.currentUser.source._value.username}/${f.name}`;
+      const fileStorageRef = ref(storage, cp);
+      const uploadFileTaskStatus = uploadBytesResumable(fileStorageRef, f);
+      uploadFileTaskStatus.on(
+        "state_changed",
+        (u) => {
+          let p = 100;
+          if (u.totalBytes > 0) {
+            p = Math.round((u.bytesTransferred / u.totalBytes) * 100);
+          }
+        },
+        (err) => {
+          console.log(err);
+          rej();
+        },
+        () => {
+          // when the file is uploaded successfully:
+          //getDownloadURL(uploadFileTaskStatus.snapshot.ref).then((url) => console.log(url));
+          res({"file": f, "codePath": cp});
+        }
+      );
+    });
+  };
+
+  // for file downloading (via fb):
+  const makeDownloadFileRequest = (url) => {
+    return new Promise(function (res, rej) {
+      let xhr = new XMLHttpRequest();
+      // handle xhr response:
+      xhr.responseType = 'text';
+      xhr.onload = (event) => {
+        if (xhr.status == 200) {
+          res({"code": xhr.response});
+        } else {
+          console.log(xhr.status);
+          rej();
+        }
+      };
+      xhr.onerror = () => {
+        console.log(xhr.status);
+        rej();
+      };
+      xhr.open('GET', url);
+      xhr.send(); // is xhr onload async
+    });
+  }
+
+  // for file downloading (via fb):
+  const downloadFile = (fileLocation) => {
+    const fileStorageRef = ref(storage, fileLocation);
+    return getDownloadURL(fileStorageRef)
+      .then((url) => makeDownloadFileRequest(url));
+  };
+
   // [kw]
   useEffect(() => {
     socket.on("connect", () => {
@@ -108,6 +204,23 @@ function StudentPage({ uploadFileFormHandler }) {
     socket.on("onChange", (value, adminId) => {
       if (request) setCode(value);
     });
+    // for file downloading (via fb):
+    if (code === "" && codePath === "" && codeFilename === "") {
+      let cp = "/files/defaults/ystudent.txt";
+      downloadFile(cp)
+        .then((res) => {
+          const f = new File([res.code], "whateveryouwant.txt");
+          return uploadFile(f);
+        })
+        .then((res) => {
+          res.file.text().then((code) => {
+            setCode(code);
+            setCodePath(res.codePath);
+            setCodeFilename(res.file.name);
+          });
+        });
+    } // for when code + codePath correspond to session, so an uploaded file can take over code slide
+
 
     socket.on("hey", (data) => {
       setReceivingCall(true);
@@ -123,8 +236,8 @@ function StudentPage({ uploadFileFormHandler }) {
   });
 
   const onChange = (value, viewUpdate) => {
-    console.log("value:", value);
-    const editor = viewUpdate.state.values[0].prevUserEvent;
+    //console.log('value:', value);
+    const editor = viewUpdate.state.values[0].prevUserEvent
 
     if (request && editor) {
       socket.emit("onChange", value, adminId);
