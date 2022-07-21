@@ -33,7 +33,7 @@ var request = false;
 var adminId = "";
 
 // function StudentPage({ uploadFileFormHandlers, socket }) {
-function StudentPage({ uploadFileFormHandler, socket }) {
+function StudentPage({ uploadFileFormHandler, socket, curUser }) {
   const [code, setCode] = useState(() => "console.log('hello world!');");
   const [language, setLanguage] = useState(() => "javascript");
   const [lecCode, setLecCode] = useState(
@@ -54,6 +54,11 @@ function StudentPage({ uploadFileFormHandler, socket }) {
   }
 
 
+  // useEffect(() => {
+  //   socket.emit("set attributes", "student", curUser);
+  // },[]);
+
+
   useEffect(() => {
     // socket.on("connect", () => {
     //   console.log("[Client - student] Open - socket.id: " + socket.id);
@@ -62,16 +67,25 @@ function StudentPage({ uploadFileFormHandler, socket }) {
 
     console.log("[StudentPage] socket id:", socket.id)
 
+    socket.emit("set attributes", "student", curUser);
 
-    // later
-    socket.volatile.emit('student join');
+    socket.volatile.emit('student join', curUser);
 
+
+    socket.on("connection broadcast", (SktId, role, curUser) => {
+      // todo: here is the data for webRTC implementation
+      console.log(`connection broadcast: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
+    });
+
+    socket.on("disconnection broadcast", (SktId, role, curUser) => {
+      console.log(`disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`);
+    });
 
     socket.on("teacher join", (tSktId) => {
-      // todo: revisit this setting
+      // todo-kw: revisit this setting
       adminId = tSktId;
       // socket.emit('student join', tSktId);
-      socket.emit('student join');
+      socket.emit('student join', curUser);
       console.log("[StudentPage - teacher join] join request from student: ", socket.id);
     });
 
@@ -92,13 +106,14 @@ function StudentPage({ uploadFileFormHandler, socket }) {
       if (request) setCode(value);
     });
 
+    socket.on("onLecChange", (value, id) => {
+      console.log(`from student page: before teacher's code ${lecCode}`)
+      setLecCode(value);
+      console.log(`from student page: teacher's code ${lecCode}`)
+    });
+
     console.log("load student page complete");
   }, []);
-
-
-  useEffect(() => {
-    socket.emit("set attributes", "user");
-  });
 
 
   const onChange = (value, viewUpdate) => {
@@ -112,9 +127,9 @@ function StudentPage({ uploadFileFormHandler, socket }) {
   };
 
 
-  socket.on("onLecChange", (value, id) => {
-    setLecCode(value);
-  });
+  // socket.on("onLecChange", (value, id) => {
+  //   setLecCode(value);
+  // });
 
 
   const run = () => {
@@ -224,7 +239,7 @@ function StudentPage({ uploadFileFormHandler, socket }) {
           </Grid>
         </Grid>
       </Box>
-      <StudentRightMenu drawerWidth={drawerWidth} />
+      <StudentRightMenu drawerWidth={drawerWidth} socket={socket} />
     </>
   );
 }

@@ -105,7 +105,10 @@ function App() {
               path="/student"
               element={
                 <PrivateRoute isAllowed={!!curUser && !isAdmin}>
-                  <StudentPage fileUploadHandler={uploadFileFormHandler} socket={socket}/>
+                  <StudentPage fileUploadHandler={uploadFileFormHandler} 
+                               socket={socket}
+                               curUser={curUser}
+                  />
                 </PrivateRoute>
               }
             />
@@ -114,7 +117,10 @@ function App() {
               element={
                 <PrivateRoute isAllowed={!!curUser && isAdmin}>
                   {/* <TeacherPage fileUploadHandler={uploadFileFormHandler}/> */}
-                  <TeacherPage fileUploadHandler={uploadFileFormHandler} socket={socket}/>
+                  <TeacherPage  fileUploadHandler={uploadFileFormHandler} 
+                                socket={socket} 
+                                curUser={curUser}
+                  />
                 </PrivateRoute>
               }
             />

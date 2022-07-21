@@ -245,18 +245,21 @@ io.on('connection', async (socket) => {
   // console.log("[Server] current room: " + socket.rooms); // Set { <socket.id> }
   // socket.join("room1");
   // console.log("[Server] joined room: " + socket.rooms); // Set { <socket.id>, "room1" }
-
   console.log('[Server] a user connected, socket id is :' + socket.id);
   const count = io.engine.clientsCount;
   console.log("[server count]:", count);
 
 
-  socket.on('set attributes', role => {
+  socket.on('set attributes', (role, curUser) => {
     // socket.createTime = Date();
     socket.role = role;
+    socket.username = curUser;
+    // socket.broadcast.emit("join broadcast", socket.id, role, curUser);
+    socket.broadcast.emit("connection broadcast", socket.id, role, curUser);
     // if(role == 'admin') socket.join('teacher');
     // console.log("[Server] - set attributes: ", socket.id, socket.role);
   });
+
 
   socket.on('teacher join', () => {
     socket.join('teacher');
@@ -267,8 +270,8 @@ io.on('connection', async (socket) => {
   //   socket.to(tSktId).emit('student join', socket.id);
   // });
 
-  socket.on('student join', () => {
-    socket.to('teacher').emit('student join', socket.id);
+  socket.on('student join', (curUser) => {
+    socket.to('teacher').emit('student join', socket.id, curUser);
   });
 
 
@@ -298,7 +301,7 @@ io.on('connection', async (socket) => {
 
     if (value < sockets.length){
       sockets.forEach((skt) => {
-        if ( skt.role == 'user' && ++count == value){
+        if ( skt.role == 'student' && ++count == value){
           studentId = skt.id;
         } 
       });
@@ -317,10 +320,14 @@ io.on('connection', async (socket) => {
 
   });
 
-  socket.on('disconnect', () => {
-    console.log('user disconnected ', socket.id);
+  socket.on("disconnection broadcast", () => {
+    socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
   });
 
+  socket.on('disconnect', () => {
+    // socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
+    console.log('user disconnected ', socket.id);
+  });
 });
 
 

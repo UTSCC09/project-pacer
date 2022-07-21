@@ -22,6 +22,9 @@ let adminIdentified = false;
 function LoginPage({curUser, isAdmin, setIsAdmin, socket}) {
   const [username, setUsername] = useState(() => '');
   const [password, setPassword] = useState(() => '');
+  // todo: pass socket id as a student attribute
+  // suggest: store socket id as a list for the case that multiple windows/devices
+  // logins with the same user
   const [socketid, setSocketid] = useState(socket.id);
   const navigate = useNavigate();
 

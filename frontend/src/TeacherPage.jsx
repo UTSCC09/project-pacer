@@ -31,7 +31,7 @@ import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
 const drawerWidth = 200;
 var sid = "";
 
-function TeacherPage({ uploadFileFormHandler, socket }) {
+function TeacherPage({ uploadFileFormHandler, socket, curUser }) {
 // function TeacherPage({ uploadFileFormHandler }) {
   const [code, setCode] = useState(() => "console.log('Welcome to class!');");
   const [stuCode, setStuCode] = useState(() => "no student here");
@@ -43,6 +43,7 @@ function TeacherPage({ uploadFileFormHandler, socket }) {
   const [stuOut, setStuOut] = useState(() => null);
   const [stuErr, setStuErr] = useState(() => null);
   // stuJoin {'socket id': 'student name', ...}
+  // todo: use stuJoin store joined sutdents to backend
   const [stuJoin, setStuJoin] = useState(() => {});
 
 
@@ -57,6 +58,11 @@ function TeacherPage({ uploadFileFormHandler, socket }) {
     extensions[1] = globalJavaScriptCompletions;
   }
 
+  // useEffect(() => {
+  //   socket.emit("set attributes", 'teacher', curUser);
+  //   console.log("[Teacher Page]: now it is loaded");
+  // }, []);
+
 
   useEffect(() => {
 
@@ -68,13 +74,29 @@ function TeacherPage({ uploadFileFormHandler, socket }) {
     // });
     console.log("[TeacherPage] socket id:", socket.id)
 
+    socket.emit("set attributes", 'teacher', curUser);
+
     socket.emit("onLecChange", code);
 
     socket.emit('teacher join');
 
-    socket.on("student join", sSktId => {
-      console.log("[TeacherPage - student join] joining student: ",sSktId);
-      setStuJoin({sSktId: "student name"});
+    // socket.emit("connection broadcast",'user', curUser );
+
+    socket.on("connection broadcast", (SktId, role, curUser) => {
+      console.log(`[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
+    });
+
+    socket.on("disconnection broadcast", (SktId, role, curUser) => {
+      console.log(`[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`);
+    });
+
+
+    // socket.on("student join", sSktId => {
+    socket.on("student join", (sSktId, username) => {
+      console.log("[TeacherPage - student join] joining student socket id: ",sSktId, " and student name: ", username);
+      // todo: use stuJoin(username here) store joined sutdents to backend
+      socket.emit("onLecChange", code);
+      setStuJoin({sSktId: username});
     });
 
 
@@ -93,11 +115,6 @@ function TeacherPage({ uploadFileFormHandler, socket }) {
 
     console.log("load teacher page complete");
   }, []);
-
-
-  useEffect(() => {
-    socket.emit("set attributes", 'admin');
-  });
 
 
   const onChange = (value, viewUpdate) => {
