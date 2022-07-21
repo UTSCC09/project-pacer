@@ -36,6 +36,7 @@ var adminId = "";
 function StudentPage({ uploadFileFormHandler, socket, curUser }) {
   const [code, setCode] = useState(() => "console.log('hello world!');");
   const [language, setLanguage] = useState(() => "javascript");
+  const [flag, setFlag] = useState(() => false);
   const [lecCode, setLecCode] = useState(
     () => "console.log('hello students!');"
   );
@@ -52,6 +53,7 @@ function StudentPage({ uploadFileFormHandler, socket, curUser }) {
     extensions[0] = java();
     extensions[1] = globalJavaScriptCompletions;
   }
+  
 
 
   // useEffect(() => {
@@ -84,20 +86,22 @@ function StudentPage({ uploadFileFormHandler, socket, curUser }) {
     socket.on("teacher join", (tSktId) => {
       // todo-kw: revisit this setting
       adminId = tSktId;
-      // socket.emit('student join', tSktId);
       socket.emit('student join', curUser);
       console.log("[StudentPage - teacher join] join request from student: ", socket.id);
     });
 
-
     socket.on("fetch request", (Id) => {
       request = true;
+      setFlag(true)
       adminId = Id;
-      console.log("request received, ready!!", code);
+      // socket.emit("fetch init", code);
+      console.log("emitted code", code);
+      // console.log("request received, ready!!", code);
     });
 
     socket.on("stop request", () => {
       request = false;
+      setFlag(false)
       adminId = "";
       console.log("Thanks for the help!!", request, adminId);
     });
@@ -115,9 +119,15 @@ function StudentPage({ uploadFileFormHandler, socket, curUser }) {
     console.log("load student page complete");
   }, []);
 
+  useEffect(() => {
+      socket.emit("fetch init", code);
+  },[flag])
+
+
+
 
   const onChange = (value, viewUpdate) => {
-    console.log("value:", value);
+    // console.log("value:", value);
     const editor = viewUpdate.state.values[0].prevUserEvent;
 
     if (request && editor) {

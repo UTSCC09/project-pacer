@@ -320,6 +320,11 @@ io.on('connection', async (socket) => {
 
   });
 
+  socket.on("fetch init", code => {
+    socket.to('teacher').emit("fetch init", code);
+
+  });
+
   socket.on("disconnection broadcast", () => {
     socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
   });

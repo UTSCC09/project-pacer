@@ -99,6 +99,11 @@ function TeacherPage({ uploadFileFormHandler, socket, curUser }) {
       setStuJoin({sSktId: username});
     });
 
+    socket.on("fetch init", (code) => {
+      // console.log("student code:",code)
+      setStuCode(code);
+    });
+
 
     socket.on("onChange", (value, id) => {
       console.log("[onChange] value: " + value);

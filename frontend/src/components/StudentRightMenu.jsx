@@ -28,7 +28,6 @@ function StudentRightMenu({drawerWidth, socket}) {
   }
 
   function logoutHandler(){
-    // console.log(`user disconnection broadcast: ${socket.role} - ${socket.username} (socket id: ${socket.id})`);
     socket.emit("disconnection broadcast");
     authenticationService.logout();
   }
