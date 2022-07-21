@@ -24,6 +24,7 @@ function StudentRightMenu({drawerWidth, socket}) {
 
   function requestHelp() {
     console.log("help requested")
+    socket.emit("help request");
     setNotificationToggle(!notificationToggle)
   }
 

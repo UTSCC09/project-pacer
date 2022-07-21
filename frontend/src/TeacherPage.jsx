@@ -104,6 +104,11 @@ function TeacherPage({ uploadFileFormHandler, socket, curUser }) {
       setStuCode(code);
     });
 
+    socket.on("help request", (stuId, username) => {
+      // todo: data for help request implementation
+      console.log(`[TeacherPage - help request] student [${username}] need help; student socket id: ${stuId} `)
+    });
+
 
     socket.on("onChange", (value, id) => {
       console.log("[onChange] value: " + value);
