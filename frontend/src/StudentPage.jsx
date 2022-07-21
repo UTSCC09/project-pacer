@@ -301,9 +301,11 @@ function StudentPage({ socket, curUser }) {
     if (localVideo.current) {
       localVideo.current.srcObject = localStream;
     }
+
     const peer = new Peer({
       initiator: true,
       trickle: false,
+      config: servers,
       stream: callStream
     })
     
@@ -328,7 +330,6 @@ function StudentPage({ socket, curUser }) {
     const peer = new Peer({
       initiator: false,
       trickle: false,
-      config: servers,
       stream: callStream,
     });
     peer.on("signal", data => {

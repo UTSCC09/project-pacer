@@ -287,7 +287,7 @@ io.on('connection', async (socket) => {
   });
 
 
-  socket.on('fetch code', async (value, adminId) => {
+  socket.on('fetch code', async (studentId, adminId) => {
 
     const sockets = await io.fetchSockets()
       .catch((err) => { console.error(err); });
@@ -296,19 +296,11 @@ io.on('connection', async (socket) => {
     // console.log("[Server] - fetch code: length  " + sockets.length)
     // console.log("[Server] - fetch code: adminId  " + adminId)
 
-    var studentId = '';
-    var count = 0;
-
-    if (value < sockets.length){
-      sockets.forEach((skt) => {
-        if ( skt.role == 'student' && ++count == value){
-          studentId = skt.id;
-        } 
-      });
+    if (sockets.filter(skt => skt.id === studentId).length > 0){
       console.log("[Server] - fetch code: studentId  " + studentId);
       socket.to(studentId).emit("fetch request", adminId);
     } else {
-      console.log("[Server] - fetch code: no such student")
+      console.log("[Server] - fetch code: no such student with id " + studentId)
       socket.to(adminId).emit('no student',"no student here");
     }
 

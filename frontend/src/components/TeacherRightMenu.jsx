@@ -15,25 +15,34 @@ import { Button } from "@mui/material";
 import { authenticationService, socket } from "../_services";
 // [kw]
 import React, { useEffect } from 'react';
+import Notifications from './Notifications';
 
 function getConnectedStudents() {
     return ["Student1", "Student2", "Student3", "Student4"]
 }
 
 
-function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName }) {
+function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, connectedUsers, socket }) {
   const [notificationToggle, setNotificationToggle] = React.useState(() => null);
+  const [helpMsg, setHelpMsg] = React.useState(() => "default msg");
 
-  function requestHelp() {
-    console.log("help requested")
-    setNotificationToggle(!notificationToggle)
-  }
+  React.useEffect(() => {
+    socket.on("help request", (stuId, username) => {
+      // todo: data for help request implementation
+      console.log(
+        `[TeacherPage - help request] student [${username}] need help; student socket id: ${stuId} `
+      );
+      const msg = `Help requested from ${username} with socket id ${stuId}`
+      setHelpMsg(oldmsg => msg)
+      setNotificationToggle(oldState => !oldState)
+    });
+  }, [])
 
-  function loadStudentSession(studentName) {
+  function loadStudentSession(studentName, studentCurSocket) {
       setDisplayStudent(true)
       console.log(studentName)
       setStudentName(studentName)
-      socket.emit("fetch code", parseInt(studentName.at(-1)), socket.id)
+      socket.emit("fetch code", studentCurSocket, socket.id)
   }
 
 
@@ -47,13 +56,13 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName }) {
       <Toolbar />
       <Divider />
       <List>
-        {getConnectedStudents().map((text, index) => (
-          <ListItem key={text} disablePadding>
-            <ListItemButton value={text} onClick={() => loadStudentSession(text)}>
+        {connectedUsers.map((text, index) => (
+          <ListItem key={text.SktId} disablePadding>
+            <ListItemButton value={text.SktId} onClick={() => loadStudentSession(text.curUser, text.SktId)}>
               <ListItemIcon>
                 <PersonIcon />
               </ListItemIcon>
-              <ListItemText primary={text} />
+              <ListItemText primary={text.SktId} secondary={text.curUser}/>
             </ListItemButton>
           </ListItem>
         ))}
@@ -124,6 +133,7 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName }) {
           {drawer}
         </Drawer>
       </Box>
+    <Notifications msg={helpMsg} variant="info" open={notificationToggle} />
     </Box>
   );
 }

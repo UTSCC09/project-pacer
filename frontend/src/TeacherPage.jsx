@@ -54,7 +54,7 @@ function TeacherPage({ socket, curUser }) {
   // stuJoin {'socket id': 'student name', ...}
   // todo: use stuJoin store joined sutdents to backend
   const [stuJoin, setStuJoin] = useState(() => {});
-
+  const [connectedUsers, setConnectedUsers] = useState([]);
 
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
@@ -88,21 +88,20 @@ function TeacherPage({ socket, curUser }) {
   // for file uploading (via fb):
   const uploadFileFormHandler = (event) => {
     event.preventDefault();
-    uploadFile(event.target[0].files[0])
-      .then((res) => {
-        res.file.text().then((code) => {
-          setCode(code);
-          setCodePath(res.codePath);
-          setCodeFilename(res.file.name);
-        });
+    uploadFile(event.target[0].files[0]).then((res) => {
+      res.file.text().then((code) => {
+        setCode(code);
+        setCodePath(res.codePath);
+        setCodeFilename(res.file.name);
       });
+    });
   };
 
   // for file uploading (via fb):
   const uploadFile = (f) => {
     return new Promise(function (res, rej) {
       if (!f) {
-        console.log('Upload failed. Try a different file.');
+        console.log("Upload failed. Try a different file.");
         rej();
       }
       const cp = `/files/users/${authenticationService.currentUser.source._value.username}/${f.name}`;
@@ -123,7 +122,7 @@ function TeacherPage({ socket, curUser }) {
         () => {
           // when the file is uploaded successfully:
           //getDownloadURL(uploadFileTaskStatus.snapshot.ref).then((url) => console.log(url));
-          res({"file": f, "codePath": cp});
+          res({ file: f, codePath: cp });
         }
       );
     });
@@ -134,10 +133,10 @@ function TeacherPage({ socket, curUser }) {
     return new Promise(function (res, rej) {
       let xhr = new XMLHttpRequest();
       // handle xhr response:
-      xhr.responseType = 'text';
+      xhr.responseType = "text";
       xhr.onload = (event) => {
         if (xhr.status == 200) {
-          res({"code": xhr.response});
+          res({ code: xhr.response });
         } else {
           console.log(xhr.status);
           rej();
@@ -147,64 +146,86 @@ function TeacherPage({ socket, curUser }) {
         console.log(xhr.status);
         rej();
       };
-      xhr.open('GET', url);
+      xhr.open("GET", url);
       xhr.send(); // is xhr onload async
     });
-  }
+  };
 
   // for file downloading (via fb):
   const downloadFile = (fileLocation) => {
     const fileStorageRef = ref(storage, fileLocation);
-    return getDownloadURL(fileStorageRef)
-      .then((url) => makeDownloadFileRequest(url));
+    return getDownloadURL(fileStorageRef).then((url) =>
+      makeDownloadFileRequest(url)
+    );
   };
 
   // [kw]
   useEffect(() => {
-
     // socket.on("connect", () => {
     //   console.log("[New Client - teacher] Open - socket.id: " + socket.id);
     //   console.log(
     //     "[New Client - teacher] Check connection: " + socket.connected
     //   );
     // });
-    console.log("[TeacherPage] socket id:", socket.id)
+    console.log("[TeacherPage] socket id:", socket.id);
 
-    socket.emit("set attributes", 'teacher', curUser);
+    socket.emit("set attributes", "teacher", curUser);
 
     socket.emit("onLecChange", code);
 
-    socket.emit('teacher join');
+    socket.emit("teacher join");
 
     // socket.emit("connection broadcast",'user', curUser );
-
     socket.on("connection broadcast", (SktId, role, curUser) => {
-      console.log(`[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
+      if (connectedUsers.includes({ curUser, SktId })) {
+        console.log(
+          `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
+        );
+      } else {
+        setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser, SktId }]);
+        console.log(
+          `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
+        );
+        console.log([...connectedUsers]);
+      }
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
-      console.log(`[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`);
+      console.log({ curUser, SktId });
+      const users = [...connectedUsers];
+      console.log(users);
+      const idx = users.findIndex((user) => user.SktId === SktId);
+      if (idx) {
+        console.log("clearing");
+        setConnectedUsers(eixstingUsers => {
+          const userCopy = [...eixstingUsers];
+          userCopy.splice(idx, 1);
+          return userCopy
+        });
+      }
+      console.log(
+        `[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`
+      );
     });
-
 
     // socket.on("student join", sSktId => {
     socket.on("student join", (sSktId, username) => {
-      console.log("[TeacherPage - student join] joining student socket id: ",sSktId, " and student name: ", username);
+      console.log(
+        "[TeacherPage - student join] joining student socket id: ",
+        sSktId,
+        " and student name: ",
+        username
+      );
+      setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser: username, SktId: sSktId }]);
       // todo: use stuJoin(username here) store joined sutdents to backend
       socket.emit("onLecChange", code);
-      setStuJoin({sSktId: username});
+      setStuJoin({ sSktId: username });
     });
 
     socket.on("fetch init", (code) => {
       // console.log("student code:",code)
       setStuCode(code);
     });
-
-    socket.on("help request", (stuId, username) => {
-      // todo: data for help request implementation
-      console.log(`[TeacherPage - help request] student [${username}] need help; student socket id: ${stuId} `)
-    });
-
 
     socket.on("onChange", (value, id) => {
       console.log("[onChange] value: " + value);
@@ -237,44 +258,42 @@ function TeacherPage({ socket, curUser }) {
           });
         });
     } // for when code + codePath correspond to session, so an uploaded file can take over code slide
+  }, []);
 
-  },[])
+  const setCurUsers = (users) => {
+    setConnectedUsers(users)
+  }
 
   const onChange = (value, viewUpdate) => {
     console.log("value:", value);
     socket.emit("onLecChange", value);
-    setCode(value)
+    setCode(value);
   };
-
 
   const onStuChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
-    setStuCode(value)
+    setStuCode(value);
     if (editor) socket.emit("onChange", value, sid);
   };
 
-
   const run = () => {
-    console.log(code)
+    console.log(code);
     const { out, err } = runCode(code, language);
     setOut(out);
     setErr(err);
   };
-
 
   const clearExecutionRes = () => {
     setOut(null);
     setErr(null);
   };
 
-
   const runStuCode = () => {
-    console.log(stuCode)
+    console.log(stuCode);
     const { out, err } = runCode(stuCode, language);
     setStuOut(out);
     setStuErr(err);
   };
-
 
   const clearStuExecutionRes = () => {
     setStuOut(null);
@@ -294,42 +313,42 @@ function TeacherPage({ socket, curUser }) {
         <Grid container spacing={2}>
           {displayStudent ? (
             <Grid item xs={6}>
-            <Grid
-              container
-              direction="column"
-              alignItems="stretch"
-              rowSpacing={1}
-              columnSpacing={3}
-            >
-              <Grid item xs={12}>
-                <p>Code session for student {studentName}:</p>
+              <Grid
+                container
+                direction="column"
+                alignItems="stretch"
+                rowSpacing={1}
+                columnSpacing={3}
+              >
+                <Grid item xs={12}>
+                  <p>Code session for student {studentName}:</p>
+                </Grid>
+                {/* server display */}
+                <Grid item xs={12}>
+                  <CodeMirror
+                    value={stuCode}
+                    height="600px"
+                    theme="dark"
+                    extensions={extensions}
+                    onChange={onStuChange}
+                    hint="true"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Stack spacing={2} direction="row">
+                    <Button onClick={runStuCode} variant="contained">
+                      Run
+                    </Button>
+                  </Stack>
+                </Grid>
+                <Grid item xs={12}>
+                  <CodeExecutionResWidgit
+                    out={stuOut}
+                    err={stuErr}
+                    clear={clearStuExecutionRes}
+                  />
+                </Grid>
               </Grid>
-              {/* server display */}
-              <Grid item xs={12}>
-                <CodeMirror
-                  value={stuCode}
-                  height="600px"
-                  theme="dark"
-                  extensions={extensions}
-                  onChange={onStuChange}
-                  hint="true"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Stack spacing={2} direction="row">
-                  <Button onClick={runStuCode} variant="contained">
-                    Run
-                  </Button>
-                </Stack>
-              </Grid>
-              <Grid item xs={12}>
-                <CodeExecutionResWidgit
-                  out={stuOut}
-                  err={stuErr}
-                  clear={clearStuExecutionRes}
-                />
-              </Grid>
-            </Grid>
             </Grid>
           ) : null}
 
@@ -395,6 +414,8 @@ function TeacherPage({ socket, curUser }) {
         drawerWidth={drawerWidth}
         setDisplayStudent={setDisplayStudent}
         setStudentName={setStudentName}
+        connectedUsers={connectedUsers}
+        socket={socket}
       />
     </>
   );
