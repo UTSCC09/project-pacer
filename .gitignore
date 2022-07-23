@@ -6,10 +6,12 @@ Thumbs.db
 node_modules
 uploads
 db
-*-lock.json
 
 # react
 **/build/
 
 # env
 .env
+
+# ignore local backup
+backup

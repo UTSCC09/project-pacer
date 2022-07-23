@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs:/etc/nginx/certs 
+      - ./vhost:/etc/nginx/vhost.d 
+      - ./html:/usr/share/nginx/html 
+      
+  nginx-proxy-acme:
+    image: nginxproxy/acme-companion
+    container_name: nginx-proxy-acme
+    volumes_from:
+      - nginx-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./acme:/etc/acme.sh
+    environment:
+        - DEFAULT_EMAIL=wmd800@outlook.com
+
+  frontend:
+    image: ghcr.io/utscc09/frontend-pacer:main
+    container_name: frontend
+    restart: always
+    expose:
+      - 80
+    environment:
+      - VIRTUAL_HOST=pacer.codes
+      - LETSENCRYPT_HOST=pacer.codes
+      
+  backend:
+    image: ghcr.io/utscc09/backend-pacer:main
+    container_name: backend
+    restart: always
+    expose:
+      - 3000
+    environment:
+      - VIRTUAL_HOST=api.pacer.codes
+      - LETSENCRYPT_HOST=api.pacer.codes

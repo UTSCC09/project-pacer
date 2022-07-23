@@ -12,6 +12,18 @@ const { body, validationResult } = require("express-validator");
 
 // const sessionStore = require("nedb-session-store")(session);
 
+// const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
+// io.use(wrap(sessionMiddleware));
+
+// io.use((socket, next) => {
+//   const session = socket.request.session;
+//   if (session && session.username) {
+//     next();
+//   } else {
+//     next(new Error("unauthorized"));
+//   }
+// });
+
 const dotenv = require("dotenv");
 dotenv.config();
 
@@ -30,6 +42,8 @@ const sessionMiddleware = session({
     maxAge: 1000 * 60 * 60 * 2, // Two Hours
     sameSite: true,
   },
+  sameSite:true,
+  httpOnly:true
   // store: new RedisStore({ client: redisClient }),
   // store: new sessionStore({
   //   filename: "db/sessions.db",
@@ -44,7 +58,6 @@ app.use(
 // [kw] socket setup
 const server = http.createServer(app);
 const { Server } = require('socket.io')
-// const cors = require('cors')
 const io = new Server(server, {
   cors: {
     origin: "https://www.pacer.codes",
@@ -52,17 +65,6 @@ const io = new Server(server, {
   }
 })
 
-// const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
-// io.use(wrap(sessionMiddleware));
-
-// io.use((socket, next) => {
-//   const session = socket.request.session;
-//   if (session && session.username) {
-//     next();
-//   } else {
-//     next(new Error("unauthorized"));
-//   }
-// });
 
 const bodyParser = require("body-parser");
 app.use(bodyParser.json());
@@ -235,35 +237,41 @@ app.use((error, req, res, next) => {
   res.json({ message: error.message || 'Internal Server Error' });
 });
 
-// [kw] socket io
-
-const socketMeta = {length: 0, aIdx: -1}
+// socket io
 var prevRequest = '';
-
 io.on('connection', async (socket) => {
-  console.log("================================")
-  console.log(socket.request.session);
-  // socketMeta.length++;
-
-
+  // const sockets = await io.fetchSockets();
+  // console.log("[server fetchSockets]:", sockets);
+  // console.log("[Server] current room: " + socket.rooms); // Set { <socket.id> }
+  // socket.join("room1");
+  // console.log("[Server] joined room: " + socket.rooms); // Set { <socket.id>, "room1" }
+  console.log('[Server] a user connected, socket id is :' + socket.id);
   const count = io.engine.clientsCount;
   console.log("[server count]:", count);
 
-  // const sockets = await io.fetchSockets();
-  // console.log("[server fetchSockets]:", sockets);
 
-
-  console.log('[Server] a user connected, socket id is :' + socket.id);
-  console.log("[Server] current room: " + socket.rooms); // Set { <socket.id> }
-  socket.join("room1");
-  console.log("[Server] joined room: " + socket.rooms); // Set { <socket.id>, "room1" }
-
-
-  socket.on('set attributes', role => {
-    // if (socket.role == 'admin') aInx
+  socket.on('set attributes', (role, curUser) => {
+    // socket.createTime = Date();
     socket.role = role;
-    socket.createTime = Date();
-    console.log("[Server] - set attributes: ", socket.id, socket.role, socket.createTime);
+    socket.username = curUser;
+    // socket.broadcast.emit("join broadcast", socket.id, role, curUser);
+    socket.broadcast.emit("connection broadcast", socket.id, role, curUser);
+    // if(role == 'admin') socket.join('teacher');
+    // console.log("[Server] - set attributes: ", socket.id, socket.role);
+  });
+
+
+  socket.on('teacher join', () => {
+    socket.join('teacher');
+    socket.broadcast.emit('teacher join', socket.id)
+  });
+
+  // socket.on('student join', tSktId => {
+  //   socket.to(tSktId).emit('student join', socket.id);
+  // });
+
+  socket.on('student join', (curUser) => {
+    socket.to('teacher').emit('student join', socket.id, curUser);
   });
 
 
@@ -274,69 +282,63 @@ io.on('connection', async (socket) => {
 
 
   socket.on('onLecChange', value => {
-    console.log("[Server] - onLecChange:  " + value + " || from Socket: " + socket.id);
+    // console.log("[Server] - onLecChange:  " + value + " || from Socket: " + socket.id);
     socket.broadcast.emit("onLecChange", value, socket.id);
   });
 
 
-  socket.on('fetch code', async (value, adminId) => {
+  socket.on('fetch code', async (studentId, adminId) => {
 
     const sockets = await io.fetchSockets()
       .catch((err) => { console.error(err); });
     
-    console.log("[Server] - fetch code:  " + value);
-    console.log("[Server] - fetch code: length  " + sockets.length)
-    console.log("[Server] - fetch code: adminId  " + adminId)
+    // console.log("[Server] - fetch code:  " + value);
+    // console.log("[Server] - fetch code: length  " + sockets.length)
+    // console.log("[Server] - fetch code: adminId  " + adminId)
 
-    var studentId = '';
-    var count = 0;
-
-    if (value < sockets.length){
-      // if (sockets[value - 1].role == 'user'){
-      //   studentId = sockets[value - 1].id
-      // } else {
-      //   studentId = sockets[value].id
-      // }
-      // console.log("[Server] - fetch code: studentId  " + studentId)
-      // socket.to(studentId).emit("fetch request", adminId);
-      sockets.forEach((skt) => {
-        if ( skt.role == 'user' && ++count == value){
-          studentId = skt.id;
-        } 
-      });
+    if (sockets.filter(skt => skt.id === studentId).length > 0){
       console.log("[Server] - fetch code: studentId  " + studentId);
       socket.to(studentId).emit("fetch request", adminId);
     } else {
-      console.log("[Server] - fetch code: no such student")
+      console.log("[Server] - fetch code: no such student with id " + studentId)
       socket.to(adminId).emit('no student',"no student here");
     }
 
     if (prevRequest){
       socket.to(prevRequest).emit("stop request");
-      // socket.to(adminId).emit("no student", "no student here");
     } 
     
     prevRequest = studentId;
-    
 
+    socket.on("callUser", (data) => {
+        io.to(data.userToCall).emit('hey', {signal: data.signalData, from: data.from});
+    })
+
+    socket.on("acceptCall", (data) => {
+        io.to(data.to).emit('callAccepted', data.signal);
+    })
     // socket.to(studentId).emit("fetch request", adminId);
-
   });
 
-  // socket.on("close student", id => {
-  //   socket.to(id).emit("close student");
-  // });
+  socket.on("fetch init", code => {
+    socket.to('teacher').emit("fetch init", code);
+  });
+
+  socket.on("help request", () => {
+    socket.to('teacher').emit("help request", socket.id, socket.username);
+  });
 
 
+
+  socket.on("disconnection broadcast", () => {
+    socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
+  });
 
   socket.on('disconnect', () => {
-    // if(socket.role === "admin") socketMeta.aIdx = -1;
-    // socketMeta.length--;
+    // socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
     console.log('user disconnected ', socket.id);
   });
-
 });
-// end of socket io
 
 
 server.listen(PORT, function (err) {

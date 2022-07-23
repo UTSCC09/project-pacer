@@ -1,14 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Link, Navigate } from "react-router-dom";
+import { SnackbarProvider } from 'notistack';
 // [kw]
 import React from 'react';
+import { socket } from "./_services";
+
+
 
 import "./App.css";
 import {
   history,
   Role,
 } from "./_helpers";
-import { authenticationService, getCurrentUser, webhookService } from "./_services";
+import { authenticationService, getCurrentUser } from "./_services";
 import { PrivateRoute } from "./_components";
 
 import StudentPage from "./StudentPage";
@@ -20,11 +24,6 @@ import TeacherPage from "./TeacherPage";
 import { storage } from "./_components/FireBase";
 import { ref } from "@firebase/storage"
 import { ref as fileStorageRef, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
-
-function logout() {
-  authenticationService.logout();
-  history.push("/login");
-}
 
 const uploadFileFormHandler = (event) => {
   event.preventDefault();
@@ -56,6 +55,11 @@ const uploadFile = (f) => {
   );
 };
 
+function logout() {
+  authenticationService.logout();
+  history.push("/login");
+}
+
 // let subscriber = null
 // let endpoint = null
 // webhookService.subscribe("classtest", (err, res) => {
@@ -74,6 +78,10 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(() => "");
   const [loadingComplete, setLoadingComplete] = useState(() => false);
 
+  socket.on("connect", () => {
+    console.log("[form App]socket.id: " + socket.id);
+  });
+
   useEffect(() => {
     async function fetchUserInfo() {
       const user = await getCurrentUser()
@@ -85,8 +93,8 @@ function App() {
         console.log(x)
         setCurUser(x ? x.username : null);
         setIsAdmin(x && x.role === Role.Admin);
+        setLoadingComplete(true)
       });
-      setLoadingComplete(true)
     }
     fetchUserInfo()
   }, []);
@@ -96,13 +104,16 @@ function App() {
     console.log(isAdmin)
     return (
       <BrowserRouter history={history}>
+        <SnackbarProvider maxSnack={3}>
         <CssBaseline>
           <Routes>
             <Route
               path="/student"
               element={
                 <PrivateRoute isAllowed={!!curUser && !isAdmin}>
-                  <StudentPage fileUploadHandler={uploadFileFormHandler}/>
+                  <StudentPage socket={socket}
+                               curUser={curUser}
+                  />
                 </PrivateRoute>
               }
             />
@@ -110,7 +121,10 @@ function App() {
               path="/teacher"
               element={
                 <PrivateRoute isAllowed={!!curUser && isAdmin}>
-                  <TeacherPage fileUploadHandler={uploadFileFormHandler}/>
+                  {/* <TeacherPage fileUploadHandler={uploadFileFormHandler}/> */}
+                  <TeacherPage  socket={socket} 
+                                curUser={curUser}
+                  />
                 </PrivateRoute>
               }
             />
@@ -122,12 +136,14 @@ function App() {
                   curUser={curUser}
                   isAdmin={isAdmin}
                   setIsAdmin={(e) => setIsAdmin(e)}
+                  socket={socket}
                 />
               }
             />
             <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
         </CssBaseline>
+        </SnackbarProvider>
       </BrowserRouter>
     );
   } else {

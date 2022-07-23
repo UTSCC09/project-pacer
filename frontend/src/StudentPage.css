@@ -1,0 +1,28 @@
+.call-button {
+  background-color: #48abe0;
+  color: white;
+  border: none;
+  padding: 5px;
+  height: 80px;
+  width: 80px;
+  box-shadow: 0 2px 4px darkslategray;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  top: auto;
+  margin: 0px 0px 20px 20px;
+  right: 20;
+  bottom: 0;
+  left: atuo;
+  position: fixed;
+  border-radius: 100%;
+}
+
+.call-button:active {
+  background-color: #48abe0;
+  box-shadow: 0 0 2px darkslategray;
+  transform: translateY(2px);
+}
+
+.call-button:not(:first-child) {
+  margin-top: 10px;
+}
