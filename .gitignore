@@ -6,7 +6,6 @@ Thumbs.db
 node_modules
 uploads
 db
-*-lock.json
 
 # react
 **/build/
