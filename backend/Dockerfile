@@ -6,8 +6,9 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN yarn install --non-interactive --ignore-optional
+RUN npm install
 
 COPY . .
 
+EXPOSE 3000
 CMD [ "node", "app.js" ]

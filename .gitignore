@@ -13,3 +13,6 @@ db
 
 # env
 .env
+
+# ignore local backup
+backup
