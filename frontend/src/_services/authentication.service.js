@@ -2,7 +2,7 @@ import { BehaviorSubject } from "rxjs";
 
 export const getCurrentUser = async () => {
   try {
-    const response = await fetch("localhost/api/whoami", {
+    const response = await fetch("http://localhost/api/whoami", {
       credentials: "include",
       headers: {
         'Content-Type': 'application/json',
@@ -55,7 +55,7 @@ export const authenticationService = {
 function signin(username, password, role, callback) {
   send(
     "POST",
-    "localhost/api/signin",
+    "http://localhost/api/signin",
     { username, password, role },
     function (err, res) {
       if (err) return callback(err, null);
@@ -69,7 +69,7 @@ function signin(username, password, role, callback) {
 function signup(username, password, role, callback) {
   send(
     "POST",
-    "localhost/api/signup",
+    "http://localhost/api/signup",
     { username, password, role },
     function (err, res) {
       if (err) return callback(err, null);
@@ -81,7 +81,7 @@ function signup(username, password, role, callback) {
 
 function logout() {
   // remove user from local storage to log user out
-  send("POST", "localhost/api/signout", {}, function (err) {
+  send("POST", "http://localhost/api/signout", {}, function (err) {
     if (err) return console.log(err);
     console.log("logging out");
     currentUserSubject.next(null);
