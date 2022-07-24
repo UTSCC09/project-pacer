@@ -60,7 +60,7 @@ const server = http.createServer(app);
 const { Server } = require('socket.io')
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "https://pacer.codes",
     credentials: true
   }
 })
@@ -69,7 +69,7 @@ const io = new Server(server, {
 const bodyParser = require("body-parser");
 app.use(bodyParser.json());
 app.use(cors({
-  origin: "*",
+  origin: "https://pacer.codes",
   credentials: true
 }));
 
@@ -339,7 +339,6 @@ io.on('connection', async (socket) => {
     console.log('user disconnected ', socket.id);
   });
 });
-
 
 
 server.listen(PORT, function (err) {
