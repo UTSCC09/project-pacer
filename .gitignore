@@ -10,8 +10,5 @@ db
 # react
 **/build/
 
-# env
-.env
-
 # ignore local backup
 backup
