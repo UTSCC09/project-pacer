@@ -30,7 +30,7 @@ dotenv.config();
 const app = express();
 
 const http = require("http");
-const PORT = 3000;
+const PORT = 8080;
 const version = "1.0.0";
 
 const sessionMiddleware = session({
@@ -60,7 +60,7 @@ const server = http.createServer(app);
 const { Server } = require('socket.io')
 const io = new Server(server, {
   cors: {
-    origin: "https://pacer.codes",
+    origin: "http://localhost:3000",
     credentials: true
   }
 })
@@ -69,7 +69,7 @@ const io = new Server(server, {
 const bodyParser = require("body-parser");
 app.use(bodyParser.json());
 app.use(cors({
-  origin: "https://pacer.codes",
+  origin: "http://localhost:3000",
   credentials: true
 }));
 
