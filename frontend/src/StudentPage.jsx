@@ -28,14 +28,14 @@ import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
 import { java, javaLanguage } from "@codemirror/lang-java";
 import { authenticationService } from "./_services";
 import runCode from "./_helpers/codeRunner";
-// [kw]
+
 import React from "react";
 // import { socket } from "./_services";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
 import "./StudentPage.css";
 
 const drawerWidth = 200;
-
+// todo-kw: set those two as attributes
 var request = false;
 var adminId = "";
 
@@ -82,11 +82,6 @@ function StudentPage({ socket, curUser }) {
     extensions[1] = globalJavaScriptCompletions;
   }
   
-
-
-  // useEffect(() => {
-  //   socket.emit("set attributes", "student", curUser);
-  // },[]);
 
   // for cloud sync (via fb) [experimental - TODO]:
   useEffect(() => {
@@ -177,17 +172,16 @@ function StudentPage({ socket, curUser }) {
 
   // [kw]
   useEffect(() => {
-    // socket.on("connect", () => {
-    //   console.log("[Client - student] Open - socket.id: " + socket.id);
-    //   console.log("[Client - student] Check connection: " + socket.connected);
-    // });
+    // todo-kw: set adminId as an attribute
+    // todo-kw: student cant receive adminId
+
+    if(!socket.id) socket.connect()
 
     console.log("[StudentPage] socket id:", socket.id)
 
     socket.emit("set attributes", "student", curUser);
 
     socket.volatile.emit('student join', curUser);
-
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
       // todo: here is the data for webRTC implementation
@@ -209,17 +203,17 @@ function StudentPage({ socket, curUser }) {
       request = true;
       setFlag(true)
       adminId = Id;
-      // socket.emit("fetch init", code);
-      console.log("emitted code", code);
-      // console.log("request received, ready!!", code);
+      // console.log("emitted code", code);
     });
+
 
     socket.on("stop request", () => {
       request = false;
       setFlag(false)
       adminId = "";
-      console.log("Thanks for the help!!", request, adminId);
+      // console.log("Thanks for the help!!", request, adminId);
     });
+
 
     socket.on("onChange", (value, adminId) => {
       if (request) setCode(value);
@@ -249,23 +243,21 @@ function StudentPage({ socket, curUser }) {
     })
 
     socket.on("onLecChange", (value, id) => {
-      console.log(`from student page: before teacher's code ${lecCode}`)
+      // console.log(`from student page: before teacher's code ${lecCode}`)
       setLecCode(value);
-      console.log(`from student page: teacher's code ${lecCode}`)
+      // console.log(`from student page: teacher's code ${lecCode}`)
     });
 
     console.log("load student page complete");
   }, []);
 
+
   useEffect(() => {
       socket.emit("fetch init", code);
-  },[flag])
-
-
+  }, [flag])
 
 
   const onChange = (value, viewUpdate) => {
-    // console.log("value:", value);
     const editor = viewUpdate.state.values[0].prevUserEvent;
 
     if (request && editor) {
@@ -273,11 +265,6 @@ function StudentPage({ socket, curUser }) {
     }
     setCode(value);
   };
-
-
-  // socket.on("onLecChange", (value, id) => {
-  //   setLecCode(value);
-  // });
 
 
   const run = () => {
@@ -310,7 +297,8 @@ function StudentPage({ socket, curUser }) {
     })
     
     peer.on("signal", data => {
-      socket.emit("callUser", {userToCall: teacherSocketId, signalData: data, from: "yourID"}) //yourID
+      //yourID
+      socket.emit("callUser", {userToCall: teacherSocketId, signalData: data, from: "yourID"}) 
     })
 
     peer.on("stream", stream => {
@@ -319,11 +307,13 @@ function StudentPage({ socket, curUser }) {
       }
     })
 
+    // todo-kw: move it out
     socket.on("callAccepted", signal => {
       setCallAccepted(true);
       peer.signal(signal);
     })
   }
+
 
   const acceptCall = () => {
     setCallAccepted(true);
