@@ -91,12 +91,14 @@ let users = [
 //     username: "admin",
 //     password: "admin",
 //     role: Role.Admin,
+//     roomHost: "teacher1"
 //   },
 //   {
 //     id: 0,
 //     username: "user",
 //     password: "user",
 //     role: Role.User,
+//     roomHost: "teacher1"
 //   },
 ];
 
