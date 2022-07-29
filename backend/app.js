@@ -238,6 +238,7 @@ app.use((error, req, res, next) => {
 });
 
 // socket io
+// teacher socket atribute: id / username / role / sid 
 var prevRequest = '';
 io.on('connection', async (socket) => {
   // const sockets = await io.fetchSockets();

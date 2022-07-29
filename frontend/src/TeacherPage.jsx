@@ -33,26 +33,30 @@ import { ref, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
 
 const drawerWidth = 200;
 var sid = "";
-
 // for cloud sync (via fb) [experimental - TODO]:
 let t = 0; // ns
 
-// let StudentEditor = cloneElement(CodeMirror, {value:"", height:"600px", theme:"dark", hint:"true"})
 
 function TeacherPage({ socket, curUser }) {
-  const [code, setCode] = useState("");
-  const [codePath, setCodePath] = useState("");
-  const [codeFilename, setCodeFilename] = useState("");
-  const [stuCode, setStuCode] = useState(() => "no student here");
+  // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
   const [displayStudent, setDisplayStudent] = useState(() => false);
-  const [studentName, setStudentName] = useState(() => "");
+  // code display and transmission
+  const [code, setCode] = useState("");
+  const [stuCode, setStuCode] = useState(() => "no student here");
+  // execution
   const [out, setOut] = useState(() => null);
   const [err, setErr] = useState(() => null);
   const [stuOut, setStuOut] = useState(() => null);
   const [stuErr, setStuErr] = useState(() => null);
-  const [stuJoin, setStuJoin] = useState(() => {});
+  // save and load
+  const [codePath, setCodePath] = useState("");
+  const [codeFilename, setCodeFilename] = useState("");
+  // audio call
+  // const [stuJoin, setStuJoin] = useState(() => {});
+  const [studentName, setStudentName] = useState(() => "");
   const [connectedUsers, setConnectedUsers] = useState([]);
+
 
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
@@ -67,17 +71,18 @@ function TeacherPage({ socket, curUser }) {
 
 
   // for cloud sync (via fb) [experimental - TODO]:
-  useEffect(() => {
-    setTimeout(() => {
-      if (t == 1) {
-        t = 0;
-        const f = new File([code], codeFilename);
-        uploadFile(f);
-      } else {
-        t++;
-      }
-    }, 1000);
-  });
+  // todo-kw: uncomment this
+  // useEffect(() => {
+  //   setTimeout(() => {
+  //     if (t == 1) {
+  //       t = 0;
+  //       const f = new File([code], codeFilename);
+  //       uploadFile(f);
+  //     } else {
+  //       t++;
+  //     }
+  //   }, 1000);
+  // });
 
 
   // for file uploading (via fb):
@@ -148,6 +153,7 @@ function TeacherPage({ socket, curUser }) {
     });
   };
 
+
   // for file downloading (via fb):
   const downloadFile = (fileLocation) => {
     const fileStorageRef = ref(storage, fileLocation);
@@ -178,8 +184,13 @@ function TeacherPage({ socket, curUser }) {
         console.log(
           `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
         );
-        // console.log([...connectedUsers]);
       }
+
+      setCode(currentCode => {
+        socket.emit("onLecChange", currentCode)
+        return currentCode
+      })
+
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
@@ -194,26 +205,21 @@ function TeacherPage({ socket, curUser }) {
           return userCopy
         });
       }
-
       if(SktId) setDisplayStudent(false)
-
-      console.log(
-        `[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`
-      );
+      console.log(`[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`);
     });
-
 
     socket.on("student join", (sSktId, username) => {
       console.log(
-        "[TeacherPage - student join] joining student socket id: ",
-        sSktId,
-        " and student name: ",
-        username
+        "[TeacherPage - student join] joining student socket id: ", sSktId,
+        " and student name: ", username
       );
+      // add connected student
+      console.log("from teacherPage, emiited code", code);
       setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser: username, SktId: sSktId }]);
-      // todo: use stuJoin(username here) store joined sutdents to backend
-      socket.emit("onLecChange", code);
-      setStuJoin({ sSktId: username });
+      // init teacher code on student's window
+      socket.emit("onLecChange", code)
+
     });
 
     socket.on("fetch init", (code) => {
@@ -222,8 +228,6 @@ function TeacherPage({ socket, curUser }) {
     });
 
     socket.on("onChange", (value, id) => {
-      // console.log("[onChange] value: " + value);
-      // console.log("editor id " + sid);
       sid = id;
       setStuCode(value);
     });
@@ -233,8 +237,6 @@ function TeacherPage({ socket, curUser }) {
       sid = "";
       setStuCode(msg);
     });
-
-    console.log("load teacher page complete");
 
     // for file downloading (via fb):
     if (code === "" && codePath === "" && codeFilename === "") {
@@ -252,6 +254,8 @@ function TeacherPage({ socket, curUser }) {
           });
         });
     } // for when code + codePath correspond to session, so an uploaded file can take over code slide
+
+    console.log("load teacher page complete");
   }, []);
 
 
@@ -295,7 +299,7 @@ function TeacherPage({ socket, curUser }) {
     setStuErr(null);
   };
 
-  
+
   return (
     <>
       <Box
