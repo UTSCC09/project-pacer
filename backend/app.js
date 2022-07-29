@@ -337,25 +337,28 @@ app.delete("/api/rooms/:host/", isAuthenticated, function (req, res) {
   return res.status(404).json("Cannot delete user info, room with host " + req.params.host + " not found.");
 })
 
-function deleteUserFromRoom(host) {
-  console.log("deleting room for " + host)
-  const room_idx = rooms.findIndex(room => room.host === host);
-  if (room_idx >= 0) {
-    console.log(room_idx)
-    const roomUsers = rooms[room_idx].users;
-    const idx = users.findIndex(x => x.username === host);
-    const roomUserIdx = roomUsers.findIndex(x => x.username === host);
-    if (idx >= 0) {
-      const user = users[idx]
-      users[idx].roomHost = null
+function deleteUserFromRoom(username) {
+  console.log("deleting user " + username + " from rooms");
+  const idx = users.findIndex(x => x.username === username);
+  let host = null
+  if (idx >= 0) {
+    host = users[idx].roomHost
+    users[idx].roomHost = null
+  }
+  if (host) {
+    const room_idx = rooms.findIndex(room => room.host === host);
+    if (room_idx >= 0) {
+      console.log(room_idx)
+      const roomUsers = rooms[room_idx].users;
+      const roomUserIdx = roomUsers.findIndex(x => x.username === username);
+      if (roomUserIdx >= 0) {
+        rooms[room_idx].users.splice(roomUserIdx, 1);
+      }
+      if (rooms[room_idx].users.length === 0) {
+        rooms.splice(room_idx, 1)
+      }
+      console.log(rooms)
     }
-    if (roomUserIdx >= 0) {
-      rooms[room_idx].users.splice(roomUserIdx, 1);
-    }
-    if (rooms[room_idx].users.length === 0) {
-      rooms.splice(room_idx, 1)
-    }
-    console.log(rooms)
   }
 }
 
@@ -422,7 +425,6 @@ io.on('connection', async (socket) => {
     socket.to(data.to).emit('callAccepted', data.signal);
   })
 
-
   socket.on('fetch code', async (studentId, adminId) => {
     const sockets = await io.fetchSockets()
       .catch((err) => { console.error(err); });
@@ -454,6 +456,8 @@ io.on('connection', async (socket) => {
   socket.on('disconnect', (reason) => {
     // const count = io.of("/").sockets.size - 1;
     const count = io.of("/").sockets.size;
+    // if user is logging out, update room info, else ignore
+    if (reason === "client namespace disconnect") deleteUserFromRoom(socket.username);
     socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
     console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
   });

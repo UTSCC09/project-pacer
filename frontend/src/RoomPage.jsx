@@ -1,5 +1,5 @@
 import React from "react";
-import { createNewRoom, getAllRooms, joinRoom } from "./_services";
+import { authenticationService, createNewRoom, getAllRooms, joinRoom } from "./_services";
 import "./RoomPage.css";
 import Box from "@mui/material/Box";
 import {
@@ -27,6 +27,11 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, socket }) {
     setRoomName(e.target.value);
   }
 
+  function logoutHandler(){
+    authenticationService.logout();
+    socket.disconnect()
+  }
+
   function selectRoom(host) {
     console.log(`joining ${host}`)
     joinRoom(host)
@@ -51,7 +56,8 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, socket }) {
     console.log(roomName);
     createNewRoom(roomName);
     setOpen(false);
-    if (isAdmin) 
+    setUserRoom(curUser)
+    if (isAdmin)
         navigate("/teacher", { replace: true });
         else navigate('/student', { replace: true });
   };
@@ -73,7 +79,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, socket }) {
     // console.log(roomInfo);
     return (
       <Box display="flex" className="room-container">
-        <Stack>
+        <Stack spacing={4}>
           <p className="title">Rooms</p>
           <Box
             display="flex"
@@ -100,6 +106,9 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, socket }) {
           </Box>
           <Button variant="contained" onClick={handleToggle}>
             Create New Room
+          </Button>
+          <Button variant="contained" onClick={logoutHandler}>
+              Logout
           </Button>
         </Stack>
         <Backdrop
