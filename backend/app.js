@@ -378,9 +378,11 @@ function deleteUserFromRoom(username) {
   console.log("deleting user " + username + " from rooms");
   const idx = users.findIndex(x => x.username === username);
   let host = null
+  let isAdmin = false
   if (idx >= 0) {
     host = users[idx].roomHost
     users[idx].roomHost = null
+    isAdmin = users[idx].isAdmin
   }
   if (host) {
     const room_idx = rooms.findIndex(room => room.host === host);
@@ -390,6 +392,9 @@ function deleteUserFromRoom(username) {
       const roomUserIdx = roomUsers.findIndex(x => x.username === username);
       if (roomUserIdx >= 0) {
         rooms[room_idx].users.splice(roomUserIdx, 1);
+        if (isAdmin) {
+          rooms[room_idx].hasTeacher = false;
+        }
       }
       if (rooms[room_idx].users.length === 0) {
         rooms.splice(room_idx, 1)
