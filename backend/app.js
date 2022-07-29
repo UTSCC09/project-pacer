@@ -111,7 +111,7 @@ const Role = {
   User: 'User'
 }
 
-//let users = [
+let users = [
 //   {
 //     id: 0,
 //     username: "admin",
@@ -126,7 +126,7 @@ const Role = {
 //     role: Role.User,
 //     roomHost: "teacher1"
 //   },
-//];
+];
 
 let rooms = [
 //   {
@@ -162,46 +162,46 @@ app.get("/api/whoami", function (req, res) {
   console.log(`load user session is : ${req.session.username}`)
   const userName = req.session.username;
   if (!userName) return res.json(null);
-  /// BEFORE FB:
-  // const user = users.find(x => x.username === userName);
-  // return res.json({
-  //   id: user.id,
-  //   username: user.username,
-  //   role: user.role,
-  //   roomHost: user.roomHost,
-  // });
-  /// AFTER FB:
-  const collectionRef = collection(fbfsdb, "users");
-  // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
-  getDocs(collectionRef).then((snapshot) => {
-    let matchFound = 0;
-    let matchsRole = "";
-    let matchsId = -1;
-    let matchsRoomHost = "";
-    snapshot.docs.forEach((doc) => {
-      if (doc.data().username == userName) {
-        // MATCH FOUND:
-        matchFound = 1;
-        matchsRole = doc.data().role;
-        matchsId = doc.data().id;
-        matchsRoomHost = doc.data().roomHost;
-      }
-    });
-    if (matchFound) {
-      // MATCH FOUND:
-      return res.json({
-        id: matchsId,
-        username: userName,
-        role: matchsRole,
-        roomHost: matchsRoomHost,
-      });
-    } else {
-      // NO MATCH FOUND:
-      return res.status(404).json("user: " + userName + " doesn't exist");
-    }
-  }).catch(err => {
-    return res.status(500).json(err.message);
+  // BEFORE FB:
+  const user = users.find(x => x.username === userName);
+  return res.json({
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    roomHost: user.roomHost,
   });
+  // /// AFTER FB:
+  // const collectionRef = collection(fbfsdb, "users");
+  // // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
+  // getDocs(collectionRef).then((snapshot) => {
+  //   let matchFound = 0;
+  //   let matchsRole = "";
+  //   let matchsId = -1;
+  //   let matchsRoomHost = "";
+  //   snapshot.docs.forEach((doc) => {
+  //     if (doc.data().username == userName) {
+  //       // MATCH FOUND:
+  //       matchFound = 1;
+  //       matchsRole = doc.data().role;
+  //       matchsId = doc.data().id;
+  //       matchsRoomHost = doc.data().roomHost;
+  //     }
+  //   });
+  //   if (matchFound) {
+  //     // MATCH FOUND:
+  //     return res.json({
+  //       id: matchsId,
+  //       username: userName,
+  //       role: matchsRole,
+  //       roomHost: matchsRoomHost,
+  //     });
+  //   } else {
+  //     // NO MATCH FOUND:
+  //     return res.status(404).json("user: " + userName + " doesn't exist");
+  //   }
+  // }).catch(err => {
+  //   return res.status(500).json(err.message);
+  // });
 });
 
 app.patch(
@@ -280,73 +280,73 @@ app.post(
     const username = req.body.username;
     const password = req.body.password;
     const role = req.body.role;
-    /// BEFORE FB:
-    // const user = users.find(x => x.username === username);
-    // if (!user) return res.status(401).json("invalid credentials");
-    // if (user && user.role !== role) return res.status(401).json('Incorrect role selected');
-    // bcrypt.compare(password, user.password, function (err, result) {
-    //   if (err) return res.status(500).json(err);
-    //   if (!result) {
-    //     return res.status(401).json("invalid credentials");
-    //   }
-    //   req.session.username = username;
-    //   req.session.role = role;
-    //   console.log(`session is : ${req.session.username}`)
-    //   return res.json({
-    //     id: user.id,
-    //     username: user.username,
-    //     role: user.role,
-    //     roomHost: user.roomHost,
-    //   });
-    // });
-    /// AFTER FB:
-    const collectionRef = collection(fbfsdb, "users");
-    // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
-    getDocs(collectionRef).then((snapshot) => {
-      let matchFound = 0;
-      let matchsRole = "";
-      let matchsPassword = "";
-      let matchsRoomHost = "";
-      let matchsId = -1;
-      snapshot.docs.forEach((doc) => {
-        if (doc.data().username == username) {
-          // MATCH FOUND 1/3:
-          matchFound = 1;
-          matchsRole = doc.data().role;
-          matchsPassword = doc.data().password;
-          matchsId = doc.data().id;
-          matchsRoomHost = doc.data().roomHost;
-        }
-      });
-      if (matchFound) {
-        // MATCH FOUND 2/3:
-        if (matchsRole == role) {
-          // MATCH FOUND 3/3:
-          bcrypt.compare(password, matchsPassword, function (err, result) {
-            if (err) return res.status(500).json(err);
-            if (!result) {
-              return res.status(401).json("invalid credentials");
-            }
-            req.session.username = username;
-            req.session.role = role;
-            console.log(`session is : ${req.session.username}`);
-            return res.json({
-              id: matchsId,
-              username: username,
-              role: matchsRole,
-              roomHost: matchsRoomHost
-            });
-          });
-        } else {
-          return res.status(401).json('Incorrect role selected');
-        }
-      } else {
-        // NO MATCH FOUND:
+    // BEFORE FB:
+    const user = users.find(x => x.username === username);
+    if (!user) return res.status(401).json("invalid credentials");
+    if (user && user.role !== role) return res.status(401).json('Incorrect role selected');
+    bcrypt.compare(password, user.password, function (err, result) {
+      if (err) return res.status(500).json(err);
+      if (!result) {
         return res.status(401).json("invalid credentials");
       }
-    }).catch(err => {
-      return res.status(500).json(err.message);
+      req.session.username = username;
+      req.session.role = role;
+      console.log(`session is : ${req.session.username}`)
+      return res.json({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        roomHost: user.roomHost,
+      });
     });
+    // /// AFTER FB:
+    // const collectionRef = collection(fbfsdb, "users");
+    // // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
+    // getDocs(collectionRef).then((snapshot) => {
+    //   let matchFound = 0;
+    //   let matchsRole = "";
+    //   let matchsPassword = "";
+    //   let matchsRoomHost = "";
+    //   let matchsId = -1;
+    //   snapshot.docs.forEach((doc) => {
+    //     if (doc.data().username == username) {
+    //       // MATCH FOUND 1/3:
+    //       matchFound = 1;
+    //       matchsRole = doc.data().role;
+    //       matchsPassword = doc.data().password;
+    //       matchsId = doc.data().id;
+    //       matchsRoomHost = doc.data().roomHost;
+    //     }
+    //   });
+    //   if (matchFound) {
+    //     // MATCH FOUND 2/3:
+    //     if (matchsRole == role) {
+    //       // MATCH FOUND 3/3:
+    //       bcrypt.compare(password, matchsPassword, function (err, result) {
+    //         if (err) return res.status(500).json(err);
+    //         if (!result) {
+    //           return res.status(401).json("invalid credentials");
+    //         }
+    //         req.session.username = username;
+    //         req.session.role = role;
+    //         console.log(`session is : ${req.session.username}`);
+    //         return res.json({
+    //           id: matchsId,
+    //           username: username,
+    //           role: matchsRole,
+    //           roomHost: matchsRoomHost
+    //         });
+    //       });
+    //     } else {
+    //       return res.status(401).json('Incorrect role selected');
+    //     }
+    //   } else {
+    //     // NO MATCH FOUND:
+    //     return res.status(401).json("invalid credentials");
+    //   }
+    // }).catch(err => {
+    //   return res.status(500).json(err.message);
+    // });
   }
 );
 
@@ -380,65 +380,64 @@ app.post(
     const role = req.body.role;
     bcrypt.hash(password, saltRounds, function (err, hash) {
       if (err) return res.status(500).json(err);
-      /// BEFORE FB:
-      // const user = users.find(x => x.username === username);
-      // if (user) return res.status(409).json("username " + username + " already exists");
-      // const newUser = {
-      //   id: 0,
-      //   username: username,
-      //   password: hash,
-      //   role: role,
-      //   roomHost: null
-      // }
-      // users.push(newUser)
-      // req.session.username = username;
-      // req.session.role = role;
-      // console.log(`session is : ${req.session.username}`)
-      // console.log("here")
-      // return res.json({
-      //   id: 0,
-      //   username: username,
-      //   role: role,
-      //   roomHost: null
-      // })
-      /// AFTER FB:
-      const collectionRef = collection(fbfsdb, "users");
-      // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
-      getDocs(collectionRef).then((snapshot) => {
-        let matchFound = 0;
-        snapshot.docs.forEach((doc) => {
-          if (doc.data().username == username) {
-            // MATCH FOUND:
-            matchFound = 1;
-          }
-        });
-        if (matchFound) {
-          // MATCH FOUND:
-          return res.status(409).json("username " + username + " already exists");
-        } else {
-          // NO MATCH FOUND:
-          addDoc(collectionRef, {
-            id: 0,
-            username: username,
-            password: hash,
-            role: role,
-            roomHost: null
-          }).then(() => {
-            req.session.username = username;
-            req.session.role = role;
-            console.log(`session is : ${req.session.username}`);
-            console.log("here");
-            return res.json({
-              id: 0,
-              username: username,
-              role: role,
-              roomHost: null
-            });
-          });
-        }
-      }).catch(err => {
-        return res.status(500).json(err.message);
-      });
+      // BEFORE FB:
+      const user = users.find(x => x.username === username);
+      if (user) return res.status(409).json("username " + username + " already exists");
+      const newUser = {
+        id: 0,
+        username: username,
+        password: hash,
+        role: role,
+        roomHost: null
+      }
+      users.push(newUser)
+      req.session.username = username;
+      req.session.role = role;
+      console.log(`session is : ${req.session.username}`)
+      return res.json({
+        id: 0,
+        username: username,
+        role: role,
+        roomHost: null
+      })
+      // // AFTER FB:
+      // const collectionRef = collection(fbfsdb, "users");
+      // // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
+      // getDocs(collectionRef).then((snapshot) => {
+      //   let matchFound = 0;
+      //   snapshot.docs.forEach((doc) => {
+      //     if (doc.data().username == username) {
+      //       // MATCH FOUND:
+      //       matchFound = 1;
+      //     }
+      //   });
+      //   if (matchFound) {
+      //     // MATCH FOUND:
+      //     return res.status(409).json("username " + username + " already exists");
+      //   } else {
+      //     // NO MATCH FOUND:
+      //     addDoc(collectionRef, {
+      //       id: 0,
+      //       username: username,
+      //       password: hash,
+      //       role: role,
+      //       roomHost: null
+      //     }).then(() => {
+      //       req.session.username = username;
+      //       req.session.role = role;
+      //       console.log(`session is : ${req.session.username}`);
+      //       console.log("here");
+      //       return res.json({
+      //         id: 0,
+      //         username: username,
+      //         role: role,
+      //         roomHost: null
+      //       });
+      //     });
+      //   }
+      // }).catch(err => {
+      //   return res.status(500).json(err.message);
+      // });
     });
   }
 );
@@ -692,7 +691,7 @@ io.on('connection', async (socket) => {
     // TODO: investigate why socket.username is occassionally undefined
     console.log(socket.username)
     // if (socket.username) redisClient.del(socket.username)
-    if (reason === "client namespace disconnect") deleteUserFromRoom(socket.username);
+    //if (reason === "client namespace disconnect") deleteUserFromRoom(socket.username);
     socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
     console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
   });
