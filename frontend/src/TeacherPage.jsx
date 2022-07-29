@@ -20,7 +20,7 @@ import { python, pythonLanguage } from "@codemirror/lang-python";
 import { CompletionContext } from "@codemirror/autocomplete";
 import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
 import { java, javaLanguage } from "@codemirror/lang-java";
-import { authenticationService, getAllRooms } from "./_services";
+import { authenticationService, getAllRooms, getRoomByHost } from "./_services";
 import TeacherRightMenu from "./components/TeacherRightMenu";
 import runCode from "./_helpers/codeRunner";
 // [kw]
@@ -50,7 +50,7 @@ let t = 0; // ns
 
 // let StudentEditor = cloneElement(CodeMirror, {value:"", height:"600px", theme:"dark", hint:"true"})
 
-function TeacherPage({ socket, curUser }) {
+function TeacherPage({ socket, curUser, userRoom }) {
   const [code, setCode] = useState("");
   const [codePath, setCodePath] = useState("");
   const [codeFilename, setCodeFilename] = useState("");
@@ -177,7 +177,15 @@ function TeacherPage({ socket, curUser }) {
 
 
   useEffect(() => {
+    async function fetchRoomInfoByHost(host) {
+      const roomInfo = await getRoomByHost(host);
+      console.log(roomInfo);
+      setConnectedUsers(roomInfo.users);
+    }
+
     if(!socket.id) socket.connect()
+
+    fetchRoomInfoByHost(userRoom)
 
     console.log("[TeacherPage] socket id:", socket.id);
 
@@ -193,7 +201,7 @@ function TeacherPage({ socket, curUser }) {
           `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
         );
       } else {
-        setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser, SktId }]);
+        fetchRoomInfoByHost(userRoom)
         console.log(
           `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
         );
@@ -203,15 +211,7 @@ function TeacherPage({ socket, curUser }) {
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
       //console.log({ curUser, SktId });
-      setConnectedUsers(eixstingUsers => {
-        const userCopy = [...eixstingUsers];
-        const idx = userCopy.findIndex((user) => user.SktId === SktId);
-        if (idx >= 0) {
-          console.log("clearing");
-          userCopy.splice(idx, 1);
-        }
-        return userCopy
-      });
+      fetchRoomInfoByHost(userRoom)
       
       if(SktId) setDisplayStudent(false)
       console.log(
@@ -227,7 +227,7 @@ function TeacherPage({ socket, curUser }) {
         " and student name: ",
         username
       );
-      setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser: username, SktId: sSktId }]);
+      fetchRoomInfoByHost(userRoom)
       // todo: use stuJoin(username here) store joined sutdents to backend
       socket.emit("onLecChange", code);
       setStuJoin({ sSktId: username });

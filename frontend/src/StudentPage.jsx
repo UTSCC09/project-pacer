@@ -51,7 +51,7 @@ const servers = {
   iceCandidatePoolSize: 10,
 };
 
-function StudentPage({ socket, curUser }) {
+function StudentPage({ socket, curUser, userRoom }) {
   const [code, setCode] = useState(() => ""); // like a cache: keeping this since downloading & uploading the file on each update is very inefficient
   const [codePath, setCodePath] = useState(""); // set init val to ""
   const [codeFilename, setCodeFilename] = useState("");

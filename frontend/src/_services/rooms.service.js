@@ -34,17 +34,18 @@ export const getRoomByHost = async (host) => {
   );
 }
 
-export const createNewRoom = async (roomName) => {
+export const createNewRoom = async (roomName, socketId) => {
     return await send(
         "POST",
         "http://localhost:8080/api/rooms/",
-        {roomName}
+        {roomName, socketId}
     );
 }
 
-export const joinRoom = async (host) => {
+export const joinRoom = async (host, socketId) => {
     return await send(
         "PATCH",
         "http://localhost:8080/api/rooms/" + host + "/",
+        {socketId}
     )
 }

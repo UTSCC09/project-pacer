@@ -119,7 +119,7 @@ function App() {
                 <PrivateRoute isAllowed={!!curUser && !isAdmin && !!userRoom}>
                   <StudentPage socket={socket}
                                curUser={curUser}
-                               room={userRoom}
+                               userRoom={userRoom}
                   />
                 </PrivateRoute>
               }
@@ -131,7 +131,7 @@ function App() {
                   {/* <TeacherPage fileUploadHandler={uploadFileFormHandler}/> */}
                   <TeacherPage  socket={socket} 
                                 curUser={curUser}
-                                room={userRoom}
+                                userRoom={userRoom}
                   />
                 </PrivateRoute>
               }

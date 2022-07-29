@@ -34,7 +34,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, socket }) {
 
   function selectRoom(host) {
     console.log(`joining ${host}`)
-    joinRoom(host)
+    joinRoom(host, socket.id)
     setUserRoom(host)
     console.log("join complete")
     if (isAdmin) 
@@ -54,7 +54,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, socket }) {
 
   const onCreateNewRoom = () => {
     console.log(roomName);
-    createNewRoom(roomName);
+    createNewRoom(roomName, socket.id);
     setOpen(false);
     setUserRoom(curUser)
     if (isAdmin)

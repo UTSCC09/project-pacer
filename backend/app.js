@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require('cors');
 const bcrypt = require("bcrypt");
 const session = require("express-session");
+const Redis = require("redis")
 let RedisStore = require("connect-redis")(session)
 const { body, validationResult } = require("express-validator");
 
@@ -32,6 +33,11 @@ const app = express();
 const http = require("http");
 const PORT = 8080;
 const version = "1.0.0";
+
+const redisClient = Redis.createClient()
+redisClient.connect();
+
+const DEFAULT_EXPIRATION = 7200
 
 const sessionMiddleware = session({
   secret: process.env.SECRET,
@@ -137,12 +143,17 @@ app.get("/api/whoami", function (req, res) {
   const userName = req.session.username;
   if (!userName) return res.json(null);
   const user = users.find(x => x.username === userName);
-  // find the room user is currently in
-  return res.json({
-    id: user.id,
-    username: user.username,
-    role: user.role,
-    roomHost: user.roomHost
+  // find the socket id
+  console.log("getting")
+  redisClient.get(user.username, (err, socketId) => {
+    if (err) return res.status(500).json(err)
+    return res.json({
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      roomHost: user.roomHost,
+      socketId
+    });
   });
 });
 
@@ -172,6 +183,7 @@ app.post(
     const role = req.body.role;
 
     const user = users.find(x => x.username === username);
+    console.log("getting")
     if (!user) return res.status(401).json("invalid credentials");
     if (user && user.role !== role) return res.status(401).json('Incorrect role selected');
     bcrypt.compare(password, user.password, function (err, result) {
@@ -182,12 +194,16 @@ app.post(
       req.session.username = username;
       req.session.role = role;
       console.log(`session is : ${req.session.username}`)
-      return res.json({
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        roomHost: user.roomHost
-    });
+      redisClient.get(user.username, (err, socketId) => {
+        if (err) return res.status(500).json(err)
+        return res.json({
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          roomHost: user.roomHost,
+          socketId
+        });
+      });
     });
   }
 );
@@ -247,6 +263,8 @@ app.post(
 
 app.post("/api/signout/", isAuthenticated, function (req, res) {
   console.log("hit signout endpoint")
+  console.log("deleting")
+  redisClient.del(req.session.username)
   req.session.destroy(function (err) {
     if (err) return res.status(500).json(err);
   });
@@ -258,11 +276,16 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
   console.log("hit post room info endpoint")
   const idx = users.findIndex(x => x.username === req.session.username);
   const user = users[idx]
+  console.log("setting")
+  console.log(req.body.socketId)
+  const socketId = req.body.socketId
+  redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
   users[idx].roomHost = user.username
   const userInfo = {
     id: user.id,
     username: user.username,
     role: user.role,
+    socketId
   }
   if (rooms.filter(room => room.host === user.username).length > 0) {
     /* a room with specified host already exists */
@@ -291,7 +314,7 @@ app.get("/api/rooms/:host/", isAuthenticated, function (req, res) {
   }
 })
 
-app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
+app.patch("/api/rooms/:host/", isAuthenticated, async function (req, res) {
   console.log("hit update room info endpoint");
   /* a room with specified host already exists */
   console.log(rooms)
@@ -304,15 +327,29 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
   } 
   const idx = users.findIndex(x => x.username === req.session.username);
   const user = users[idx]
-  users[idx].roomHost = rooms[room_idx].host
-  const userInfo = {
-    id: user.id,
-    username: user.username,
-    role: user.role,
+  console.log("getting")
+  try {
+    let socketId = await redisClient.get(user.username)
+    if (!socketId) {
+      console.log("failed")
+      socketId = req.body.socketId
+      console.log(socketId)
+      redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
+    }
+    users[idx].roomHost = rooms[room_idx].host
+    const userInfo = {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      roomHost: user.roomHost,
+      socketId
+    };
+    rooms[room_idx].users.push(userInfo)
+    console.log(rooms)
+    return res.json(rooms[room_idx])
+  } catch (err) {
+    return res.status(500).json(err)
   }
-  rooms[room_idx].users.push(userInfo)
-  console.log(rooms)
-  return res.json(rooms[room_idx])
 })
 
 app.delete("/api/rooms/:host/", isAuthenticated, function (req, res) {
@@ -391,27 +428,33 @@ io.on('connection', async (socket) => {
   socket.on('set attributes', (role, curUser) => {
     socket.role = role;
     socket.username = curUser;
+    console.log("setting")
+    redisClient.setEx(curUser, DEFAULT_EXPIRATION, socket.id)
     socket.broadcast.emit("connection broadcast", socket.id, role, curUser);
   });
 
 
   socket.on('teacher join', () => {
     socket.join('teacher');
+    console.log('teacher join')
     socket.broadcast.emit('teacher join', socket.id)
   });
 
 
   socket.on('student join', (curUser) => {
+    console.log('student join')
     socket.to('teacher').emit('student join', socket.id, curUser);
   });
 
 
   socket.on('onChange', (value, id) => {
+    console.log('onChange')
     socket.to(id).emit("onChange", value, socket.id);
   });
 
 
   socket.on('onLecChange', value => {
+    console.log('onLecChange')
     socket.broadcast.emit("onLecChange", value, socket.id);
   });
 
@@ -426,6 +469,7 @@ io.on('connection', async (socket) => {
   })
 
   socket.on('fetch code', async (studentId, adminId) => {
+    console.log(`fetch code`)
     const sockets = await io.fetchSockets()
       .catch((err) => { console.error(err); });
     
@@ -457,6 +501,10 @@ io.on('connection', async (socket) => {
     // const count = io.of("/").sockets.size - 1;
     const count = io.of("/").sockets.size;
     // if user is logging out, update room info, else ignore
+    console.log("deleting")
+    // TODO: investigate why socket.username is occassionally undefined
+    console.log(socket.username)
+    if (socket.username) redisClient.del(socket.username)
     if (reason === "client namespace disconnect") deleteUserFromRoom(socket.username);
     socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
     console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
