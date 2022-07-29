@@ -26,7 +26,7 @@ import { python, pythonLanguage } from "@codemirror/lang-python";
 import { CompletionContext } from "@codemirror/autocomplete";
 import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
 import { java, javaLanguage } from "@codemirror/lang-java";
-import { authenticationService } from "./_services";
+import { authenticationService, getRoomByHost } from "./_services";
 import runCode from "./_helpers/codeRunner";
 
 import React from "react";
@@ -36,8 +36,8 @@ import "./StudentPage.css";
 
 const drawerWidth = 200;
 // todo-kw: set those two as attributes
-var request = false;
-var adminId = "";
+let request = false;
+let adminId = "";
 
 // for cloud sync (via fb) [experimental - TODO]:
 let t = 0; // ns
@@ -67,6 +67,7 @@ function StudentPage({ socket, curUser, userRoom }) {
   const [caller, setCaller] = useState(() => "");
   const [callerSignal, setCallerSignal] = useState(() => null);
   const [callAccepted, setCallAccepted] = useState(() => false);
+  const [connectedUsers, setConnectedUsers] = useState(() => []);
 
   const localAudio = useRef();
   const remoteAudio = useRef();
@@ -174,8 +175,21 @@ function StudentPage({ socket, curUser, userRoom }) {
   useEffect(() => {
     // todo-kw: set adminId as an attribute
     // todo-kw: student cant receive adminId
+    async function fetchRoomInfoByHost(host) {
+      const roomInfo = await getRoomByHost(host);
+      console.log(roomInfo);
+      setConnectedUsers(roomInfo.users);
+      if (!roomInfo.hasTeacher) {
+        adminId = ""
+      } else {
+        const users = roomInfo.users
+        adminId = users.find(user => user.role === "Admin").socketId
+      }
+    }
 
     if(!socket.id) socket.connect()
+
+    fetchRoomInfoByHost(userRoom)
 
     console.log("[StudentPage] socket id:", socket.id)
 
@@ -185,16 +199,27 @@ function StudentPage({ socket, curUser, userRoom }) {
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
       // todo: here is the data for webRTC implementation
-      console.log(`connection broadcast: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
+      if (connectedUsers.includes({ curUser, SktId })) {
+        console.log(
+          `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
+        );
+      } else {
+        fetchRoomInfoByHost(userRoom)
+        console.log(
+          `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
+        );
+        // console.log([...connectedUsers]);
+      }    
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
+      fetchRoomInfoByHost(userRoom)
       console.log(`disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`);
     });
 
     socket.on("teacher join", (tSktId) => {
       // todo-kw: revisit this setting
-      adminId = tSktId;
+      fetchRoomInfoByHost(userRoom)
       socket.emit('student join', curUser);
       console.log("[StudentPage - teacher join] join request from student: ", socket.id);
     });
@@ -202,7 +227,6 @@ function StudentPage({ socket, curUser, userRoom }) {
     socket.on("fetch request", (Id) => {
       request = true;
       setFlag(true)
-      adminId = Id;
       // console.log("emitted code", code);
     });
 
@@ -210,7 +234,6 @@ function StudentPage({ socket, curUser, userRoom }) {
     socket.on("stop request", () => {
       request = false;
       setFlag(false)
-      adminId = "";
       // console.log("Thanks for the help!!", request, adminId);
     });
 
