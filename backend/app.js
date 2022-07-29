@@ -381,18 +381,14 @@ io.on('connection', async (socket) => {
   // socket.join("room1");
   // console.log("[Server] joined room: " + socket.rooms); // Set { <socket.id>, "room1" }
   console.log('[Server] a user connected, socket id is :' + socket.id);
-  const count = io.engine.clientsCount;
-  console.log("[server count]:", count);
+  // const count = io.engine.clientsCount;
+  // console.log("[server count]:", count);
 
 
   socket.on('set attributes', (role, curUser) => {
-    // socket.createTime = Date();
     socket.role = role;
     socket.username = curUser;
-    // socket.broadcast.emit("join broadcast", socket.id, role, curUser);
     socket.broadcast.emit("connection broadcast", socket.id, role, curUser);
-    // if(role == 'admin') socket.join('teacher');
-    // console.log("[Server] - set attributes: ", socket.id, socket.role);
   });
 
 
@@ -401,9 +397,6 @@ io.on('connection', async (socket) => {
     socket.broadcast.emit('teacher join', socket.id)
   });
 
-  // socket.on('student join', tSktId => {
-  //   socket.to(tSktId).emit('student join', socket.id);
-  // });
 
   socket.on('student join', (curUser) => {
     socket.to('teacher').emit('student join', socket.id, curUser);
@@ -411,13 +404,11 @@ io.on('connection', async (socket) => {
 
 
   socket.on('onChange', (value, id) => {
-    console.log("[Server] - onChange:  " + value + " || from Socket: " + socket.id);
     socket.to(id).emit("onChange", value, socket.id);
   });
 
 
   socket.on('onLecChange', value => {
-    // console.log("[Server] - onLecChange:  " + value + " || from Socket: " + socket.id);
     socket.broadcast.emit("onLecChange", value, socket.id);
   });
 
@@ -433,19 +424,12 @@ io.on('connection', async (socket) => {
 
 
   socket.on('fetch code', async (studentId, adminId) => {
-
     const sockets = await io.fetchSockets()
       .catch((err) => { console.error(err); });
     
-    // console.log("[Server] - fetch code:  " + value);
-    // console.log("[Server] - fetch code: length  " + sockets.length)
-    // console.log("[Server] - fetch code: adminId  " + adminId)
-
     if (sockets.filter(skt => skt.id === studentId).length > 0){
-      console.log("[Server] - fetch code: studentId  " + studentId);
       socket.to(studentId).emit("fetch request", adminId);
     } else {
-      console.log("[Server] - fetch code: no such student with id " + studentId)
       socket.to(adminId).emit('no student',"no student here");
     }
 
@@ -455,25 +439,23 @@ io.on('connection', async (socket) => {
     
     prevRequest = studentId;
 
-    // socket.to(studentId).emit("fetch request", adminId);
   });
+
 
   socket.on("fetch init", code => {
     socket.to('teacher').emit("fetch init", code);
   });
 
+
   socket.on("help request", () => {
     socket.to('teacher').emit("help request", socket.id, socket.username);
   });
 
-  socket.on("disconnection broadcast", () => {
-    deleteUserFromRoom(socket.username)
+  socket.on('disconnect', (reason) => {
+    // const count = io.of("/").sockets.size - 1;
+    const count = io.of("/").sockets.size;
     socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
-  });
-
-  socket.on('disconnect', () => {
-    // socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
-    console.log('user disconnected ', socket.id);
+    console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
   });
 });
 

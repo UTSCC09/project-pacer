@@ -5,8 +5,6 @@ import { SnackbarProvider } from 'notistack';
 import React from 'react';
 import { socket } from "./_services";
 
-
-
 import "./App.css";
 import {
   history,
@@ -82,8 +80,14 @@ function App() {
   const [loadingComplete, setLoadingComplete] = useState(() => false);
 
   socket.on("connect", () => {
-    console.log("[form App]socket.id: " + socket.id);
-  });
+    // if(!socket.id) socket.connect()
+    console.log("[form App]socket.id: " ,socket.connected, socket.id);
+  }, []);
+
+
+  console.log("[form App]socket.id: " ,socket.connected, socket.id);
+
+
 
   useEffect(() => {
     async function fetchUserInfo() {

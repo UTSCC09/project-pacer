@@ -62,8 +62,6 @@ function TeacherPage({ socket, curUser }) {
   const [err, setErr] = useState(() => null);
   const [stuOut, setStuOut] = useState(() => null);
   const [stuErr, setStuErr] = useState(() => null);
-  // stuJoin {'socket id': 'student name', ...}
-  // todo: use stuJoin store joined sutdents to backend
   const [stuJoin, setStuJoin] = useState(() => {});
   const [connectedUsers, setConnectedUsers] = useState(() => []);
   const [callStream, setCallStream] = useState(() => null);
@@ -86,10 +84,6 @@ function TeacherPage({ socket, curUser }) {
     extensions[1] = globalJavaScriptCompletions;
   }
 
-  // useEffect(() => {
-  //   socket.emit("set attributes", 'teacher', curUser);
-  //   console.log("[Teacher Page]: now it is loaded");
-  // }, []);
 
   // for cloud sync (via fb) [experimental - TODO]:
   // useEffect(() => {
@@ -104,6 +98,7 @@ function TeacherPage({ socket, curUser }) {
   //   }, 1000);
   // });
 
+
   // for file uploading (via fb):
   const uploadFileFormHandler = (event) => {
     event.preventDefault();
@@ -115,6 +110,7 @@ function TeacherPage({ socket, curUser }) {
       });
     });
   };
+
 
   // for file uploading (via fb):
   const uploadFile = (f) => {
@@ -147,6 +143,7 @@ function TeacherPage({ socket, curUser }) {
     });
   };
 
+
   // for file downloading (via fb):
   const makeDownloadFileRequest = (url) => {
     return new Promise(function (res, rej) {
@@ -178,14 +175,10 @@ function TeacherPage({ socket, curUser }) {
     );
   };
 
-  // [kw]
+
   useEffect(() => {
-    // socket.on("connect", () => {
-    //   console.log("[New Client - teacher] Open - socket.id: " + socket.id);
-    //   console.log(
-    //     "[New Client - teacher] Check connection: " + socket.connected
-    //   );
-    // });
+    if(!socket.id) socket.connect()
+
     console.log("[TeacherPage] socket id:", socket.id);
 
     socket.emit("set attributes", "teacher", curUser);
@@ -194,7 +187,6 @@ function TeacherPage({ socket, curUser }) {
 
     socket.emit("teacher join");
 
-    // socket.emit("connection broadcast",'user', curUser );
     socket.on("connection broadcast", (SktId, role, curUser) => {
       if (connectedUsers.includes({ curUser, SktId })) {
         console.log(
@@ -205,12 +197,12 @@ function TeacherPage({ socket, curUser }) {
         console.log(
           `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
         );
-        console.log([...connectedUsers]);
+        // console.log([...connectedUsers]);
       }
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
-      console.log({ curUser, SktId });
+      //console.log({ curUser, SktId });
       setConnectedUsers(eixstingUsers => {
         const userCopy = [...eixstingUsers];
         const idx = userCopy.findIndex((user) => user.SktId === SktId);
@@ -220,12 +212,14 @@ function TeacherPage({ socket, curUser }) {
         }
         return userCopy
       });
+      
+      if(SktId) setDisplayStudent(false)
       console.log(
         `[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`
       );
     });
 
-    // socket.on("student join", sSktId => {
+
     socket.on("student join", (sSktId, username) => {
       console.log(
         "[TeacherPage - student join] joining student socket id: ",
@@ -245,8 +239,8 @@ function TeacherPage({ socket, curUser }) {
     });
 
     socket.on("onChange", (value, id) => {
-      console.log("[onChange] value: " + value);
-      console.log("editor id " + sid);
+      // console.log("[onChange] value: " + value);
+      // console.log("editor id " + sid);
       sid = id;
       setStuCode(value);
     });
@@ -286,21 +280,19 @@ function TeacherPage({ socket, curUser }) {
     })
   }, []);
 
-  const setCurUsers = (users) => {
-    setConnectedUsers(users)
-  }
 
   const onChange = (value, viewUpdate) => {
-    console.log("value:", value);
     socket.emit("onLecChange", value);
     setCode(value);
   };
+
 
   const onStuChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
     setStuCode(value);
     if (editor) socket.emit("onChange", value, sid);
   };
+
 
   const run = () => {
     console.log(code);
@@ -309,10 +301,12 @@ function TeacherPage({ socket, curUser }) {
     setErr(err);
   };
 
+
   const clearExecutionRes = () => {
     setOut(null);
     setErr(null);
   };
+
 
   const runStuCode = () => {
     console.log(stuCode);
@@ -320,6 +314,7 @@ function TeacherPage({ socket, curUser }) {
     setStuOut(out);
     setStuErr(err);
   };
+
 
   const clearStuExecutionRes = () => {
     setStuOut(null);
