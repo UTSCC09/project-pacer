@@ -29,8 +29,10 @@ function StudentRightMenu({drawerWidth, socket}) {
   }
 
   function logoutHandler(){
-    socket.emit("disconnection broadcast");
+    // socket.disconnect()
+    // socket.emit("disconnection broadcast");
     authenticationService.logout();
+    socket.disconnect()
   }
 
   const drawer = (
@@ -52,7 +54,6 @@ function StudentRightMenu({drawerWidth, socket}) {
 
   return (
     <Box>
-      
       <AppBar
         position="fixed"
         sx={{
@@ -74,7 +75,6 @@ function StudentRightMenu({drawerWidth, socket}) {
           }}
           onClick={logoutHandler}
           // onClick={authenticationService.logout}
-
         >
           Logout
         </Button>

@@ -1,0 +1,9 @@
+.title {
+    text-align: center;
+}
+
+.room-container {
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}

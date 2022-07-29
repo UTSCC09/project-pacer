@@ -45,6 +45,13 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
       socket.emit("fetch code", studentCurSocket, socket.id)
   }
 
+  function logoutHandler(){
+    // socket.disconnect()
+    // socket.emit("disconnection broadcast");
+    authenticationService.logout();
+    socket.disconnect()
+  }
+
 
   // useEffect(() => {
   //   console.log("current Socket Id:", socket.id)
@@ -57,12 +64,12 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
       <Divider />
       <List>
         {connectedUsers.map((text, index) => (
-          <ListItem key={text.SktId} disablePadding>
-            <ListItemButton value={text.SktId} onClick={() => loadStudentSession(text.curUser, text.SktId)}>
+          <ListItem key={text.socketId} disablePadding>
+            <ListItemButton value={text.socketId} onClick={() => loadStudentSession(text.useranme, text.socketId)}>
               <ListItemIcon>
                 <PersonIcon />
               </ListItemIcon>
-              <ListItemText primary={text.SktId} secondary={text.curUser}/>
+              <ListItemText primary={text.socketId} secondary={text.username}/>
             </ListItemButton>
           </ListItem>
         ))}
@@ -107,7 +114,8 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
               color: "#fff",
               zIndex: (theme) => theme.zIndex.drawer + 2,
             }}
-            onClick={authenticationService.logout}
+            onClick={logoutHandler}
+            //onClick={authenticationService.logout}
           >
             Logout
           </Button>

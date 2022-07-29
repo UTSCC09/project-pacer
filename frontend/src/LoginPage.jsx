@@ -19,7 +19,7 @@ import { Input, InputLabel } from '@mui/material';
 
 let adminIdentified = false;
 
-function LoginPage({curUser, isAdmin, setIsAdmin, socket}) {
+function LoginPage({curUser, isAdmin, userRoom, setIsAdmin, socket}) {
   const [username, setUsername] = useState(() => '');
   const [password, setPassword] = useState(() => '');
   // todo: pass socket id as a student attribute
@@ -37,12 +37,17 @@ function LoginPage({curUser, isAdmin, setIsAdmin, socket}) {
   }
 
   useEffect(() => {
+    if (userRoom) console.error("Error: User has a room already. They should be directly to their home page")
     adminIdentified = false
     if (curUser) {
       console.log("already logged in")
-      if (isAdmin) 
-      navigate("/teacher", { replace: true });
-      else navigate('/student', { replace: true });
+      if (userRoom) {
+        if (isAdmin) 
+        navigate("/teacher", { replace: true });
+        else navigate('/student', { replace: true });
+      } else {
+        navigate("/rooms", { replace: true })
+      }
     }
     console.log("login page loaded")
   }, []);
@@ -59,14 +64,14 @@ function LoginPage({curUser, isAdmin, setIsAdmin, socket}) {
       authenticationService.signin(username, password, "Admin", function(err, res) {
         // authenticationService.signin(username, password, "Admin", socketid, function(err, res) {
         if (err) return setShowAlert(String(err))
-        navigate("/teacher", { replace: true });
+        navigate("/rooms", { replace: true });
       })
     } else {
       console.log("logging as student")
       authenticationService.signin(username, password, "User", function(err,res) {
         // authenticationService.signin(username, password, "User", socketid, function(err,res) {
         if (err) return setShowAlert(String(err))
-        navigate("/student", { replace: true });
+        navigate("/rooms", { replace: true });
       })
     }
   };
@@ -81,13 +86,13 @@ function LoginPage({curUser, isAdmin, setIsAdmin, socket}) {
       console.log("signing up as admin")
       authenticationService.signup(username, password, "Admin", function(err, res) {
         if (err) return setShowAlert(String(err))
-        navigate("/teacher", { replace: true });
+        navigate("/rooms", { replace: true });
       })
     } else {
       console.log("signing up as student")
       authenticationService.signup(username, password, "User", function(err,res) {
         if (err) return setShowAlert(String(err))
-        navigate("/student", { replace: true });
+        navigate("/rooms", { replace: true });
       })
     }
   };

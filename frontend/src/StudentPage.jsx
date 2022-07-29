@@ -26,18 +26,18 @@ import { python, pythonLanguage } from "@codemirror/lang-python";
 import { CompletionContext } from "@codemirror/autocomplete";
 import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
 import { java, javaLanguage } from "@codemirror/lang-java";
-import { authenticationService } from "./_services";
+import { authenticationService, getRoomByHost } from "./_services";
 import runCode from "./_helpers/codeRunner";
-// [kw]
+
 import React from "react";
 // import { socket } from "./_services";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
 import "./StudentPage.css";
 
 const drawerWidth = 200;
-
-var request = false;
-var adminId = "";
+// todo-kw: set those two as attributes
+let request = false;
+let adminId = "";
 
 // for cloud sync (via fb) [experimental - TODO]:
 let t = 0; // ns
@@ -51,7 +51,7 @@ const servers = {
   iceCandidatePoolSize: 10,
 };
 
-function StudentPage({ socket, curUser }) {
+function StudentPage({ socket, curUser, userRoom }) {
   const [code, setCode] = useState(() => ""); // like a cache: keeping this since downloading & uploading the file on each update is very inefficient
   const [codePath, setCodePath] = useState(""); // set init val to ""
   const [codeFilename, setCodeFilename] = useState("");
@@ -67,9 +67,10 @@ function StudentPage({ socket, curUser }) {
   const [caller, setCaller] = useState(() => "");
   const [callerSignal, setCallerSignal] = useState(() => null);
   const [callAccepted, setCallAccepted] = useState(() => false);
+  const [connectedUsers, setConnectedUsers] = useState(() => []);
 
-  const localVideo = useRef();
-  const remoteVideo = useRef();
+  const localAudio = useRef();
+  const remoteAudio = useRef();
 
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
@@ -83,23 +84,18 @@ function StudentPage({ socket, curUser }) {
   }
   
 
-
-  // useEffect(() => {
-  //   socket.emit("set attributes", "student", curUser);
-  // },[]);
-
   // for cloud sync (via fb) [experimental - TODO]:
-  useEffect(() => {
-    setTimeout(() => {
-      if (t == 1) {
-        t = 0;
-        const f = new File([code], codeFilename);
-        uploadFile(f);
-      } else {
-        t++;
-      }
-    }, 1000);
-  });
+  // useEffect(() => {
+  //   setTimeout(() => {
+  //     if (t == 1) {
+  //       t = 0;
+  //       const f = new File([code], codeFilename);
+  //       uploadFile(f);
+  //     } else {
+  //       t++;
+  //     }
+  //   }, 1000);
+  // });
 
   // for file uploading (via fb):
   const uploadFileFormHandler = (event) => {
@@ -177,10 +173,23 @@ function StudentPage({ socket, curUser }) {
 
   // [kw]
   useEffect(() => {
-    // socket.on("connect", () => {
-    //   console.log("[Client - student] Open - socket.id: " + socket.id);
-    //   console.log("[Client - student] Check connection: " + socket.connected);
-    // });
+    // todo-kw: set adminId as an attribute
+    // todo-kw: student cant receive adminId
+    async function fetchRoomInfoByHost(host) {
+      const roomInfo = await getRoomByHost(host);
+      console.log(roomInfo);
+      setConnectedUsers(roomInfo.users);
+      if (!roomInfo.hasTeacher) {
+        adminId = ""
+      } else {
+        const users = roomInfo.users
+        adminId = users.find(user => user.role === "Admin").socketId
+      }
+    }
+
+    if(!socket.id) socket.connect()
+
+    fetchRoomInfoByHost(userRoom)
 
     console.log("[StudentPage] socket id:", socket.id)
 
@@ -188,19 +197,29 @@ function StudentPage({ socket, curUser }) {
 
     socket.volatile.emit('student join', curUser);
 
-
     socket.on("connection broadcast", (SktId, role, curUser) => {
       // todo: here is the data for webRTC implementation
-      console.log(`connection broadcast: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
+      if (connectedUsers.includes({ curUser, SktId })) {
+        console.log(
+          `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
+        );
+      } else {
+        fetchRoomInfoByHost(userRoom)
+        console.log(
+          `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
+        );
+        // console.log([...connectedUsers]);
+      }    
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
+      fetchRoomInfoByHost(userRoom)
       console.log(`disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`);
     });
 
     socket.on("teacher join", (tSktId) => {
       // todo-kw: revisit this setting
-      adminId = tSktId;
+      fetchRoomInfoByHost(userRoom)
       socket.emit('student join', curUser);
       console.log("[StudentPage - teacher join] join request from student: ", socket.id);
     });
@@ -208,18 +227,16 @@ function StudentPage({ socket, curUser }) {
     socket.on("fetch request", (Id) => {
       request = true;
       setFlag(true)
-      adminId = Id;
-      // socket.emit("fetch init", code);
-      console.log("emitted code", code);
-      // console.log("request received, ready!!", code);
+      // console.log("emitted code", code);
     });
+
 
     socket.on("stop request", () => {
       request = false;
       setFlag(false)
-      adminId = "";
-      console.log("Thanks for the help!!", request, adminId);
+      // console.log("Thanks for the help!!", request, adminId);
     });
+
 
     socket.on("onChange", (value, adminId) => {
       if (request) setCode(value);
@@ -243,29 +260,28 @@ function StudentPage({ socket, curUser }) {
 
 
     socket.on("hey", (data) => {
+      console.log("student new call intercepted")
       setReceivingCall(true);
       setCaller(data.from);
       setCallerSignal(data.signal);
     })
 
     socket.on("onLecChange", (value, id) => {
-      console.log(`from student page: before teacher's code ${lecCode}`)
+      // console.log(`from student page: before teacher's code ${lecCode}`)
       setLecCode(value);
-      console.log(`from student page: teacher's code ${lecCode}`)
+      // console.log(`from student page: teacher's code ${lecCode}`)
     });
 
     console.log("load student page complete");
   }, []);
 
+
   useEffect(() => {
       socket.emit("fetch init", code);
-  },[flag])
-
-
+  }, [flag])
 
 
   const onChange = (value, viewUpdate) => {
-    // console.log("value:", value);
     const editor = viewUpdate.state.values[0].prevUserEvent;
 
     if (request && editor) {
@@ -273,11 +289,6 @@ function StudentPage({ socket, curUser }) {
     }
     setCode(value);
   };
-
-
-  // socket.on("onLecChange", (value, id) => {
-  //   setLecCode(value);
-  // });
 
 
   const run = () => {
@@ -297,33 +308,55 @@ function StudentPage({ socket, curUser }) {
     console.log("seting up call")
     const localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
     console.log("hardware setup complete")
+    console.log(localStream)
     setCallStream(localStream)
-    if (localVideo.current) {
-      localVideo.current.srcObject = localStream;
+    if (localAudio.current) {
+      localAudio.current.srcObject = localStream;
+      console.log("done setting local stream")
     }
 
     const peer = new Peer({
       initiator: true,
       trickle: false,
-      config: servers,
-      stream: callStream
+      config: {
+
+        iceServers: [
+            {
+                urls: "stun:numb.viagenie.ca",
+                username: "sultan1640@gmail.com",
+                credential: "98376683"
+            },
+            {
+                urls: "turn:numb.viagenie.ca",
+                username: "sultan1640@gmail.com",
+                credential: "98376683"
+            }
+        ]
+    },
+      stream: localStream
     })
     
     peer.on("signal", data => {
-      socket.emit("callUser", {userToCall: teacherSocketId, signalData: data, from: "yourID"}) //yourID
+      console.log(`student signal accepted. Calling from ${socket.id} to ${teacherSocketId}`)
+      socket.emit("callUser", {userToCall: teacherSocketId, signalData: data, from: socket.id, stream: callStream}) //yourID
     })
 
     peer.on("stream", stream => {
-      if (remoteVideo.current) {
-        remoteVideo.current.srcObject = stream;
+      console.log(`student remote call stream updated`)
+      if (remoteAudio.current) {
+        remoteAudio.current.srcObject = stream;
+        console.log("done setting remote stream")
       }
     })
 
+    // todo-kw: move it out
     socket.on("callAccepted", signal => {
+      console.log(`student call aceepted`)
       setCallAccepted(true);
       peer.signal(signal);
     })
   }
+
 
   const acceptCall = () => {
     setCallAccepted(true);
@@ -337,23 +370,23 @@ function StudentPage({ socket, curUser }) {
     })
 
     peer.on("stream", stream => {
-      remoteVideo.current.srcObject = stream;
+      remoteAudio.current.srcObject = stream;
     });
 
     peer.signal(callerSignal);
   }
 
-  let LocalVideo;
+  let LocalAudio;
   if (callStream) {
-    LocalVideo = (
-      <video playsInline muted ref={localVideo} autoPlay />
+    LocalAudio = (
+      <audio playsInline muted ref={localAudio} autoPlay />
     );
   }
 
-  let RemoteVideo;
+  let RemoteAudio;
   if (callAccepted) {
-    RemoteVideo = (
-      <video playsInline ref={remoteVideo} autoPlay />
+    RemoteAudio = (
+      <audio playsInline ref={remoteAudio} autoPlay />
     );
   }
 
@@ -452,8 +485,8 @@ function StudentPage({ socket, curUser }) {
         </Grid>
       </Box>
       <StudentRightMenu drawerWidth={drawerWidth} socket={socket} />
-      <Stack direction="row">{LocalVideo}{RemoteVideo}</Stack>
-      <button className="call-button" onClick={() => setupCall("testid")}>Call</button>
+      <Stack className="hidden" direction="row">{LocalAudio}{RemoteAudio}</Stack>
+      <button className="call-button" onClick={() => setupCall(adminId)}>Call</button>
     </>
   );
 }

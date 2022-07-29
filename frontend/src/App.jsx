@@ -5,8 +5,6 @@ import { SnackbarProvider } from 'notistack';
 import React from 'react';
 import { socket } from "./_services";
 
-
-
 import "./App.css";
 import {
   history,
@@ -24,6 +22,7 @@ import TeacherPage from "./TeacherPage";
 import { storage } from "./_components/FireBase";
 import { ref } from "@firebase/storage"
 import { ref as fileStorageRef, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
+import RoomPage from "./RoomPage";
 
 const uploadFileFormHandler = (event) => {
   event.preventDefault();
@@ -76,23 +75,28 @@ function logout() {
 
 function App() {
   const [curUser, setCurUser] = useState(() => "");
+  const [userRoom, setUserRoom] = useState(() => null)
   const [isAdmin, setIsAdmin] = useState(() => "");
   const [loadingComplete, setLoadingComplete] = useState(() => false);
 
   socket.on("connect", () => {
-    console.log("[form App]socket.id: " + socket.id);
-  });
+    // if(!socket.id) socket.connect()
+    console.log("[form App]socket.id: " ,socket.connected, socket.id);
+  }, []);
+
+
+  console.log("[form App]socket.id: " ,socket.connected, socket.id);
+
+
 
   useEffect(() => {
     async function fetchUserInfo() {
       const user = await getCurrentUser()
       console.log(user)
-      // setCurUser(user.username)
-      // setIsAdmin(user.role)
-      // console.log(curUser)
       await authenticationService.currentUser.subscribe((x) => {
         console.log(x)
         setCurUser(x ? x.username : null);
+        setUserRoom(x ? x.roomHost : null);
         setIsAdmin(x && x.role === Role.Admin);
         setLoadingComplete(true)
       });
@@ -103,6 +107,7 @@ function App() {
   if (loadingComplete) {
     console.log(curUser)
     console.log(isAdmin)
+    console.log(userRoom)
     return (
       <BrowserRouter history={history}>
         <SnackbarProvider maxSnack={3}>
@@ -111,9 +116,10 @@ function App() {
             <Route
               path="/student"
               element={
-                <PrivateRoute isAllowed={!!curUser && !isAdmin}>
+                <PrivateRoute isAllowed={!!curUser && !isAdmin && !!userRoom}>
                   <StudentPage socket={socket}
                                curUser={curUser}
+                               userRoom={userRoom}
                   />
                 </PrivateRoute>
               }
@@ -121,10 +127,26 @@ function App() {
             <Route
               path="/teacher"
               element={
-                <PrivateRoute isAllowed={!!curUser && isAdmin}>
+                <PrivateRoute isAllowed={!!curUser && isAdmin && !!userRoom}>
                   {/* <TeacherPage fileUploadHandler={uploadFileFormHandler}/> */}
                   <TeacherPage  socket={socket} 
                                 curUser={curUser}
+                                userRoom={userRoom}
+                  />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              exact
+              path="/rooms"
+              element={
+                <PrivateRoute isAllowed={!!curUser && !userRoom}>
+                  <RoomPage
+                    curUser={curUser}
+                    isAdmin={isAdmin}
+                    userRoom={userRoom}
+                    setUserRoom={(e) => setUserRoom(e)}
+                    socket={socket}
                   />
                 </PrivateRoute>
               }
@@ -136,6 +158,7 @@ function App() {
                 <LoginPage
                   curUser={curUser}
                   isAdmin={isAdmin}
+                  userRoom={userRoom}
                   setIsAdmin={(e) => setIsAdmin(e)}
                   socket={socket}
                 />

@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require('cors');
 const bcrypt = require("bcrypt");
 const session = require("express-session");
+// const Redis = require("redis")
 let RedisStore = require("connect-redis")(session)
 const { body, validationResult } = require("express-validator");
 
@@ -52,6 +53,11 @@ const app = express();
 const http = require("http");
 const PORT = 8080;
 const version = "1.0.0";
+
+// const redisClient = Redis.createClient()
+// redisClient.connect();
+
+const DEFAULT_EXPIRATION = 7200
 
 const sessionMiddleware = session({
   secret: process.env.SECRET,
@@ -105,20 +111,47 @@ const Role = {
   User: 'User'
 }
 
-// let users = [
-// //   {
-// //     id: 0,
-// //     username: "admin",
-// //     password: "admin",
-// //     role: Role.Admin,
-// //   },
-// //   {
-// //     id: 0,
-// //     username: "user",
-// //     password: "user",
-// //     role: Role.User,
-// //   },
-// ];
+//let users = [
+//   {
+//     id: 0,
+//     username: "admin",
+//     password: "admin",
+//     role: Role.Admin,
+//     roomHost: "teacher1"
+//   },
+//   {
+//     id: 0,
+//     username: "user",
+//     password: "user",
+//     role: Role.User,
+//     roomHost: "teacher1"
+//   },
+//];
+
+let rooms = [
+//   {
+//     id: 120492783,
+//     host: "Jack",
+//     hasTeacher: false,
+//     roomName: "class1",
+//     users: [
+//      {
+//        id: 0,
+//        username: "Jack",
+//        role: Role.Admin,
+//      },
+//    ],
+//   },
+]
+
+const NewRoom = (function () {
+  return function item(roomName, host, user) {
+    this.host = host;
+    this.hasTeacher = user.role === Role.Admin;
+    this.roomName = roomName;
+    this.users = [user];
+  };
+})();
 
 const webhookRoutes = require('./routes/webhookRoutes');
 app.use('/api', webhookRoutes);
@@ -135,6 +168,7 @@ app.get("/api/whoami", function (req, res) {
   //   id: user.id,
   //   username: user.username,
   //   role: user.role,
+  //   roomHost: user.roomHost,
   // });
   /// AFTER FB:
   const collectionRef = collection(fbfsdb, "users");
@@ -143,12 +177,14 @@ app.get("/api/whoami", function (req, res) {
     let matchFound = 0;
     let matchsRole = "";
     let matchsId = -1;
+    let matchsRoomHost = "";
     snapshot.docs.forEach((doc) => {
       if (doc.data().username == userName) {
         // MATCH FOUND:
         matchFound = 1;
         matchsRole = doc.data().role;
         matchsId = doc.data().id;
+        matchsRoomHost = doc.data().roomHost;
       }
     });
     if (matchFound) {
@@ -157,6 +193,7 @@ app.get("/api/whoami", function (req, res) {
         id: matchsId,
         username: userName,
         role: matchsRole,
+        roomHost: matchsRoomHost,
       });
     } else {
       // NO MATCH FOUND:
@@ -259,6 +296,7 @@ app.post(
     //     id: user.id,
     //     username: user.username,
     //     role: user.role,
+    //     roomHost: user.roomHost,
     //   });
     // });
     /// AFTER FB:
@@ -268,6 +306,7 @@ app.post(
       let matchFound = 0;
       let matchsRole = "";
       let matchsPassword = "";
+      let matchsRoomHost = "";
       let matchsId = -1;
       snapshot.docs.forEach((doc) => {
         if (doc.data().username == username) {
@@ -276,6 +315,7 @@ app.post(
           matchsRole = doc.data().role;
           matchsPassword = doc.data().password;
           matchsId = doc.data().id;
+          matchsRoomHost = doc.data().roomHost;
         }
       });
       if (matchFound) {
@@ -294,6 +334,7 @@ app.post(
               id: matchsId,
               username: username,
               role: matchsRole,
+              roomHost: matchsRoomHost
             });
           });
         } else {
@@ -347,6 +388,7 @@ app.post(
       //   username: username,
       //   password: hash,
       //   role: role,
+      //   roomHost: null
       // }
       // users.push(newUser)
       // req.session.username = username;
@@ -356,7 +398,8 @@ app.post(
       // return res.json({
       //   id: 0,
       //   username: username,
-      //   role: role
+      //   role: role,
+      //   roomHost: null
       // })
       /// AFTER FB:
       const collectionRef = collection(fbfsdb, "users");
@@ -378,7 +421,8 @@ app.post(
             id: 0,
             username: username,
             password: hash,
-            role: role
+            role: role,
+            roomHost: null
           }).then(() => {
             req.session.username = username;
             req.session.role = role;
@@ -387,7 +431,8 @@ app.post(
             return res.json({
               id: 0,
               username: username,
-              role: role
+              role: role,
+              roomHost: null
             });
           });
         }
@@ -400,12 +445,146 @@ app.post(
 
 app.post("/api/signout/", isAuthenticated, function (req, res) {
   console.log("hit signout endpoint")
+  console.log("deleting")
+  // redisClient.del(req.session.username)
   req.session.destroy(function (err) {
     if (err) return res.status(500).json(err);
   });
   res.clearCookie("pacer-session");
   return res.json(null);
 });
+
+app.post("/api/rooms/", isAuthenticated, function (req, res) {
+  console.log("hit post room info endpoint")
+  const idx = users.findIndex(x => x.username === req.session.username);
+  const user = users[idx]
+  console.log("setting")
+  console.log(req.body.socketId)
+  const socketId = req.body.socketId
+  // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
+  users[idx].roomHost = user.username
+  const userInfo = {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    socketId
+  }
+  if (rooms.filter(room => room.host === user.username).length > 0) {
+    /* a room with specified host already exists */
+    return res.status(409).json("room with host" + user.username + " already exists");
+  } else {
+    const room = new NewRoom(req.body.roomName, req.session.username, userInfo);
+    rooms.push(room)
+    return res.json(room)
+  }
+})
+
+app.get("/api/rooms/", isAuthenticated, function (req, res) {
+  //TODO: adapt GET for pagination and firebase
+  console.log("hit get all rooms endpoint")
+  return res.json(rooms)
+})
+
+app.get("/api/rooms/:host/", isAuthenticated, function (req, res) {
+  console.log("hit get room info endpoint")
+  const room =  rooms.find(room => room.host === req.params.host)
+  if (room) {
+    /* a room with specified host already exists */
+    return res.json(room)
+  } else {
+    return res.status(404).json("Room with host " + req.params.host + " not found.");
+  }
+})
+
+app.patch("/api/rooms/:host/", isAuthenticated, async function (req, res) {
+  console.log("hit update room info endpoint");
+  /* a room with specified host already exists */
+  console.log(rooms)
+  const room_idx = rooms.findIndex(room => room.host === req.params.host);
+  if (room_idx < 0) return res.status(404).json("Cannot update user info, room with host " + req.params.host + " not found.");
+  const roomUsers = rooms[room_idx].users
+  if (roomUsers.filter(user => user.username === req.session.username).length > 0) {
+    console.log("conflicted")
+    return res.status(409).json("room already has user " + req.session.username);
+  } 
+  const idx = users.findIndex(x => x.username === req.session.username);
+  const user = users[idx]
+  console.log("getting")
+  try {
+    // let socketId = await redisClient.get(user.username)
+    // if (!socketId) {
+    //   console.log("failed")
+    const socketId = req.body.socketId
+      // console.log(socketId)
+      // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
+    // }
+    users[idx].roomHost = rooms[room_idx].host
+    const userInfo = {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      roomHost: user.roomHost,
+      socketId
+    };
+    rooms[room_idx].users.push(userInfo)
+    console.log(rooms)
+    return res.json(rooms[room_idx])
+  } catch (err) {
+    return res.status(500).json(err)
+  }
+})
+
+app.delete("/api/rooms/:host/", isAuthenticated, function (req, res) {
+  console.log("hit delete room info endpoint")
+  rooms = rooms.map(room => {
+    if (room.host === req.params.host) {
+      const roomUsers = room.users
+      if (roomUsers.filter(user => user.username === req.session.username).length === 0) {
+        return res.status(409).json("user info not found while trying to delete: " + req.session.username);
+      }
+      const idx = roomUsers.findIndex((user) => user.username === req.session.username);
+      const userIdx = users.findIndex(x => x.username === req.session.username);
+      users[userIdx].roomHost =null
+      if (idx >= 0) {
+        console.log("clearing");
+        roomUsers.splice(idx, 1);
+        return {...room, users: roomUsers}
+      }
+      return res.status(500).json("this error is impossible")
+    }
+  })
+  return res.status(404).json("Cannot delete user info, room with host " + req.params.host + " not found.");
+})
+
+function deleteUserFromRoom(username) {
+  console.log("deleting user " + username + " from rooms");
+  const idx = users.findIndex(x => x.username === username);
+  let host = null
+  let isAdmin = false
+  if (idx >= 0) {
+    host = users[idx].roomHost
+    users[idx].roomHost = null
+    isAdmin = users[idx].isAdmin
+  }
+  if (host) {
+    const room_idx = rooms.findIndex(room => room.host === host);
+    if (room_idx >= 0) {
+      console.log(room_idx)
+      const roomUsers = rooms[room_idx].users;
+      const roomUserIdx = roomUsers.findIndex(x => x.username === username);
+      if (roomUserIdx >= 0) {
+        rooms[room_idx].users.splice(roomUserIdx, 1);
+        if (isAdmin) {
+          rooms[room_idx].hasTeacher = false;
+        }
+      }
+      if (rooms[room_idx].users.length === 0) {
+        rooms.splice(room_idx, 1)
+      }
+      console.log(rooms)
+    }
+  }
+}
 
 // `Not Found` request handler
 app.use((req, res, next) => {
@@ -414,12 +593,11 @@ app.use((req, res, next) => {
   throw error;
 });
 
-
 // thrown erros handler
-app.use((error, req, res, next) => {
-  res.status(error.status || 500);
-  res.json({ message: error.message || 'Internal Server Error' });
-});
+// app.use((error, req, res, next) => {
+//   res.status(error.status || 500);
+//   res.json({ message: error.message || 'Internal Server Error' });
+// });
 
 // socket io
 var prevRequest = '';
@@ -430,61 +608,61 @@ io.on('connection', async (socket) => {
   // socket.join("room1");
   // console.log("[Server] joined room: " + socket.rooms); // Set { <socket.id>, "room1" }
   console.log('[Server] a user connected, socket id is :' + socket.id);
-  const count = io.engine.clientsCount;
-  console.log("[server count]:", count);
+  // const count = io.engine.clientsCount;
+  // console.log("[server count]:", count);
 
 
   socket.on('set attributes', (role, curUser) => {
-    // socket.createTime = Date();
     socket.role = role;
     socket.username = curUser;
-    // socket.broadcast.emit("join broadcast", socket.id, role, curUser);
+    console.log("setting")
+    // redisClient.setEx(curUser, DEFAULT_EXPIRATION, socket.id)
     socket.broadcast.emit("connection broadcast", socket.id, role, curUser);
-    // if(role == 'admin') socket.join('teacher');
-    // console.log("[Server] - set attributes: ", socket.id, socket.role);
   });
 
 
   socket.on('teacher join', () => {
     socket.join('teacher');
+    console.log('teacher join')
     socket.broadcast.emit('teacher join', socket.id)
   });
 
-  // socket.on('student join', tSktId => {
-  //   socket.to(tSktId).emit('student join', socket.id);
-  // });
 
   socket.on('student join', (curUser) => {
+    console.log('student join')
     socket.to('teacher').emit('student join', socket.id, curUser);
   });
 
 
   socket.on('onChange', (value, id) => {
-    console.log("[Server] - onChange:  " + value + " || from Socket: " + socket.id);
+    console.log('onChange')
     socket.to(id).emit("onChange", value, socket.id);
   });
 
 
   socket.on('onLecChange', value => {
-    // console.log("[Server] - onLecChange:  " + value + " || from Socket: " + socket.id);
+    console.log('onLecChange')
     socket.broadcast.emit("onLecChange", value, socket.id);
   });
 
+  socket.on("callUser", (data) => {
+    console.log(`calling user ${data.userToCall}`)
+    socket.to(data.userToCall).emit('hey', {signal: data.signalData, from: data.from, stream: data.stream});
+  })
+
+  socket.on("acceptCall", (data) => {
+    console.log(`accepting call from ${data.to}`)
+    socket.to(data.to).emit('callAccepted', data.signal);
+  })
 
   socket.on('fetch code', async (studentId, adminId) => {
-
+    console.log(`fetch code`)
     const sockets = await io.fetchSockets()
       .catch((err) => { console.error(err); });
-
-    // console.log("[Server] - fetch code:  " + value);
-    // console.log("[Server] - fetch code: length  " + sockets.length)
-    // console.log("[Server] - fetch code: adminId  " + adminId)
-
+      
     if (sockets.filter(skt => skt.id === studentId).length > 0){
-      console.log("[Server] - fetch code: studentId  " + studentId);
       socket.to(studentId).emit("fetch request", adminId);
     } else {
-      console.log("[Server] - fetch code: no such student with id " + studentId)
       socket.to(adminId).emit('no student',"no student here");
     }
 
@@ -494,33 +672,29 @@ io.on('connection', async (socket) => {
 
     prevRequest = studentId;
 
-    socket.on("callUser", (data) => {
-        io.to(data.userToCall).emit('hey', {signal: data.signalData, from: data.from});
-    })
-
-    socket.on("acceptCall", (data) => {
-        io.to(data.to).emit('callAccepted', data.signal);
-    })
-    // socket.to(studentId).emit("fetch request", adminId);
   });
+
 
   socket.on("fetch init", code => {
     socket.to('teacher').emit("fetch init", code);
   });
 
+
   socket.on("help request", () => {
     socket.to('teacher').emit("help request", socket.id, socket.username);
   });
 
-
-
-  socket.on("disconnection broadcast", () => {
+  socket.on('disconnect', (reason) => {
+    // const count = io.of("/").sockets.size - 1;
+    const count = io.of("/").sockets.size;
+    // if user is logging out, update room info, else ignore
+    console.log("deleting")
+    // TODO: investigate why socket.username is occassionally undefined
+    console.log(socket.username)
+    // if (socket.username) redisClient.del(socket.username)
+    if (reason === "client namespace disconnect") deleteUserFromRoom(socket.username);
     socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
-  });
-
-  socket.on('disconnect', () => {
-    // socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
-    console.log('user disconnected ', socket.id);
+    console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
   });
 });
 
