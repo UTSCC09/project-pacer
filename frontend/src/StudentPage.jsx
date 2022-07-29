@@ -68,8 +68,8 @@ function StudentPage({ socket, curUser }) {
   const [callerSignal, setCallerSignal] = useState(() => null);
   const [callAccepted, setCallAccepted] = useState(() => false);
 
-  const localVideo = useRef();
-  const remoteVideo = useRef();
+  const localAudio = useRef();
+  const remoteAudio = useRef();
 
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
@@ -89,17 +89,17 @@ function StudentPage({ socket, curUser }) {
   // },[]);
 
   // for cloud sync (via fb) [experimental - TODO]:
-  useEffect(() => {
-    setTimeout(() => {
-      if (t == 1) {
-        t = 0;
-        const f = new File([code], codeFilename);
-        uploadFile(f);
-      } else {
-        t++;
-      }
-    }, 1000);
-  });
+  // useEffect(() => {
+  //   setTimeout(() => {
+  //     if (t == 1) {
+  //       t = 0;
+  //       const f = new File([code], codeFilename);
+  //       uploadFile(f);
+  //     } else {
+  //       t++;
+  //     }
+  //   }, 1000);
+  // });
 
   // for file uploading (via fb):
   const uploadFileFormHandler = (event) => {
@@ -243,6 +243,7 @@ function StudentPage({ socket, curUser }) {
 
 
     socket.on("hey", (data) => {
+      console.log("student new call intercepted")
       setReceivingCall(true);
       setCaller(data.from);
       setCallerSignal(data.signal);
@@ -260,8 +261,6 @@ function StudentPage({ socket, curUser }) {
   useEffect(() => {
       socket.emit("fetch init", code);
   },[flag])
-
-
 
 
   const onChange = (value, viewUpdate) => {
@@ -297,29 +296,49 @@ function StudentPage({ socket, curUser }) {
     console.log("seting up call")
     const localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
     console.log("hardware setup complete")
+    console.log(localStream)
     setCallStream(localStream)
-    if (localVideo.current) {
-      localVideo.current.srcObject = localStream;
+    if (localAudio.current) {
+      localAudio.current.srcObject = localStream;
+      console.log("done setting local stream")
     }
 
     const peer = new Peer({
       initiator: true,
       trickle: false,
-      config: servers,
-      stream: callStream
+      config: {
+
+        iceServers: [
+            {
+                urls: "stun:numb.viagenie.ca",
+                username: "sultan1640@gmail.com",
+                credential: "98376683"
+            },
+            {
+                urls: "turn:numb.viagenie.ca",
+                username: "sultan1640@gmail.com",
+                credential: "98376683"
+            }
+        ]
+    },
+      stream: localStream
     })
     
     peer.on("signal", data => {
-      socket.emit("callUser", {userToCall: teacherSocketId, signalData: data, from: "yourID"}) //yourID
+      console.log(`student signal accepted. Calling from ${socket.id} to ${teacherSocketId}`)
+      socket.emit("callUser", {userToCall: teacherSocketId, signalData: data, from: socket.id, stream: callStream}) //yourID
     })
 
     peer.on("stream", stream => {
-      if (remoteVideo.current) {
-        remoteVideo.current.srcObject = stream;
+      console.log(`student remote call stream updated`)
+      if (remoteAudio.current) {
+        remoteAudio.current.srcObject = stream;
+        console.log("done setting remote stream")
       }
     })
 
     socket.on("callAccepted", signal => {
+      console.log(`student call aceepted`)
       setCallAccepted(true);
       peer.signal(signal);
     })
@@ -337,23 +356,23 @@ function StudentPage({ socket, curUser }) {
     })
 
     peer.on("stream", stream => {
-      remoteVideo.current.srcObject = stream;
+      remoteAudio.current.srcObject = stream;
     });
 
     peer.signal(callerSignal);
   }
 
-  let LocalVideo;
+  let LocalAudio;
   if (callStream) {
-    LocalVideo = (
-      <video playsInline muted ref={localVideo} autoPlay />
+    LocalAudio = (
+      <audio playsInline muted ref={localAudio} autoPlay />
     );
   }
 
-  let RemoteVideo;
+  let RemoteAudio;
   if (callAccepted) {
-    RemoteVideo = (
-      <video playsInline ref={remoteVideo} autoPlay />
+    RemoteAudio = (
+      <audio playsInline ref={remoteAudio} autoPlay />
     );
   }
 
@@ -452,8 +471,8 @@ function StudentPage({ socket, curUser }) {
         </Grid>
       </Box>
       <StudentRightMenu drawerWidth={drawerWidth} socket={socket} />
-      <Stack direction="row">{LocalVideo}{RemoteVideo}</Stack>
-      <button className="call-button" onClick={() => setupCall("testid")}>Call</button>
+      <Stack className="hidden" direction="row">{LocalAudio}{RemoteAudio}</Stack>
+      <button className="call-button" onClick={() => setupCall(adminId)}>Call</button>
     </>
   );
 }

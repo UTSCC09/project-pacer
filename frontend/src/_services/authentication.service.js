@@ -11,6 +11,7 @@ export const getCurrentUser = async () => {
     const data = await response.json();
     console.log(data);
     currentUserSubject.next(data);
+    return data
   } catch (error) {
     console.log(error);
   }
