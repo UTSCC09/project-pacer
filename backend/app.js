@@ -20,7 +20,9 @@ const {
   getFirestore,
   collection,
   getDocs,
-  addDoc
+  addDoc,
+  updateDoc,
+  doc
 } = require('firebase/firestore');
 const fbfsdb = getFirestore(firebaseApp);
 
@@ -163,6 +165,58 @@ app.get("/api/whoami", function (req, res) {
   }).catch(err => {
     return res.status(500).json(err.message);
   });
+});
+
+app.patch(
+  "/api/newUsername",
+  [
+    body("username")
+      .not()
+      .isEmpty()
+      .withMessage("must be non-empty")
+      .trim()
+      .escape(),
+    body("newUsername")
+      .not()
+      .isEmpty()
+      .withMessage("must be non-empty")
+      .trim()
+      .escape()
+  ],
+  function (req, res) {
+    const username = req.body.username;
+    const newUsername = req.body.newUsername;
+    //// WORKS:
+    const collectionRef = collection(fbfsdb, "users");
+    // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
+    getDocs(collectionRef).then((snapshot) => {
+      let matchFound = 0;
+      let docId = "";
+      snapshot.docs.forEach((doc) => {
+        if (doc.data().username == username) {
+          // MATCH FOUND:
+          matchFound = 1;
+          docId = doc.id
+        }
+      });
+      if (matchFound) {
+        // MATCH FOUND:
+        const documentRef = doc(fbfsdb, "users", docId);
+        updateDoc(documentRef, {
+          username: newUsername
+        }).then(() => {
+          return res.json({
+            username: username,
+            newUsername: newUsername
+          });
+        });
+      } else {
+        // NO MATCH FOUND:
+        return res.status(404).json("user: " + userName + " doesn't exist");
+      }
+    }).catch(err => {
+      return res.status(500).json(err.message);
+    });
 });
 
 app.post(
