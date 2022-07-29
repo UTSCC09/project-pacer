@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect, cloneElement, useRef } from "react";
+import Peer from "simple-peer";
 import CodeMirror from "@uiw/react-codemirror";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
@@ -19,7 +20,7 @@ import { python, pythonLanguage } from "@codemirror/lang-python";
 import { CompletionContext } from "@codemirror/autocomplete";
 import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
 import { java, javaLanguage } from "@codemirror/lang-java";
-import { authenticationService } from "./_services";
+import { authenticationService, getAllRooms } from "./_services";
 import TeacherRightMenu from "./components/TeacherRightMenu";
 import runCode from "./_helpers/codeRunner";
 // [kw]
@@ -33,6 +34,16 @@ import { ref, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
 
 const drawerWidth = 200;
 var sid = "";
+
+const servers = {
+  iceServers: [
+    {
+      urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
+    },
+  ],
+  iceCandidatePoolSize: 10,
+};
+
 
 // for cloud sync (via fb) [experimental - TODO]:
 let t = 0; // ns
@@ -52,7 +63,15 @@ function TeacherPage({ socket, curUser }) {
   const [stuOut, setStuOut] = useState(() => null);
   const [stuErr, setStuErr] = useState(() => null);
   const [stuJoin, setStuJoin] = useState(() => {});
-  const [connectedUsers, setConnectedUsers] = useState([]);
+  const [connectedUsers, setConnectedUsers] = useState(() => []);
+  const [callStream, setCallStream] = useState(() => null);
+  const [receivingCall, setReceivingCall] = useState(() => false);
+  const [caller, setCaller] = useState(() => "");
+  const [callerSignal, setCallerSignal] = useState(() => null);
+  const [callAccepted, setCallAccepted] = useState(() => false);
+
+  const localAudio = useRef();
+  const remoteAudio = useRef();
 
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
@@ -67,17 +86,17 @@ function TeacherPage({ socket, curUser }) {
 
 
   // for cloud sync (via fb) [experimental - TODO]:
-  useEffect(() => {
-    setTimeout(() => {
-      if (t == 1) {
-        t = 0;
-        const f = new File([code], codeFilename);
-        uploadFile(f);
-      } else {
-        t++;
-      }
-    }, 1000);
-  });
+  // useEffect(() => {
+  //   setTimeout(() => {
+  //     if (t == 1) {
+  //       t = 0;
+  //       const f = new File([code], codeFilename);
+  //       uploadFile(f);
+  //     } else {
+  //       t++;
+  //     }
+  //   }, 1000);
+  // });
 
 
   // for file uploading (via fb):
@@ -183,20 +202,18 @@ function TeacherPage({ socket, curUser }) {
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
-      // console.log({ curUser, SktId });
-      const users = [...connectedUsers];
-      const idx = users.findIndex((user) => user.SktId === SktId);
-      if (idx) {
-        console.log("clearing");
-        setConnectedUsers(eixstingUsers => {
-          const userCopy = [...eixstingUsers];
+      //console.log({ curUser, SktId });
+      setConnectedUsers(eixstingUsers => {
+        const userCopy = [...eixstingUsers];
+        const idx = userCopy.findIndex((user) => user.SktId === SktId);
+        if (idx >= 0) {
+          console.log("clearing");
           userCopy.splice(idx, 1);
-          return userCopy
-        });
-      }
-
+        }
+        return userCopy
+      });
+      
       if(SktId) setDisplayStudent(false)
-
       console.log(
         `[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`
       );
@@ -252,6 +269,15 @@ function TeacherPage({ socket, curUser }) {
           });
         });
     } // for when code + codePath correspond to session, so an uploaded file can take over code slide
+
+    socket.on("hey", (data) => {
+      console.log("teacher new call intercepted")
+      console.log(`caller is ${data.from}`)
+      setReceivingCall(true);
+      setCaller(data.from);
+      setCallerSignal(data.signal);
+      console.log(data.stream)
+    })
   }, []);
 
 
@@ -295,7 +321,61 @@ function TeacherPage({ socket, curUser }) {
     setStuErr(null);
   };
 
-  
+  const acceptCall = async () => {
+    console.log("seting up call");
+    const localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+    setCallStream(localStream);
+    if (localAudio.current) {
+      localAudio.current.srcObject = localStream;
+      console.log("done setting local stream")
+    }
+    console.log(callStream)
+    setCallAccepted(true);
+    const peer = new Peer({
+      initiator: false,
+      trickle: false,
+      config: servers,
+      stream: localStream,
+    });
+    peer.on("signal", data => {
+      console.log("teacher call signal accepted")
+      socket.emit("acceptCall", { signal: data, to: caller })
+    })
+
+    peer.on("stream", stream => {
+      console.log("teacher remote call stream updated")
+      remoteAudio.current.srcObject = stream;
+    });
+
+    peer.signal(callerSignal);
+  }
+
+  let LocalAudio;
+  if (callStream) {
+    console.log("local video updated")
+    LocalAudio = (
+      <audio playsInline muted ref={localAudio} autoPlay />
+    );
+  }
+
+  let RemoteAudio;
+  if (callAccepted) {
+    console.log("remote video updated")
+    RemoteAudio = (
+      <audio playsInline ref={remoteAudio} autoPlay />
+    );
+  }
+
+  let incomingCall;
+  if (receivingCall) {
+    incomingCall = (
+      <div>
+        <h1>{caller} is calling you</h1>
+        <button onClick={acceptCall}>Accept</button>
+      </div>
+    )
+  }
+
   return (
     <>
       <Box
@@ -413,6 +493,10 @@ function TeacherPage({ socket, curUser }) {
         connectedUsers={connectedUsers}
         socket={socket}
       />
+      <Stack className="hidden" direction="row">{LocalAudio}{RemoteAudio}</Stack>
+      <Stack>
+        {incomingCall}
+      </Stack>
     </>
   );
 }

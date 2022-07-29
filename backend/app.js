@@ -91,14 +91,41 @@ let users = [
 //     username: "admin",
 //     password: "admin",
 //     role: Role.Admin,
+//     roomHost: "teacher1"
 //   },
 //   {
 //     id: 0,
 //     username: "user",
 //     password: "user",
 //     role: Role.User,
+//     roomHost: "teacher1"
 //   },
 ];
+
+let rooms = [
+//   {
+//     id: 120492783,
+//     host: "Jack",
+//     hasTeacher: false,
+//     roomName: "class1",
+//     users: [
+//      {
+//        id: 0,
+//        username: "Jack",
+//        role: Role.Admin,
+//      },
+//    ],
+//   },
+]
+
+const NewRoom = (function () {
+  return function item(roomName, host, user) {
+    this.host = host;
+    this.hasTeacher = user.role === Role.Admin;
+    this.roomName = roomName;
+    this.users = [user];
+  };
+})();
 
 const webhookRoutes = require('./routes/webhookRoutes');
 app.use('/api', webhookRoutes);
@@ -110,11 +137,13 @@ app.get("/api/whoami", function (req, res) {
   const userName = req.session.username;
   if (!userName) return res.json(null);
   const user = users.find(x => x.username === userName);
+  // find the room user is currently in
   return res.json({
     id: user.id,
     username: user.username,
     role: user.role,
-});;
+    roomHost: user.roomHost
+  });
 });
 
 app.post(
@@ -157,6 +186,7 @@ app.post(
         id: user.id,
         username: user.username,
         role: user.role,
+        roomHost: user.roomHost
     });
     });
   }
@@ -199,6 +229,7 @@ app.post(
         username: username,
         password: hash,
         role: role,
+        roomHost: null
       }
       users.push(newUser)
       req.session.username = username;
@@ -223,6 +254,111 @@ app.post("/api/signout/", isAuthenticated, function (req, res) {
   return res.json(null);
 });
 
+app.post("/api/rooms/", isAuthenticated, function (req, res) {
+  console.log("hit post room info endpoint")
+  const idx = users.findIndex(x => x.username === req.session.username);
+  const user = users[idx]
+  users[idx].roomHost = user.username
+  const userInfo = {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+  }
+  if (rooms.filter(room => room.host === user.username).length > 0) {
+    /* a room with specified host already exists */
+    return res.status(409).json("room with host" + user.username + " already exists");
+  } else {
+    const room = new NewRoom(req.body.roomName, req.session.username, userInfo);
+    rooms.push(room)
+    return res.json(room)
+  }
+})
+
+app.get("/api/rooms/", isAuthenticated, function (req, res) {
+  //TODO: adapt GET for pagination and firebase
+  console.log("hit get all rooms endpoint")
+  return res.json(rooms)
+})
+
+app.get("/api/rooms/:host/", isAuthenticated, function (req, res) {
+  console.log("hit get room info endpoint")
+  const room =  rooms.find(room => room.host === req.params.host)
+  if (room) {
+    /* a room with specified host already exists */
+    return res.json(room)
+  } else {
+    return res.status(404).json("Room with host " + req.params.host + " not found.");
+  }
+})
+
+app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
+  console.log("hit update room info endpoint");
+  /* a room with specified host already exists */
+  console.log(rooms)
+  const room_idx = rooms.findIndex(room => room.host === req.params.host);
+  if (room_idx < 0) return res.status(404).json("Cannot update user info, room with host " + req.params.host + " not found.");
+  const roomUsers = rooms[room_idx].users
+  if (roomUsers.filter(user => user.username === req.session.username).length > 0) {
+    console.log("conflicted")
+    return res.status(409).json("room already has user " + req.session.username);
+  } 
+  const idx = users.findIndex(x => x.username === req.session.username);
+  const user = users[idx]
+  users[idx].roomHost = rooms[room_idx].host
+  const userInfo = {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+  }
+  rooms[room_idx].users.push(userInfo)
+  console.log(rooms)
+  return res.json(rooms[room_idx])
+})
+
+app.delete("/api/rooms/:host/", isAuthenticated, function (req, res) {
+  console.log("hit delete room info endpoint")
+  rooms = rooms.map(room => {
+    if (room.host === req.params.host) {
+      const roomUsers = room.users
+      if (roomUsers.filter(user => user.username === req.session.username).length === 0) {
+        return res.status(409).json("user info not found while trying to delete: " + req.session.username);
+      }
+      const idx = roomUsers.findIndex((user) => user.username === req.session.username);
+      const userIdx = users.findIndex(x => x.username === req.session.username);
+      users[userIdx].roomHost =null
+      if (idx >= 0) {
+        console.log("clearing");
+        roomUsers.splice(idx, 1);
+        return {...room, users: roomUsers}
+      }
+      return res.status(500).json("this error is impossible")
+    }
+  })
+  return res.status(404).json("Cannot delete user info, room with host " + req.params.host + " not found.");
+})
+
+function deleteUserFromRoom(host) {
+  console.log("deleting room for " + host)
+  const room_idx = rooms.findIndex(room => room.host === host);
+  if (room_idx >= 0) {
+    console.log(room_idx)
+    const roomUsers = rooms[room_idx].users;
+    const idx = users.findIndex(x => x.username === host);
+    const roomUserIdx = roomUsers.findIndex(x => x.username === host);
+    if (idx >= 0) {
+      const user = users[idx]
+      users[idx].roomHost = null
+    }
+    if (roomUserIdx >= 0) {
+      rooms[room_idx].users.splice(roomUserIdx, 1);
+    }
+    if (rooms[room_idx].users.length === 0) {
+      rooms.splice(room_idx, 1)
+    }
+    console.log(rooms)
+  }
+}
+
 // `Not Found` request handler
 app.use((req, res, next) => {
   const error = new Error('Not Found');
@@ -230,12 +366,11 @@ app.use((req, res, next) => {
   throw error;
 });
 
-
 // thrown erros handler
-app.use((error, req, res, next) => {
-  res.status(error.status || 500);
-  res.json({ message: error.message || 'Internal Server Error' });
-});
+// app.use((error, req, res, next) => {
+//   res.status(error.status || 500);
+//   res.json({ message: error.message || 'Internal Server Error' });
+// });
 
 // socket io
 var prevRequest = '';
@@ -277,6 +412,16 @@ io.on('connection', async (socket) => {
     socket.broadcast.emit("onLecChange", value, socket.id);
   });
 
+  socket.on("callUser", (data) => {
+    console.log(`calling user ${data.userToCall}`)
+    socket.to(data.userToCall).emit('hey', {signal: data.signalData, from: data.from, stream: data.stream});
+  })
+
+  socket.on("acceptCall", (data) => {
+    console.log(`accepting call from ${data.to}`)
+    socket.to(data.to).emit('callAccepted', data.signal);
+  })
+
 
   socket.on('fetch code', async (studentId, adminId) => {
     const sockets = await io.fetchSockets()
@@ -294,14 +439,6 @@ io.on('connection', async (socket) => {
     
     prevRequest = studentId;
 
-    // todo-kw: move them out
-    socket.on("callUser", (data) => {
-        io.to(data.userToCall).emit('hey', {signal: data.signalData, from: data.from});
-    })
-
-    socket.on("acceptCall", (data) => {
-        io.to(data.to).emit('callAccepted', data.signal);
-    })
   });
 
 
@@ -313,12 +450,6 @@ io.on('connection', async (socket) => {
   socket.on("help request", () => {
     socket.to('teacher').emit("help request", socket.id, socket.username);
   });
-
-
-  // socket.on("disconnection broadcast", () => {
-  //   socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
-  // });
-
 
   socket.on('disconnect', (reason) => {
     // const count = io.of("/").sockets.size - 1;
