@@ -238,7 +238,9 @@ app.use((error, req, res, next) => {
 });
 
 // socket io
-// teacher socket atribute: id / username / role / sid 
+// teacher socket atribute: id / username / role / sid / prvRequest(todo)
+// student socket atribute: id / username / role / tid /request
+
 var prevRequest = '';
 io.on('connection', async (socket) => {
   // const sockets = await io.fetchSockets();
@@ -259,8 +261,14 @@ io.on('connection', async (socket) => {
 
 
   socket.on('teacher join', () => {
+    // if (sid) {
+    //   socket.to(sid).emit('teacher join', socket.id);
+    // } else {
+    //   socket.join('teacher');
+    //   socket.broadcast.emit('teacher join', socket.id);
+    // }
     socket.join('teacher');
-    socket.broadcast.emit('teacher join', socket.id)
+    socket.broadcast.emit('teacher join', socket.id);
   });
 
 
@@ -274,7 +282,7 @@ io.on('connection', async (socket) => {
   });
 
 
-  socket.on('onLecChange', value => {
+  socket.on('onLecChange', (value) => {
     socket.broadcast.emit("onLecChange", value, socket.id);
   });
 
@@ -284,7 +292,9 @@ io.on('connection', async (socket) => {
       .catch((err) => { console.error(err); });
     
     if (sockets.filter(skt => skt.id === studentId).length > 0){
-      socket.to(studentId).emit("fetch request", adminId);
+      // socket.to(studentId).emit("fetch request", adminId);
+      socket.to(studentId).emit("fetch request");
+
     } else {
       socket.to(adminId).emit('no student',"no student here");
     }
@@ -307,7 +317,7 @@ io.on('connection', async (socket) => {
 
 
   socket.on("fetch init", code => {
-    socket.to('teacher').emit("fetch init", code);
+    socket.to('teacher').emit("fetch init", code, socket.id);
   });
 
 

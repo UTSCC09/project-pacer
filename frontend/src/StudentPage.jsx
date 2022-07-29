@@ -33,9 +33,6 @@ import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
 import "./StudentPage.css";
 
 const drawerWidth = 200;
-// todo-kw: set those two as attributes
-// var request = false;
-var adminId = "";
 // for cloud sync (via fb) [experimental - TODO]:
 let t = 0; // ns
 
@@ -183,52 +180,40 @@ function StudentPage({ socket, curUser }) {
   useEffect(() => {
     if(!socket.id) socket.connect()
 
-    // console.log("[StudentPage] socket id:", socket.id)
-
     socket.emit("set attributes", "student", curUser);
 
-    socket.volatile.emit('student join', curUser);
+    // socket.volatile.emit('student join', curUser);
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
       console.log(`connection broadcast: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
+      if (role === 'teacher') socket.tid = "";
       console.log(`disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`);
     });
 
-    socket.on("teacher join", (tSktId) => {
+    socket.on("teacher join", (tid) => {
       // todo-kw: revisit this setting
-      adminId = tSktId;
+      socket.tid = tid; 
       socket.emit('student join', curUser);
-      console.log("[StudentPage - teacher join] join request from student: ", socket.id);
     });
 
-    socket.on("fetch request", (Id) => {
-      // request = true;
-      // socket.request = true
+    socket.on("fetch request", () => {
       setFlag(true)
-      adminId = Id;
-      console.log("[StudentPage check request value]", socket.request);
     });
 
     socket.on("stop request", () => {
-      // request = false;
       setFlag(false)
-      // socket.request = false
-      adminId = "";
-      // console.log("Thanks for the help!!", request, adminId);
     });
 
     socket.on("onChange", (value, adminId) => {
       if (flag) setCode(value);
-      // if (request) setCode(value);
     });
 
-    socket.on("onLecChange", (value, id) => {
-      // console.log(`from student page: before teacher's code ${lecCode}`)
+    socket.on("onLecChange", (value, tid) => {
+      if(!socket.tid) socket.tid = tid;
       setLecCode(value);
-      // console.log(`from student page: teacher's code ${lecCode}`)
     });
 
     // for file downloading (via fb):
@@ -269,7 +254,8 @@ function StudentPage({ socket, curUser }) {
 
     // if (request && editor) {
     if (flag && editor) {
-      socket.emit("onChange", value, adminId);
+      // socket.emit("onChange", value, adminId);
+      socket.emit("onChange", value, socket.tid);
     }
     setCode(value);
   };

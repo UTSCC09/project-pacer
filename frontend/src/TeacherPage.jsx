@@ -32,9 +32,8 @@ import { storage } from "./_components/FireBase";
 import { ref, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
 
 const drawerWidth = 200;
-var sid = "";
 // for cloud sync (via fb) [experimental - TODO]:
-let t = 0; // ns
+let t = 0; //ns
 
 
 function TeacherPage({ socket, curUser }) {
@@ -175,6 +174,7 @@ function TeacherPage({ socket, curUser }) {
     socket.emit("teacher join");
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
+      // add newly connected student
       if (connectedUsers.includes({ curUser, SktId })) {
         console.log(
           `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
@@ -185,27 +185,31 @@ function TeacherPage({ socket, curUser }) {
           `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
         );
       }
-
+      // let student know who the teacher is 
+      // socket.emit("teacher join", SktId);
+      // init teacher's code on student end
       setCode(currentCode => {
-        socket.emit("onLecChange", currentCode)
-        return currentCode
+        socket.emit("onLecChange", currentCode);
+        return currentCode;
       })
-
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
-      // console.log({ curUser, SktId });
-      const users = [...connectedUsers];
-      const idx = users.findIndex((user) => user.SktId === SktId);
-      if (idx) {
-        console.log("clearing");
-        setConnectedUsers(eixstingUsers => {
-          const userCopy = [...eixstingUsers];
+      setConnectedUsers(eixstingUsers => {
+        const userCopy = [...eixstingUsers];
+        const idx = userCopy.findIndex((user) => user.SktId === SktId);
+        if (idx >= 0) {
+          console.log("clearing");
           userCopy.splice(idx, 1);
-          return userCopy
-        });
+        }
+        return userCopy
+      });
+
+      if(SktId) {
+        setDisplayStudent(false);
+        socket.sid = "";
       }
-      if(SktId) setDisplayStudent(false)
+
       console.log(`[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`);
     });
 
@@ -215,26 +219,24 @@ function TeacherPage({ socket, curUser }) {
         " and student name: ", username
       );
       // add connected student
-      console.log("from teacherPage, emiited code", code);
-      setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser: username, SktId: sSktId }]);
+      if (!connectedUsers.includes({ curUser: username, sSktId }))
+        setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser: username, SktId: sSktId }]);
       // init teacher code on student's window
       socket.emit("onLecChange", code)
-
     });
 
-    socket.on("fetch init", (code) => {
-      // console.log("student code:",code)
+    socket.on("fetch init", (code, sid) => {
+      socket.sid = sid;
       setStuCode(code);
     });
 
     socket.on("onChange", (value, id) => {
-      sid = id;
       setStuCode(value);
     });
 
+    // todo-kw: revisit this function - may be useless given current logic
     socket.on("no student", (msg) => {
-      console.log("no student get called");
-      sid = "";
+      socket.sid = "";
       setStuCode(msg);
     });
 
@@ -268,7 +270,9 @@ function TeacherPage({ socket, curUser }) {
   const onStuChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
     setStuCode(value);
-    if (editor) socket.emit("onChange", value, sid);
+    // if (editor) socket.emit("onChange", value, sid);
+    if (editor) socket.emit("onChange", value, socket.sid);
+
   };
 
 
