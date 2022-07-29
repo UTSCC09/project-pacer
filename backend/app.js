@@ -3,7 +3,7 @@ const express = require("express");
 const cors = require('cors');
 const bcrypt = require("bcrypt");
 const session = require("express-session");
-const Redis = require("redis")
+// const Redis = require("redis")
 let RedisStore = require("connect-redis")(session)
 const { body, validationResult } = require("express-validator");
 
@@ -34,8 +34,8 @@ const http = require("http");
 const PORT = 8080;
 const version = "1.0.0";
 
-const redisClient = Redis.createClient()
-redisClient.connect();
+// const redisClient = Redis.createClient()
+// redisClient.connect();
 
 const DEFAULT_EXPIRATION = 7200
 
@@ -145,16 +145,16 @@ app.get("/api/whoami", function (req, res) {
   const user = users.find(x => x.username === userName);
   // find the socket id
   console.log("getting")
-  redisClient.get(user.username, (err, socketId) => {
-    if (err) return res.status(500).json(err)
-    return res.json({
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      roomHost: user.roomHost,
-      socketId
-    });
+  // redisClient.get(user.username, (err, socketId) => {
+  //   if (err) return res.status(500).json(err)
+  return res.json({
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    roomHost: user.roomHost,
+    // socketId
   });
+  // });
 });
 
 app.post(
@@ -194,16 +194,16 @@ app.post(
       req.session.username = username;
       req.session.role = role;
       console.log(`session is : ${req.session.username}`)
-      redisClient.get(user.username, (err, socketId) => {
-        if (err) return res.status(500).json(err)
-        return res.json({
-          id: user.id,
-          username: user.username,
-          role: user.role,
-          roomHost: user.roomHost,
-          socketId
-        });
+      // redisClient.get(user.username, (err, socketId) => {
+      //   if (err) return res.status(500).json(err)
+      return res.json({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        roomHost: user.roomHost,
+        // socketId
       });
+      // });
     });
   }
 );
@@ -264,7 +264,7 @@ app.post(
 app.post("/api/signout/", isAuthenticated, function (req, res) {
   console.log("hit signout endpoint")
   console.log("deleting")
-  redisClient.del(req.session.username)
+  // redisClient.del(req.session.username)
   req.session.destroy(function (err) {
     if (err) return res.status(500).json(err);
   });
@@ -279,7 +279,7 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
   console.log("setting")
   console.log(req.body.socketId)
   const socketId = req.body.socketId
-  redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
+  // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
   users[idx].roomHost = user.username
   const userInfo = {
     id: user.id,
@@ -329,13 +329,13 @@ app.patch("/api/rooms/:host/", isAuthenticated, async function (req, res) {
   const user = users[idx]
   console.log("getting")
   try {
-    let socketId = await redisClient.get(user.username)
-    if (!socketId) {
-      console.log("failed")
-      socketId = req.body.socketId
-      console.log(socketId)
-      redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
-    }
+    // let socketId = await redisClient.get(user.username)
+    // if (!socketId) {
+    //   console.log("failed")
+    const socketId = req.body.socketId
+      // console.log(socketId)
+      // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
+    // }
     users[idx].roomHost = rooms[room_idx].host
     const userInfo = {
       id: user.id,
@@ -429,7 +429,7 @@ io.on('connection', async (socket) => {
     socket.role = role;
     socket.username = curUser;
     console.log("setting")
-    redisClient.setEx(curUser, DEFAULT_EXPIRATION, socket.id)
+    // redisClient.setEx(curUser, DEFAULT_EXPIRATION, socket.id)
     socket.broadcast.emit("connection broadcast", socket.id, role, curUser);
   });
 
@@ -504,7 +504,7 @@ io.on('connection', async (socket) => {
     console.log("deleting")
     // TODO: investigate why socket.username is occassionally undefined
     console.log(socket.username)
-    if (socket.username) redisClient.del(socket.username)
+    // if (socket.username) redisClient.del(socket.username)
     if (reason === "client namespace disconnect") deleteUserFromRoom(socket.username);
     socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
     console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
