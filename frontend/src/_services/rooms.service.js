@@ -27,12 +27,12 @@ export async function getAllRooms() {
   );
 }
 
-export const getRoomByHost = async (host) => {
-  return send(
-    "GET",
-    "http://localhost:8080/api/rooms/" + host,
-  );
-}
+// export const getRoomByHost = async (host) => {
+//   return send(
+//     "GET",
+//     "http://localhost:8080/api/rooms/" + host,
+//   );
+// }
 
 export const createNewRoom = async (roomName, socketId) => {
     return send(

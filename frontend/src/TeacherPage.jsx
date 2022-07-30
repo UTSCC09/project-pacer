@@ -20,7 +20,7 @@ import { python, pythonLanguage } from "@codemirror/lang-python";
 import { CompletionContext } from "@codemirror/autocomplete";
 import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
 import { java, javaLanguage } from "@codemirror/lang-java";
-import { authenticationService, getAllRooms, getRoomByHost } from "./_services";
+import { authenticationService, getAllRooms } from "./_services";
 import TeacherRightMenu from "./components/TeacherRightMenu";
 import runCode from "./_helpers/codeRunner";
 // [kw]
@@ -40,7 +40,7 @@ const drawerWidth = 200;
 let t = 0; //ns
 
 
-function TeacherPage({ socket, curUser }) {
+function TeacherPage({ socket, curUser, userRoom }) {
   // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
   const [displayStudent, setDisplayStudent] = useState(() => false);
@@ -188,21 +188,6 @@ function TeacherPage({ socket, curUser }) {
   
 
   useEffect(() => {
-    async function fetchRoomInfoByHost(host) {
-      const roomInfo = await getRoomByHost(host);
-      if (roomInfo.err) console.log(roomInfo.err);
-      else {
-        console.log(roomInfo.res);
-        // remove current user from the list of users for later code
-        let cleanedUsers = [];
-        if (roomInfo.res.users) {
-            cleanedUsers = roomInfo.res.users.filter(
-            (user) => user.socketId !== socket.id
-          );
-        }
-        setConnectedUsers(cleanedUsers);
-      }
-    }
 
     // if(!socket.id) socket.connect() 
 
@@ -583,7 +568,7 @@ function TeacherPage({ socket, curUser }) {
         drawerWidth={drawerWidth}
         setDisplayStudent={setDisplayStudent}
         setStudentName={setStudentName}
-        connectedUsers={connectedUsers}
+        connectedUsers={connectedUsers.filter((user) => user.curUser !== curUser)}
         socket={socket}
       />
       <Stack direction="row">

@@ -25,7 +25,7 @@ import { python, pythonLanguage } from "@codemirror/lang-python";
 import { CompletionContext } from "@codemirror/autocomplete";
 import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
 import { java, javaLanguage } from "@codemirror/lang-java";
-import { authenticationService, getRoomByHost } from "./_services";
+import { authenticationService } from "./_services";
 import runCode from "./_helpers/codeRunner";
 
 import React from "react";
@@ -37,7 +37,7 @@ const drawerWidth = 200;
 // for cloud sync (via fb) [experimental - TODO]:
 let t = 0; // ns
 
-function StudentPage({ socket, curUser }) {
+function StudentPage({ socket, curUser, userRoom }) {
   // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
   // code display and transmission

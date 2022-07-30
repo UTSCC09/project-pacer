@@ -492,18 +492,18 @@ app.get("/api/rooms/", isAuthenticated, function (req, res) {
   return res.json(rooms);
 });
 
-app.get("/api/rooms/:host/", isAuthenticated, function (req, res) {
-  console.log("hit get room info endpoint");
-  const room = rooms.find((room) => room.host === req.params.host);
-  if (room) {
-    /* a room with specified host already exists */
-    return res.json(room);
-  } else {
-    return res
-      .status(404)
-      .json("Room with host " + req.params.host + " not found.");
-  }
-});
+// app.get("/api/rooms/:host/", isAuthenticated, function (req, res) {
+//   console.log("hit get room info endpoint");
+//   const room = rooms.find((room) => room.host === req.params.host);
+//   if (room) {
+//     /* a room with specified host already exists */
+//     return res.json(room);
+//   } else {
+//     return res
+//       .status(404)
+//       .json("Room with host " + req.params.host + " not found.");
+//   }
+// });
 
 app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
   console.log("hit update room info endpoint");
@@ -633,11 +633,11 @@ function deleteUserFromRoom(username) {
 }
 
 // `Not Found` request handler
-app.use((req, res, next) => {
-  const error = new Error("Not Found");
-  error.status = 404;
-  throw error;
-});
+// app.use((req, res, next) => {
+//   const error = new Error("Not Found");
+//   error.status = 404;
+//   throw error;
+// });
 
 // thrown erros handler
 // app.use((error, req, res, next) => {
@@ -752,6 +752,7 @@ io.on('connection', async (socket) => {
       signal: payload.signal,
       id: socket.id,
     });
+  })
     
   socket.on("fetch init", code => {
     socket.to('teacher').emit("fetch init", code, socket.id);
