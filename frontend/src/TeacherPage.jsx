@@ -27,6 +27,8 @@ import runCode from "./_helpers/codeRunner";
 import React from "react";
 // import { socket } from "./_services";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
+import "./CodePage.css";
+
 
 // for file up/downloading (via fb):
 import { storage } from "./_components/FireBase";
@@ -34,16 +36,6 @@ import { ref, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
 
 const drawerWidth = 200;
 var sid = "";
-
-const servers = {
-  iceServers: [
-    {
-      urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
-    },
-  ],
-  iceCandidatePoolSize: 10,
-};
-
 
 // for cloud sync (via fb) [experimental - TODO]:
 let t = 0; // ns
@@ -64,15 +56,17 @@ function TeacherPage({ socket, curUser, userRoom }) {
   const [stuErr, setStuErr] = useState(() => null);
   const [stuJoin, setStuJoin] = useState(() => {});
   const [connectedUsers, setConnectedUsers] = useState(() => []);
-  const [peers, setPeers] = useState(() => []);
   const [callStream, setCallStream] = useState(() => null);
   const [receivingCall, setReceivingCall] = useState(() => false);
   const [caller, setCaller] = useState(() => "");
   const [callerSignal, setCallerSignal] = useState(() => null);
+  const [callSystemInited, setCallSystemInited] = useState(() => false);
   const [callAccepted, setCallAccepted] = useState(() => false);
+  const [peers, setPeers] = useState(() => []);
 
   const localAudio = useRef();
   const remoteAudio = useRef();
+  const peersRef = useRef([]);
 
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
@@ -85,7 +79,21 @@ function TeacherPage({ socket, curUser, userRoom }) {
     extensions[1] = globalJavaScriptCompletions;
   }
 
+  const Audio = ({peer}) => {
+    const ref = useRef();
 
+    useEffect(() => {
+        peer.on("stream", stream => {
+            console.log("this is streaming")
+            console.log(`stream is ${stream}`)
+            ref.current.srcObject = stream;
+        })
+    }, []);
+
+    return (
+        <video playsInline autoPlay ref={ref} />
+      );
+  }
   // for cloud sync (via fb) [experimental - TODO]:
   // useEffect(() => {
   //   setTimeout(() => {
@@ -181,7 +189,14 @@ function TeacherPage({ socket, curUser, userRoom }) {
     async function fetchRoomInfoByHost(host) {
       const roomInfo = await getRoomByHost(host);
       console.log(roomInfo);
-      setConnectedUsers(roomInfo.users);
+      // remove current user from the list of users for later code
+      const cleanedUsers = [];
+      if (roomInfo.users) {
+          roomInfo.users.filter(
+          (user) => user.socketId !== socket.id
+        );
+      }
+      setConnectedUsers(cleanedUsers);
     }
 
     // if(!socket.id) socket.connect()
@@ -281,6 +296,48 @@ function TeacherPage({ socket, curUser, userRoom }) {
     })
   }, []);
 
+  useEffect(() => {
+    if (callSystemInited) {
+      console.log("initing call system")
+      socket.on("all users", (users) => {
+        console.log(users)
+        const peers = [];
+        users.forEach((userId) => {
+          console.log(`stream is ${callStream}`)
+          const peer = createPeer(userId, socket.id, callStream);
+          peersRef.current.push({
+            peerID: userId,
+            peer,
+          });
+          peers.push(peer);
+        });
+        console.log(`peers are ${peers}`)
+        setPeers(peers);
+      });
+
+      socket.on("user joined", (payload) => {
+        console.log("user joined")
+        console.log(`stream is ${callStream}`)
+        const peer = addPeer(payload.signal, payload.callerID, callStream);
+        peersRef.current.push({
+          peerID: payload.callerID,
+          peer,
+        });
+
+        setPeers((users) => [...users, peer]);
+      });
+
+      socket.on("receiving returned signal", (payload) => {
+        console.log("receiving returned signal")
+        console.log(peersRef.current)
+        console.log(payload.id)
+        const item = peersRef.current.find((p) => p.peerID === payload.id);
+        console.log(item)
+        item.peer.signal(payload.signal);
+      });
+    }
+  }, [callSystemInited])
+
 
   const onChange = (value, viewUpdate) => {
     socket.emit("onLecChange", value);
@@ -316,40 +373,59 @@ function TeacherPage({ socket, curUser, userRoom }) {
     setStuErr(err);
   };
 
+  const setupCall = async () => {
+    console.log("seting up call");
+    const localStream = await navigator.mediaDevices.getUserMedia({
+      video: false,
+      audio: true,
+    });
+    console.log("hardware setup complete");
+    setCallStream(localStream);
+    setCallSystemInited(true);
+    if (localAudio.current) {
+      localAudio.current.srcObject = localStream;
+      console.log("done setting local stream");
+    }
+    socket.emit("joined chat", userRoom);
+  };
+
+  function createPeer(userTarget, callerID, stream) {
+    console.log(`stream is ${stream}`)
+    const peer = new Peer({
+      initiator: true,
+      trickle: false,
+      stream,
+    });
+
+    peer.on("signal", (signal) => {
+      console.log(
+        `student call initiated. Calling from ${socket.id} to ${userTarget}`
+      );
+      socket.emit("sending signal", { userTarget, callerID, signal });
+    });
+    return peer;
+  }
+
+  function addPeer(incomingSignal, callerID, stream) {
+    console.log(`stream is ${stream}`)
+    const peer = new Peer({
+      initiator: false,
+      trickle: false,
+      stream,
+    });
+    peer.on("signal", (signal) => {
+      socket.emit("returning signal", { signal, callerID });
+    });
+    peer.signal(incomingSignal);
+
+    return peer;
+  }
+
 
   const clearStuExecutionRes = () => {
     setStuOut(null);
     setStuErr(null);
   };
-
-  const acceptCall = async () => {
-    console.log("seting up call");
-    const localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-    setCallStream(localStream);
-    if (localAudio.current) {
-      localAudio.current.srcObject = localStream;
-      console.log("done setting local stream")
-    }
-    console.log(callStream)
-    setCallAccepted(true);
-    const peer = new Peer({
-      initiator: false,
-      trickle: false,
-      config: servers,
-      stream: localStream,
-    });
-    peer.on("signal", data => {
-      console.log("teacher call signal accepted")
-      socket.emit("acceptCall", { signal: data, to: caller })
-    })
-
-    peer.on("stream", stream => {
-      console.log("teacher remote call stream updated")
-      remoteAudio.current.srcObject = stream;
-    });
-
-    peer.signal(callerSignal);
-  }
 
   let LocalAudio;
   if (callStream) {
@@ -365,16 +441,6 @@ function TeacherPage({ socket, curUser, userRoom }) {
     RemoteAudio = (
       <audio playsInline ref={remoteAudio} autoPlay />
     );
-  }
-
-  let incomingCall;
-  if (receivingCall) {
-    incomingCall = (
-      <div>
-        <h1>{caller} is calling you</h1>
-        <button onClick={acceptCall}>Accept</button>
-      </div>
-    )
   }
 
   return (
@@ -494,10 +560,15 @@ function TeacherPage({ socket, curUser, userRoom }) {
         connectedUsers={connectedUsers}
         socket={socket}
       />
-      <Stack className="hidden" direction="row">{LocalAudio}{RemoteAudio}</Stack>
-      <Stack>
-        {incomingCall}
+      <Stack direction="row">
+        {LocalAudio}
+        {peers.map((peer, index) => {
+          return <Audio key={index} peer={peer} />;
+        })}
       </Stack>
+      <button className="call-button" onClick={() => setupCall()}>
+        Call
+      </button>
     </>
   );
 }

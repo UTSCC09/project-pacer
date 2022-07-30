@@ -13,7 +13,8 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
-import PersonIcon from "@mui/icons-material/Person";
+import DataSaverOffIcon from '@mui/icons-material/DataSaverOff';
+import DataSaverOnIcon from '@mui/icons-material/DataSaverOn';
 import { useNavigate } from "react-router-dom";
 
 function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, socket }) {
@@ -64,6 +65,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, socket }) {
 
   const handleToggle = () => {
     console.log("toggled");
+    setRoomName("")
     setOpen(!open);
   };
 
@@ -89,9 +91,12 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, socket }) {
             <List>
               {roomInfo.map((room, index) => (
                 <ListItem key={room.host} sx={{ backgroundColor: "#ebf1f5" }}>
-                  <ListItemIcon>
-                    <PersonIcon />
-                  </ListItemIcon>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <ListItemIcon fontSize="large" sx={{ justifyContent: 'center' }}>
+                      {room.hasTeacher ? <DataSaverOnIcon /> : <DataSaverOffIcon />}
+                    </ListItemIcon>
+                    <p className="room-occupancy-text"> {room.hasTeacher ? "class in progress" : "waiting"}</p>
+                  </Box>
                   <ListItemText primary={room.roomName} secondary={room.host} />
                   <ListItemButton
                     value={room.host}
@@ -120,16 +125,20 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, socket }) {
           open={open}
           className="room-container"
         >
-          <Stack>
-            <p> Enter class name:</p>
+          <Stack spacing={3}>
+            <p> Enter room name:</p>
             <TextField
               id="outlined-basic"
               label="class name"
               variant="outlined"
+              value={roomName}
               onChange={udpateRoomName}
             />
             <Button variant="contained" onClick={onCreateNewRoom}>
               Confirm
+            </Button>
+            <Button variant="contained" onClick={handleToggle}>
+              Return
             </Button>
           </Stack>
         </Backdrop>

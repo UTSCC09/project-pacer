@@ -31,7 +31,7 @@ import runCode from "./_helpers/codeRunner";
 import React from "react";
 // import { socket } from "./_services";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
-import "./StudentPage.css";
+import "./CodePage.css";
 
 const drawerWidth = 200;
 // todo-kw: set those two as attributes
@@ -40,15 +40,6 @@ let adminId = "";
 
 // for cloud sync (via fb) [experimental - TODO]:
 let t = 0; // ns
-
-const servers = {
-  iceServers: [
-    {
-      urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"],
-    },
-  ],
-  iceCandidatePoolSize: 10,
-};
 
 function StudentPage({ socket, curUser, userRoom }) {
   const [code, setCode] = useState(() => ""); // like a cache: keeping this since downloading & uploading the file on each update is very inefficient

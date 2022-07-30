@@ -459,25 +459,26 @@ app.post("/api/signout/", function (req, res) {
 
 app.post("/api/rooms/", isAuthenticated, function (req, res) {
   console.log("hit post room info endpoint");
-  const idx = users.findIndex((x) => x.username === req.session.username);
-  const user = users[idx];
-  console.log("setting");
-  console.log(req.body.socketId);
-  const socketId = req.body.socketId;
-  // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
-  users[idx].roomHost = user.username;
-  const userInfo = {
-    id: user.id,
-    username: user.username,
-    role: user.role,
-    socketId,
-  };
   if (rooms.filter((room) => room.host === user.username).length > 0) {
     /* a room with specified host already exists */
     return res
       .status(409)
       .json("room with host" + user.username + " already exists");
   } else {
+    const idx = users.findIndex((x) => x.username === req.session.username);
+    const user = users[idx];
+    console.log("setting");
+    console.log(req.body.socketId);
+    const socketId = req.body.socketId;
+    // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
+    users[idx].roomHost = user.username;
+    const userInfo = {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      roomHost: user.roomHost,
+      socketId,
+    };
     const room = new NewRoom(req.body.roomName, req.session.username, userInfo);
     rooms.push(room);
     return res.json(room);
@@ -503,7 +504,7 @@ app.get("/api/rooms/:host/", isAuthenticated, function (req, res) {
   }
 });
 
-app.patch("/api/rooms/:host/", isAuthenticated, async function (req, res) {
+app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
   console.log("hit update room info endpoint");
   /* a room with specified host already exists */
   console.log(rooms);
@@ -518,13 +519,17 @@ app.patch("/api/rooms/:host/", isAuthenticated, async function (req, res) {
       );
   const roomUsers = rooms[room_idx].users;
   if (
-    roomUsers.filter((user) => user.username === req.session.username).length >
-    0
+    roomUsers.filter((user) => user.username === req.session.username).length > 0
   ) {
     console.log("conflicted");
     return res
       .status(409)
-      .json("room already has user " + req.session.username);
+      .json("room " + req.params.host + " already has user " + req.session.username);
+  }
+  if (
+    rooms[room_idx].hasTeacher && req.session.role === "Admin"
+  ) {
+    return res.status(409).json(`selected room already has a teacher`)
   }
   const idx = users.findIndex((x) => x.username === req.session.username);
   const user = users[idx];
