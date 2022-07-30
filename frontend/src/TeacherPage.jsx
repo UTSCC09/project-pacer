@@ -57,9 +57,6 @@ function TeacherPage({ socket, curUser, userRoom }) {
   const [stuJoin, setStuJoin] = useState(() => {});
   const [connectedUsers, setConnectedUsers] = useState(() => []);
   const [callStream, setCallStream] = useState(() => null);
-  const [receivingCall, setReceivingCall] = useState(() => false);
-  const [caller, setCaller] = useState(() => "");
-  const [callerSignal, setCallerSignal] = useState(() => null);
   const [callSystemInited, setCallSystemInited] = useState(() => false);
   const [callAccepted, setCallAccepted] = useState(() => false);
   const [peers, setPeers] = useState(() => []);
@@ -91,7 +88,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
     }, []);
 
     return (
-        <video playsInline autoPlay ref={ref} />
+        <audio playsInline autoPlay ref={ref} />
       );
   }
   // for cloud sync (via fb) [experimental - TODO]:
@@ -289,14 +286,6 @@ function TeacherPage({ socket, curUser, userRoom }) {
         });
     } // for when code + codePath correspond to session, so an uploaded file can take over code slide
 
-    socket.on("hey", (data) => {
-      console.log("teacher new call intercepted")
-      console.log(`caller is ${data.from}`)
-      setReceivingCall(true);
-      setCaller(data.from);
-      setCallerSignal(data.signal);
-      console.log(data.stream)
-    })
   }, []);
 
   useEffect(() => {
@@ -435,14 +424,6 @@ function TeacherPage({ socket, curUser, userRoom }) {
     console.log("local video updated")
     LocalAudio = (
       <audio playsInline muted ref={localAudio} autoPlay />
-    );
-  }
-
-  let RemoteAudio;
-  if (callAccepted) {
-    console.log("remote video updated")
-    RemoteAudio = (
-      <audio playsInline ref={remoteAudio} autoPlay />
     );
   }
 

@@ -53,16 +53,13 @@ function StudentPage({ socket, curUser, userRoom }) {
   const [out, setOut] = useState(() => null);
   const [err, setErr] = useState(() => null);
   const [callStream, setCallStream] = useState(() => null);
-  const [receivingCall, setReceivingCall] = useState(() => false);
   const [caller, setCaller] = useState(() => "");
   const [callerSignal, setCallerSignal] = useState(() => null);
   const [callSystemInited, setCallSystemInited] = useState(() => false);
-  const [callAccepted, setCallAccepted] = useState(() => false);
   const [connectedUsers, setConnectedUsers] = useState(() => []);
   const [peers, setPeers] = useState(() => []);
 
   const localAudio = useRef();
-  const remoteAudio = useRef();
   const peersRef = useRef([]);
 
   let extensions = [javascript({ jsx: true })];
@@ -88,7 +85,7 @@ function StudentPage({ socket, curUser, userRoom }) {
     }, []);
   
     return (
-        <video playsInline autoPlay ref={ref} />
+        <audio playsInline autoPlay ref={ref} />
     );
   }
 
@@ -279,13 +276,6 @@ function StudentPage({ socket, curUser, userRoom }) {
         });
     } // for when code + codePath correspond to session, so an uploaded file can take over code slide
 
-    socket.on("hey", (data) => {
-      console.log("student new call intercepted");
-      setReceivingCall(true);
-      setCaller(data.from);
-      setCallerSignal(data.signal);
-    });
-
     socket.on("onLecChange", (value, id) => {
       // console.log(`from student page: before teacher's code ${lecCode}`)
       setLecCode(value);
@@ -414,12 +404,7 @@ function StudentPage({ socket, curUser, userRoom }) {
 
   let LocalAudio;
   if (callStream) {
-    LocalAudio = <video playsInline muted ref={localAudio} autoPlay />;
-  }
-
-  let RemoteAudio;
-  if (callAccepted) {
-    RemoteAudio = <audio playsInline ref={remoteAudio} autoPlay />;
+    LocalAudio = <audio playsInline muted ref={localAudio} autoPlay />;
   }
 
   return (
