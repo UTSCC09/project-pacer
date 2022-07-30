@@ -13,8 +13,7 @@ import EditorOptionsBar from "./components/EditorOptions";
 import Toolbar from "@mui/material/Toolbar";
 import StudentRightMenu from "./components/StudentRightMenu";
 import Storage from "./components/Storage";
-import CallIcon from '@mui/icons-material/Call';
-
+import CallIcon from "@mui/icons-material/Call";
 
 // for file up/downloading (via fb):
 import { storage } from "./_components/FireBase";
@@ -45,7 +44,7 @@ let t = 0; // ns
 const servers = {
   iceServers: [
     {
-      urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
+      urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"],
     },
   ],
   iceCandidatePoolSize: 10,
@@ -66,11 +65,14 @@ function StudentPage({ socket, curUser, userRoom }) {
   const [receivingCall, setReceivingCall] = useState(() => false);
   const [caller, setCaller] = useState(() => "");
   const [callerSignal, setCallerSignal] = useState(() => null);
+  const [callSystemInited, setCallSystemInited] = useState(() => false);
   const [callAccepted, setCallAccepted] = useState(() => false);
   const [connectedUsers, setConnectedUsers] = useState(() => []);
+  const [peers, setPeers] = useState(() => []);
 
   const localAudio = useRef();
   const remoteAudio = useRef();
+  const peersRef = useRef([]);
 
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
@@ -82,7 +84,22 @@ function StudentPage({ socket, curUser, userRoom }) {
     extensions[0] = java();
     extensions[1] = globalJavaScriptCompletions;
   }
+
+  const Audio = ({peer}) => {
+    const ref = useRef();
   
+    useEffect(() => {
+        peer.on("stream", stream => {
+            console.log("this is streaming")
+            console.log(`stream is ${stream}`)
+            ref.current.srcObject = stream;
+        })
+    }, []);
+  
+    return (
+        <video playsInline autoPlay ref={ref} />
+    );
+  }
 
   // for cloud sync (via fb) [experimental - TODO]:
   // useEffect(() => {
@@ -100,21 +117,20 @@ function StudentPage({ socket, curUser, userRoom }) {
   // for file uploading (via fb):
   const uploadFileFormHandler = (event) => {
     event.preventDefault();
-    uploadFile(event.target[0].files[0])
-      .then((res) => {
-        res.file.text().then((code) => {
-          setCode(code);
-          setCodePath(res.codePath);
-          setCodeFilename(res.file.name);
-        });
+    uploadFile(event.target[0].files[0]).then((res) => {
+      res.file.text().then((code) => {
+        setCode(code);
+        setCodePath(res.codePath);
+        setCodeFilename(res.file.name);
       });
+    });
   };
 
   // for file uploading (via fb):
   const uploadFile = (f) => {
     return new Promise(function (res, rej) {
       if (!f) {
-        console.log('Upload failed. Try a different file.');
+        console.log("Upload failed. Try a different file.");
         rej();
       }
       const cp = `/files/users/${authenticationService.currentUser.source._value.username}/${f.name}`;
@@ -135,7 +151,7 @@ function StudentPage({ socket, curUser, userRoom }) {
         () => {
           // when the file is uploaded successfully:
           //getDownloadURL(uploadFileTaskStatus.snapshot.ref).then((url) => console.log(url));
-          res({"file": f, "codePath": cp});
+          res({ file: f, codePath: cp });
         }
       );
     });
@@ -146,10 +162,10 @@ function StudentPage({ socket, curUser, userRoom }) {
     return new Promise(function (res, rej) {
       let xhr = new XMLHttpRequest();
       // handle xhr response:
-      xhr.responseType = 'text';
+      xhr.responseType = "text";
       xhr.onload = (event) => {
         if (xhr.status == 200) {
-          res({"code": xhr.response});
+          res({ code: xhr.response });
         } else {
           console.log(xhr.status);
           rej();
@@ -159,16 +175,17 @@ function StudentPage({ socket, curUser, userRoom }) {
         console.log(xhr.status);
         rej();
       };
-      xhr.open('GET', url);
+      xhr.open("GET", url);
       xhr.send(); // is xhr onload async
     });
-  }
+  };
 
   // for file downloading (via fb):
   const downloadFile = (fileLocation) => {
     const fileStorageRef = ref(storage, fileLocation);
-    return getDownloadURL(fileStorageRef)
-      .then((url) => makeDownloadFileRequest(url));
+    return getDownloadURL(fileStorageRef).then((url) =>
+      makeDownloadFileRequest(url)
+    );
   };
 
   // [kw]
@@ -178,24 +195,31 @@ function StudentPage({ socket, curUser, userRoom }) {
     async function fetchRoomInfoByHost(host) {
       const roomInfo = await getRoomByHost(host);
       console.log(roomInfo);
-      setConnectedUsers(roomInfo.users);
+      // remove current user from the list of users for later code
+      const cleanedUsers = [];
+      if (roomInfo.users) {
+          roomInfo.users.filter(
+          (user) => user.socketId !== socket.id
+        );
+      }
+      setConnectedUsers(cleanedUsers);
       if (!roomInfo.hasTeacher) {
-        adminId = ""
+        adminId = "";
       } else {
-        const users = roomInfo.users
-        adminId = users.find(user => user.role === "Admin").socketId
+        const users = roomInfo.users;
+        adminId = users.find((user) => user.role === "Admin").socketId;
       }
     }
 
-    if(!socket.id) socket.connect()
+    // if(!socket.id) socket.connect()
 
-    fetchRoomInfoByHost(userRoom)
+    fetchRoomInfoByHost(userRoom);
 
-    console.log("[StudentPage] socket id:", socket.id)
+    console.log("[StudentPage] socket id:", socket.id);
 
     socket.emit("set attributes", "student", curUser);
 
-    socket.volatile.emit('student join', curUser);
+    socket.volatile.emit("student join", curUser);
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
       // todo: here is the data for webRTC implementation
@@ -204,39 +228,42 @@ function StudentPage({ socket, curUser, userRoom }) {
           `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
         );
       } else {
-        fetchRoomInfoByHost(userRoom)
+        fetchRoomInfoByHost(userRoom);
         console.log(
           `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
         );
         // console.log([...connectedUsers]);
-      }    
+      }
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
-      fetchRoomInfoByHost(userRoom)
-      console.log(`disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`);
+      fetchRoomInfoByHost(userRoom);
+      console.log(
+        `disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`
+      );
     });
 
     socket.on("teacher join", (tSktId) => {
       // todo-kw: revisit this setting
-      fetchRoomInfoByHost(userRoom)
-      socket.emit('student join', curUser);
-      console.log("[StudentPage - teacher join] join request from student: ", socket.id);
+      fetchRoomInfoByHost(userRoom);
+      socket.emit("student join", curUser);
+      console.log(
+        "[StudentPage - teacher join] join request from student: ",
+        socket.id
+      );
     });
 
     socket.on("fetch request", (Id) => {
       request = true;
-      setFlag(true)
+      setFlag(true);
       // console.log("emitted code", code);
     });
 
-
     socket.on("stop request", () => {
       request = false;
-      setFlag(false)
+      setFlag(false);
       // console.log("Thanks for the help!!", request, adminId);
     });
-
 
     socket.on("onChange", (value, adminId) => {
       if (request) setCode(value);
@@ -258,13 +285,12 @@ function StudentPage({ socket, curUser, userRoom }) {
         });
     } // for when code + codePath correspond to session, so an uploaded file can take over code slide
 
-
     socket.on("hey", (data) => {
-      console.log("student new call intercepted")
+      console.log("student new call intercepted");
       setReceivingCall(true);
       setCaller(data.from);
       setCallerSignal(data.signal);
-    })
+    });
 
     socket.on("onLecChange", (value, id) => {
       // console.log(`from student page: before teacher's code ${lecCode}`)
@@ -275,11 +301,51 @@ function StudentPage({ socket, curUser, userRoom }) {
     console.log("load student page complete");
   }, []);
 
+  useEffect(() => {
+    if (callSystemInited) {
+      console.log("initing call system")
+      socket.on("all users", (users) => {
+        console.log(users)
+        const peers = [];
+        users.forEach((userId) => {
+          console.log(`stream is ${callStream}`)
+          const peer = createPeer(userId, socket.id, callStream);
+          peersRef.current.push({
+            peerID: userId,
+            peer,
+          });
+          peers.push(peer);
+        });
+        console.log(`peers are ${peers}`)
+        setPeers(peers);
+      });
+
+      socket.on("user joined", (payload) => {
+        console.log("user joined")
+        console.log(`stream is ${callStream}`)
+        const peer = addPeer(payload.signal, payload.callerID, callStream);
+        peersRef.current.push({
+          peerID: payload.callerID,
+          peer,
+        });
+
+        setPeers((users) => [...users, peer]);
+      });
+
+      socket.on("receiving returned signal", (payload) => {
+        console.log("receiving returned signal")
+        console.log(peersRef.current)
+        console.log(payload.id)
+        const item = peersRef.current.find((p) => p.peerID === payload.id);
+        console.log(item)
+        item.peer.signal(payload.signal);
+      });
+    }
+  }, [callSystemInited])
 
   useEffect(() => {
-      socket.emit("fetch init", code);
-  }, [flag])
-
+    socket.emit("fetch init", code);
+  }, [flag]);
 
   const onChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
@@ -290,104 +356,76 @@ function StudentPage({ socket, curUser, userRoom }) {
     setCode(value);
   };
 
-
   const run = () => {
     const { out, err } = runCode(code, language);
     setOut(out);
     setErr(err);
   };
 
-
   const clearExecutionRes = () => {
     setOut(null);
     setErr(null);
   };
 
-  const setupCall = async (teacherSocketId) => {
-    console.log(teacherSocketId)
-    console.log("seting up call")
-    const localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-    console.log("hardware setup complete")
-    console.log(localStream)
-    setCallStream(localStream)
+  const setupCall = async () => {
+    console.log("seting up call");
+    const localStream = await navigator.mediaDevices.getUserMedia({
+      video: false,
+      audio: true,
+    });
+    console.log("hardware setup complete");
+    setCallStream(localStream);
+    setCallSystemInited(true);
     if (localAudio.current) {
       localAudio.current.srcObject = localStream;
-      console.log("done setting local stream")
+      console.log("done setting local stream");
     }
+    socket.emit("joined chat", userRoom);
+  };
 
+  function createPeer(userTarget, callerID, stream) {
+    console.log(`stream is ${stream}`)
     const peer = new Peer({
       initiator: true,
       trickle: false,
-      config: {
+      stream,
+    });
 
-        iceServers: [
-            {
-                urls: "stun:numb.viagenie.ca",
-                username: "sultan1640@gmail.com",
-                credential: "98376683"
-            },
-            {
-                urls: "turn:numb.viagenie.ca",
-                username: "sultan1640@gmail.com",
-                credential: "98376683"
-            }
-        ]
-    },
-      stream: localStream
-    })
-    
-    peer.on("signal", data => {
-      console.log(`student signal accepted. Calling from ${socket.id} to ${teacherSocketId}`)
-      socket.emit("callUser", {userToCall: teacherSocketId, signalData: data, from: socket.id, stream: callStream}) //yourID
-    })
+    peer.on("signal", (signal) => {
+      console.log(
+        `student call initiated. Calling from ${socket.id} to ${userTarget}`
+      );
+      socket.emit("sending signal", { userTarget, callerID, signal });
+    });
 
-    peer.on("stream", stream => {
-      console.log(`student remote call stream updated`)
-      if (remoteAudio.current) {
-        remoteAudio.current.srcObject = stream;
-        console.log("done setting remote stream")
-      }
-    })
-
-    // todo-kw: move it out
-    socket.on("callAccepted", signal => {
-      console.log(`student call aceepted`)
-      setCallAccepted(true);
-      peer.signal(signal);
-    })
+    return peer;
   }
 
-
-  const acceptCall = () => {
-    setCallAccepted(true);
+  function addPeer(incomingSignal, callerID, stream) {
+    console.log(`stream is ${stream}`)
     const peer = new Peer({
       initiator: false,
       trickle: false,
-      stream: callStream,
-    });
-    peer.on("signal", data => {
-      socket.emit("acceptCall", { signal: data, to: caller })
-    })
-
-    peer.on("stream", stream => {
-      remoteAudio.current.srcObject = stream;
+      stream,
     });
 
-    peer.signal(callerSignal);
+    peer.on("signal", (signal) => {
+      socket.emit("returning signal", { signal, callerID });
+    });
+
+    peer.signal(incomingSignal);
+
+    return peer;
   }
 
   let LocalAudio;
   if (callStream) {
-    LocalAudio = (
-      <audio playsInline muted ref={localAudio} autoPlay />
-    );
+    LocalAudio = <video playsInline muted ref={localAudio} autoPlay />;
   }
 
   let RemoteAudio;
   if (callAccepted) {
-    RemoteAudio = (
-      <audio playsInline ref={remoteAudio} autoPlay />
-    );
+    RemoteAudio = <audio playsInline ref={remoteAudio} autoPlay />;
   }
 
   return (
@@ -485,8 +523,15 @@ function StudentPage({ socket, curUser, userRoom }) {
         </Grid>
       </Box>
       <StudentRightMenu drawerWidth={drawerWidth} socket={socket} />
-      <Stack className="hidden" direction="row">{LocalAudio}{RemoteAudio}</Stack>
-      <button className="call-button" onClick={() => setupCall(adminId)}>Call</button>
+      <Stack direction="row">
+        {LocalAudio}
+        {peers.map((peer, index) => {
+          return <Audio key={index} peer={peer} />;
+        })}
+      </Stack>
+      <button className="call-button" onClick={() => setupCall()}>
+        Call
+      </button>
     </>
   );
 }

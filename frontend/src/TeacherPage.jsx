@@ -64,6 +64,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
   const [stuErr, setStuErr] = useState(() => null);
   const [stuJoin, setStuJoin] = useState(() => {});
   const [connectedUsers, setConnectedUsers] = useState(() => []);
+  const [peers, setPeers] = useState(() => []);
   const [callStream, setCallStream] = useState(() => null);
   const [receivingCall, setReceivingCall] = useState(() => false);
   const [caller, setCaller] = useState(() => "");
@@ -183,7 +184,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
       setConnectedUsers(roomInfo.users);
     }
 
-    if(!socket.id) socket.connect()
+    // if(!socket.id) socket.connect()
 
     fetchRoomInfoByHost(userRoom)
 
