@@ -199,9 +199,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
       }
     }
 
-    // if(!socket.id) socket.connect()
-
-    fetchRoomInfoByHost(userRoom)
+    // if(!socket.id) socket.connect() 
 
     console.log("[TeacherPage] socket id:", socket.id);
 
@@ -217,16 +215,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
       //     `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
       //   );
       // } else {
-        setConnectedUsers(eixstingUsers => {
-          if (eixstingUsers.filter((user) => user.username === curUser).length === 0) {
-            let cleanedUsers = [];
-            cleanedUsers = [...eixstingUsers, { username: curUser, socketId: SktId, role }].filter(
-              (user) => user.socketId !== SktId
-            );
-            return cleanedUsers
-          }
-          return eixstingUsers
-      })
+        setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser, SktId }]);
         console.log(
           `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
         );
@@ -260,11 +249,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
         " and student name: ",
         username
       );
-      setConnectedUsers(eixstingUsers => {
-        if (eixstingUsers.filter((user) => user.username === curUser).length === 0)
-          return [...eixstingUsers, { username: curUser, socketId: sSktId, role: "User" }];
-        return eixstingUsers
-    })     
+      setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser: username, SktId: sSktId }]);    
       // todo: use stuJoin(username here) store joined sutdents to backend
       socket.emit("onLecChange", code);
       setStuJoin({ sSktId: username });

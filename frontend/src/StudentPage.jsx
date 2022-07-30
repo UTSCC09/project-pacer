@@ -56,7 +56,6 @@ function StudentPage({ socket, curUser, userRoom }) {
   const [caller, setCaller] = useState(() => "");
   const [callerSignal, setCallerSignal] = useState(() => null);
   const [callSystemInited, setCallSystemInited] = useState(() => false);
-  const [connectedUsers, setConnectedUsers] = useState(() => []);
   const [peers, setPeers] = useState(() => []);
 
   const localAudio = useRef();
@@ -180,31 +179,8 @@ function StudentPage({ socket, curUser, userRoom }) {
   useEffect(() => {
     // todo-kw: set adminId as an attribute
     // todo-kw: student cant receive adminId
-    async function fetchRoomInfoByHost(host) {
-      const roomInfo = await getRoomByHost(host);
-      if (roomInfo.err) console.log(roomInfo.err);
-      else {
-        console.log(roomInfo);
-        // remove current user from the list of users for later code
-        let cleanedUsers = [];
-        if (roomInfo.users) {
-            cleanedUsers = roomInfo.users.filter(
-            (user) => user.socketId !== socket.id
-          );
-        }
-        setConnectedUsers(cleanedUsers);
-        if (!roomInfo.hasTeacher) {
-          adminId = "";
-        } else {
-          const users = roomInfo.users;
-          adminId = users.find((user) => user.role === "Admin").socketId;
-        }
-      }
-    }
 
     // if(!socket.id) socket.connect()
-
-    fetchRoomInfoByHost(userRoom);
 
     console.log("[StudentPage] socket id:", socket.id);
 
@@ -212,20 +188,7 @@ function StudentPage({ socket, curUser, userRoom }) {
 
     socket.volatile.emit("student join", curUser);
 
-    socket.on("connection broadcast", (SktId, role, curUser) => {
-      // todo: here is the data for webRTC implementation
-      // if (connectedUsers.includes({ curUser, SktId })) {
-      //   console.log(
-      //     `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
-      //   );
-      // } else {
-        setConnectedUsers(eixstingUsers => {
-          let cleanedUsers = [];
-            cleanedUsers = [...eixstingUsers, { username: curUser, socketId: SktId, role }].filter(
-              (user) => user.socketId !== SktId
-            );
-            return cleanedUsers
-         })        
+    socket.on("connection broadcast", (SktId, role, curUser) => {    
         console.log(
           `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
         );
@@ -234,15 +197,6 @@ function StudentPage({ socket, curUser, userRoom }) {
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
-      setConnectedUsers(eixstingUsers => {
-        const userCopy = [...eixstingUsers];
-        const idx = userCopy.findIndex((user) => user.socketId === SktId);
-        if (idx >= 0) {
-          console.log("clearing");
-          userCopy.splice(idx, 1);
-        }
-        return userCopy
-      });
       console.log(
         `disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`
       );
@@ -250,12 +204,6 @@ function StudentPage({ socket, curUser, userRoom }) {
 
     socket.on("teacher join", (tSktId) => {
       // todo-kw: revisit this setting
-      setConnectedUsers(eixstingUsers => {
-        if (eixstingUsers.filter((user) => user.username === curUser).length === 0)
-          return [...eixstingUsers, { username: curUser, socketId: tSktId, role: "Admin" }];
-        return eixstingUsers
-    })   
-      setConnectedUsers(eixstingUsers => [...eixstingUsers, { username: curUser, socketId: tSktId, role: "Admin" }]);
       socket.emit("student join", curUser);
       console.log(
         "[StudentPage - teacher join] join request from student: ",

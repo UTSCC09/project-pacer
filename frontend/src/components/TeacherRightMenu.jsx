@@ -64,12 +64,12 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
       <Divider />
       <List>
         {connectedUsers.map((text, index) => (
-          <ListItem key={text.socketId} disablePadding>
-            <ListItemButton value={text.socketId} onClick={() => loadStudentSession(text.useranme, text.socketId)}>
+          <ListItem key={text.SktId} disablePadding>
+            <ListItemButton value={text.SktId} onClick={() => loadStudentSession(text.curUser, text.SktId)}>
               <ListItemIcon>
                 <PersonIcon />
               </ListItemIcon>
-              <ListItemText primary={text.socketId} secondary={text.username}/>
+              <ListItemText primary={text.SktId} secondary={text.curUser}/>
             </ListItemButton>
           </ListItem>
         ))}
