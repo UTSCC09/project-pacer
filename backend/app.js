@@ -609,7 +609,7 @@ function deleteUserFromRoom(username) {
   if (idx >= 0) {
     host = users[idx].roomHost;
     users[idx].roomHost = null;
-    isAdmin = users[idx].isAdmin;
+    isAdmin = users[idx].role === "Admin";
   }
   if (host) {
     const room_idx = rooms.findIndex((room) => room.host === host);
