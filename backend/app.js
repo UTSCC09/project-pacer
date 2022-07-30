@@ -239,10 +239,7 @@ app.use((error, req, res, next) => {
 });
 
 // socket io
-// teacher socket atribute: id / username / role / sid / prvRequest(todo)
-// student socket atribute: id / username / role / tid /request
-// todo-kw: set prvRequest as teacher's socket's attribute
-var prevRequest = '';
+// var prevRequest = '';
 io.on('connection', async (socket) => {
   // console.log("[server fetchSockets]:", sockets);
   // console.log("[Server] current room: " + socket.rooms); // Set { <socket.id> }
@@ -258,8 +255,7 @@ io.on('connection', async (socket) => {
     socket.username = curUser;
     if (role === 'teacher') {
       socket.pr = "";
-      // socket.sid = "";
-      // socket.onn = false;
+      socket.sid = "";
     }
     socket.broadcast.emit("connection broadcast", socket.id, role, curUser);
   });
@@ -292,6 +288,7 @@ io.on('connection', async (socket) => {
       .catch((err) => { console.error(err); });
 
     if (sockets.filter(skt => skt.id === studentId).length > 0){
+      socket.sid = studentId;
       socket.to(studentId).emit("fetch request");
     } else {
       socket.to(adminId).emit('no student',"no student here");
@@ -317,7 +314,7 @@ io.on('connection', async (socket) => {
   socket.on('disconnect', (reason) => {
     // const count = io.of("/").sockets.size - 1;
     const count = io.of("/").sockets.size;
-    socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
+    socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username, socket.sid);
     console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
   });
 

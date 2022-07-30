@@ -185,7 +185,7 @@ function StudentPage({ socket, curUser }) {
       console.log(`connection broadcast: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
     });
 
-    socket.on("disconnection broadcast", (SktId, role, curUser) => {
+    socket.on("disconnection broadcast", (SktId, role, curUser, curSid) => {
       if (role === 'teacher') socket.tid = "";
       console.log(`disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`);
     });
