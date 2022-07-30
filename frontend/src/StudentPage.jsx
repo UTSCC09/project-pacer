@@ -214,21 +214,35 @@ function StudentPage({ socket, curUser, userRoom }) {
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
       // todo: here is the data for webRTC implementation
-      if (connectedUsers.includes({ curUser, SktId })) {
-        console.log(
-          `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
-        );
-      } else {
-        fetchRoomInfoByHost(userRoom);
+      // if (connectedUsers.includes({ curUser, SktId })) {
+      //   console.log(
+      //     `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
+      //   );
+      // } else {
+        setConnectedUsers(eixstingUsers => {
+          let cleanedUsers = [];
+            cleanedUsers = [...eixstingUsers, { username: curUser, socketId: SktId, role }].filter(
+              (user) => user.socketId !== SktId
+            );
+            return cleanedUsers
+         })        
         console.log(
           `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
         );
         // console.log([...connectedUsers]);
-      }
+      // }
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
-      fetchRoomInfoByHost(userRoom);
+      setConnectedUsers(eixstingUsers => {
+        const userCopy = [...eixstingUsers];
+        const idx = userCopy.findIndex((user) => user.socketId === SktId);
+        if (idx >= 0) {
+          console.log("clearing");
+          userCopy.splice(idx, 1);
+        }
+        return userCopy
+      });
       console.log(
         `disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`
       );
@@ -236,7 +250,12 @@ function StudentPage({ socket, curUser, userRoom }) {
 
     socket.on("teacher join", (tSktId) => {
       // todo-kw: revisit this setting
-      fetchRoomInfoByHost(userRoom);
+      setConnectedUsers(eixstingUsers => {
+        if (eixstingUsers.filter((user) => user.username === curUser).length === 0)
+          return [...eixstingUsers, { username: curUser, socketId: tSktId, role: "Admin" }];
+        return eixstingUsers
+    })   
+      setConnectedUsers(eixstingUsers => [...eixstingUsers, { username: curUser, socketId: tSktId, role: "Admin" }]);
       socket.emit("student join", curUser);
       console.log(
         "[StudentPage - teacher join] join request from student: ",

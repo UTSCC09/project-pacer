@@ -58,7 +58,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
   const [connectedUsers, setConnectedUsers] = useState(() => []);
   const [callStream, setCallStream] = useState(() => null);
   const [callSystemInited, setCallSystemInited] = useState(() => false);
-  const [callAccepted, setCallAccepted] = useState(() => false);
+  const [callInprogress, setCallInprogress] = useState(() => false);
   const [peers, setPeers] = useState(() => []);
 
   const localAudio = useRef();
@@ -212,22 +212,39 @@ function TeacherPage({ socket, curUser, userRoom }) {
     socket.emit("teacher join");
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
-      if (connectedUsers.includes({ curUser, SktId })) {
-        console.log(
-          `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
-        );
-      } else {
-        fetchRoomInfoByHost(userRoom)
+      // if (connectedUsers.includes({ curUser, SktId })) {
+      //   console.log(
+      //     `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
+      //   );
+      // } else {
+        setConnectedUsers(eixstingUsers => {
+          if (eixstingUsers.filter((user) => user.username === curUser).length === 0) {
+            let cleanedUsers = [];
+            cleanedUsers = [...eixstingUsers, { username: curUser, socketId: SktId, role }].filter(
+              (user) => user.socketId !== SktId
+            );
+            return cleanedUsers
+          }
+          return eixstingUsers
+      })
         console.log(
           `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
         );
         // console.log([...connectedUsers]);
-      }
+      // }
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
       //console.log({ curUser, SktId });
-      fetchRoomInfoByHost(userRoom)
+      setConnectedUsers(eixstingUsers => {
+        const userCopy = [...eixstingUsers];
+        const idx = userCopy.findIndex((user) => user.socketId === SktId);
+        if (idx >= 0) {
+          console.log("clearing");
+          userCopy.splice(idx, 1);
+        }
+        return userCopy
+      });
       
       if(SktId) setDisplayStudent(false)
       console.log(
@@ -243,7 +260,11 @@ function TeacherPage({ socket, curUser, userRoom }) {
         " and student name: ",
         username
       );
-      fetchRoomInfoByHost(userRoom)
+      setConnectedUsers(eixstingUsers => {
+        if (eixstingUsers.filter((user) => user.username === curUser).length === 0)
+          return [...eixstingUsers, { username: curUser, socketId: sSktId, role: "User" }];
+        return eixstingUsers
+    })     
       // todo: use stuJoin(username here) store joined sutdents to backend
       socket.emit("onLecChange", code);
       setStuJoin({ sSktId: username });
@@ -366,19 +387,26 @@ function TeacherPage({ socket, curUser, userRoom }) {
   };
 
   const setupCall = async () => {
-    console.log("seting up call");
-    const localStream = await navigator.mediaDevices.getUserMedia({
-      video: false,
-      audio: true,
-    });
-    console.log("hardware setup complete");
-    setCallStream(localStream);
-    setCallSystemInited(true);
-    if (localAudio.current) {
-      localAudio.current.srcObject = localStream;
-      console.log("done setting local stream");
+    if (!callInprogress) {
+      console.log("seting up call");
+      const localStream = await navigator.mediaDevices.getUserMedia({
+        video: false,
+        audio: true,
+      });
+      console.log("hardware setup complete");
+      setCallStream(localStream);
+      setCallSystemInited(true);
+      if (localAudio.current) {
+        localAudio.current.srcObject = localStream;
+        console.log("done setting local stream");
+      }
+      socket.emit("joined chat", userRoom);
+      setCallInprogress(true);
+    } else {
+      console.log("closing call");
+      
+      setCallInprogress(false);
     }
-    socket.emit("joined chat", userRoom);
   };
 
   function createPeer(userTarget, callerID, stream) {
@@ -418,14 +446,6 @@ function TeacherPage({ socket, curUser, userRoom }) {
     setStuOut(null);
     setStuErr(null);
   };
-
-  let LocalAudio;
-  if (callStream) {
-    console.log("local video updated")
-    LocalAudio = (
-      <audio playsInline muted ref={localAudio} autoPlay />
-    );
-  }
 
   return (
     <>
@@ -545,13 +565,13 @@ function TeacherPage({ socket, curUser, userRoom }) {
         socket={socket}
       />
       <Stack direction="row">
-        {LocalAudio}
+      <audio playsInline muted ref={localAudio} autoPlay />
         {peers.map((peer, index) => {
           return <Audio key={index} peer={peer} />;
         })}
       </Stack>
       <button className="call-button" onClick={() => setupCall()}>
-        Call
+        {callInprogress ? "Disconnect" : "Call"}
       </button>
     </>
   );
