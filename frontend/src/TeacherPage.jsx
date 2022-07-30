@@ -184,11 +184,23 @@ function TeacherPage({ socket, curUser }) {
           `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
         );
       }
-      // init teacher's code on student end
-      setCode(currentCode => {
-        socket.emit("onLecChange", currentCode);
-        return currentCode;
-      })
+      // init remote window on student's end
+      setDisplayStudent(display => {
+        // emit teacher's code if not on review mode
+        if (!display){
+          setCode(currentCode => {
+            socket.emit("onLecChange", currentCode);
+            return currentCode;
+          });
+        } else { // emit student's code if on review mode
+          setStuCode(curStuCode => {
+            socket.emit("onLecChange", curStuCode);
+            return curStuCode;
+          })
+        }
+        return display;
+      });
+
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser, curSid) => {
@@ -284,7 +296,6 @@ function TeacherPage({ socket, curUser }) {
 
   const onStuChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
-    console.log(`from teacher page: ${value} ${socket.sid}`);
     if (editor) {
       socket.emit("onChange", value, socket.sid);
       socket.emit("onLecChange", value);
