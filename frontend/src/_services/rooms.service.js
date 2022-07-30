@@ -12,30 +12,30 @@ async function send(method, url, data) {
   try {
     const response = await fetch(url, config);
     const resData = await response.json();
+    if (response.status !== 200) throw new Error(resData)
     console.log(resData)
-    return resData;
+    return {res: resData };
   } catch (error) {
-    console.log(error);
+    return {err: error.message};
   }
 }
 
 export async function getAllRooms() {
-    console.log("waiting")
-  return await send(
+  return send(
     "GET",
     "http://localhost:8080/api/rooms/"
   );
 }
 
 export const getRoomByHost = async (host) => {
-  return await send(
+  return send(
     "GET",
     "http://localhost:8080/api/rooms/" + host,
   );
 }
 
 export const createNewRoom = async (roomName, socketId) => {
-    return await send(
+    return send(
         "POST",
         "http://localhost:8080/api/rooms/",
         {roomName, socketId}

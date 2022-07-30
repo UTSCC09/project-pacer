@@ -185,20 +185,23 @@ function StudentPage({ socket, curUser, userRoom }) {
     // todo-kw: student cant receive adminId
     async function fetchRoomInfoByHost(host) {
       const roomInfo = await getRoomByHost(host);
-      console.log(roomInfo);
-      // remove current user from the list of users for later code
-      const cleanedUsers = [];
-      if (roomInfo.users) {
-          roomInfo.users.filter(
-          (user) => user.socketId !== socket.id
-        );
-      }
-      setConnectedUsers(cleanedUsers);
-      if (!roomInfo.hasTeacher) {
-        adminId = "";
-      } else {
-        const users = roomInfo.users;
-        adminId = users.find((user) => user.role === "Admin").socketId;
+      if (roomInfo.err) console.log(roomInfo.err);
+      else {
+        console.log(roomInfo);
+        // remove current user from the list of users for later code
+        let cleanedUsers = [];
+        if (roomInfo.users) {
+            cleanedUsers = roomInfo.users.filter(
+            (user) => user.socketId !== socket.id
+          );
+        }
+        setConnectedUsers(cleanedUsers);
+        if (!roomInfo.hasTeacher) {
+          adminId = "";
+        } else {
+          const users = roomInfo.users;
+          adminId = users.find((user) => user.role === "Admin").socketId;
+        }
       }
     }
 

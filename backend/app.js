@@ -459,7 +459,7 @@ app.post("/api/signout/", function (req, res) {
 
 app.post("/api/rooms/", isAuthenticated, function (req, res) {
   console.log("hit post room info endpoint");
-  if (rooms.filter((room) => room.host === user.username).length > 0) {
+  if (rooms.filter((room) => room.host === req.session.username).length > 0) {
     /* a room with specified host already exists */
     return res
       .status(409)
@@ -530,6 +530,9 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
     rooms[room_idx].hasTeacher && req.session.role === "Admin"
   ) {
     return res.status(409).json(`selected room already has a teacher`)
+  }
+  if (!rooms[room_idx].hasTeacher && req.session.role === "Admin") {
+    rooms[room_idx].hasTeacher = true
   }
   const idx = users.findIndex((x) => x.username === req.session.username);
   const user = users[idx];

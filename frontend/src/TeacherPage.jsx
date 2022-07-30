@@ -188,15 +188,18 @@ function TeacherPage({ socket, curUser, userRoom }) {
   useEffect(() => {
     async function fetchRoomInfoByHost(host) {
       const roomInfo = await getRoomByHost(host);
-      console.log(roomInfo);
-      // remove current user from the list of users for later code
-      const cleanedUsers = [];
-      if (roomInfo.users) {
-          roomInfo.users.filter(
-          (user) => user.socketId !== socket.id
-        );
+      if (roomInfo.err) console.log(roomInfo.err);
+      else {
+        console.log(roomInfo.res);
+        // remove current user from the list of users for later code
+        let cleanedUsers = [];
+        if (roomInfo.res.users) {
+            cleanedUsers = roomInfo.res.users.filter(
+            (user) => user.socketId !== socket.id
+          );
+        }
+        setConnectedUsers(cleanedUsers);
       }
-      setConnectedUsers(cleanedUsers);
     }
 
     // if(!socket.id) socket.connect()

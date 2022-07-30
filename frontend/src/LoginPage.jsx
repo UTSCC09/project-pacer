@@ -26,6 +26,7 @@ function LoginPage({curUser, isAdmin, userRoom, setIsAdmin, socket}) {
   // suggest: store socket id as a list for the case that multiple windows/devices
   // logins with the same user
   const [socketid, setSocketid] = useState(socket.id);
+  const [showAlert, setShowAlert] = useState("");
   const navigate = useNavigate();
 
   function updateUserName(e) {
@@ -37,7 +38,6 @@ function LoginPage({curUser, isAdmin, userRoom, setIsAdmin, socket}) {
   }
 
   useEffect(() => {
-    if (userRoom) console.error("Error: User has a room already. They should be directly to their home page")
     adminIdentified = false
     if (curUser) {
       console.log("already logged in")
@@ -52,7 +52,6 @@ function LoginPage({curUser, isAdmin, userRoom, setIsAdmin, socket}) {
     console.log("login page loaded")
   }, []);
 
-  const [showAlert, setShowAlert] = useState("");
   const handleLogin = (e) => {
     e.preventDefault()
     if (!adminIdentified) {
