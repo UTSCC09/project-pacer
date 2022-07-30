@@ -13,7 +13,8 @@ import EditorOptionsBar from "./components/EditorOptions";
 import Toolbar from "@mui/material/Toolbar";
 import StudentRightMenu from "./components/StudentRightMenu";
 import Storage from "./components/Storage";
-import CallIcon from '@mui/icons-material/Call';
+import CallIcon from "@mui/icons-material/Call";
+
 // for file up/downloading (via fb):
 import { storage } from "./_components/FireBase";
 import { ref, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
@@ -24,27 +25,17 @@ import { python, pythonLanguage } from "@codemirror/lang-python";
 import { CompletionContext } from "@codemirror/autocomplete";
 import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
 import { java, javaLanguage } from "@codemirror/lang-java";
-import { authenticationService } from "./_services";
+import { authenticationService, getRoomByHost } from "./_services";
 import runCode from "./_helpers/codeRunner";
 
 import React from "react";
 // import { socket } from "./_services";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
-import "./StudentPage.css";
+import "./CodePage.css";
 
 const drawerWidth = 200;
 // for cloud sync (via fb) [experimental - TODO]:
 let t = 0; // ns
-
-const servers = {
-  iceServers: [
-    {
-      urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
-    },
-  ],
-  iceCandidatePoolSize: 10,
-};
-
 
 function StudentPage({ socket, curUser }) {
   // code mirror config
@@ -62,14 +53,14 @@ function StudentPage({ socket, curUser }) {
   const [codeFilename, setCodeFilename] = useState("");
   // audio call
   const [callStream, setCallStream] = useState(() => null);
-  const [receivingCall, setReceivingCall] = useState(() => false);
   const [caller, setCaller] = useState(() => "");
   const [callerSignal, setCallerSignal] = useState(() => null);
-  const [callAccepted, setCallAccepted] = useState(() => false);
+  const [callSystemInited, setCallSystemInited] = useState(() => false);
+  const [peers, setPeers] = useState(() => []);
 
-  
-  const localVideo = useRef();
-  const remoteVideo = useRef();
+
+  const localAudio = useRef();
+  const peersRef = useRef([]);
 
   
   let extensions = [javascript({ jsx: true })];
@@ -82,7 +73,22 @@ function StudentPage({ socket, curUser }) {
     extensions[0] = java();
     extensions[1] = globalJavaScriptCompletions;
   }
+
+  const Audio = ({peer}) => {
+    const ref = useRef();
   
+    useEffect(() => {
+        peer.on("stream", stream => {
+            console.log("this is streaming")
+            console.log(`stream is ${stream}`)
+            ref.current.srcObject = stream;
+        })
+    }, []);
+  
+    return (
+        <audio playsInline autoPlay ref={ref} />
+    );
+  }
 
   // for cloud sync (via fb) [experimental - TODO]:
   // todo-kw: uncomment this
@@ -98,18 +104,16 @@ function StudentPage({ socket, curUser }) {
   //   }, 1000);
   // });
 
-
   // for file uploading (via fb):
   const uploadFileFormHandler = (event) => {
     event.preventDefault();
-    uploadFile(event.target[0].files[0])
-      .then((res) => {
-        res.file.text().then((code) => {
-          setCode(code);
-          setCodePath(res.codePath);
-          setCodeFilename(res.file.name);
-        });
+    uploadFile(event.target[0].files[0]).then((res) => {
+      res.file.text().then((code) => {
+        setCode(code);
+        setCodePath(res.codePath);
+        setCodeFilename(res.file.name);
       });
+    });
   };
 
 
@@ -117,7 +121,7 @@ function StudentPage({ socket, curUser }) {
   const uploadFile = (f) => {
     return new Promise(function (res, rej) {
       if (!f) {
-        console.log('Upload failed. Try a different file.');
+        console.log("Upload failed. Try a different file.");
         rej();
       }
       const cp = `/files/users/${authenticationService.currentUser.source._value.username}/${f.name}`;
@@ -138,7 +142,7 @@ function StudentPage({ socket, curUser }) {
         () => {
           // when the file is uploaded successfully:
           //getDownloadURL(uploadFileTaskStatus.snapshot.ref).then((url) => console.log(url));
-          res({"file": f, "codePath": cp});
+          res({ file: f, codePath: cp });
         }
       );
     });
@@ -150,10 +154,10 @@ function StudentPage({ socket, curUser }) {
     return new Promise(function (res, rej) {
       let xhr = new XMLHttpRequest();
       // handle xhr response:
-      xhr.responseType = 'text';
+      xhr.responseType = "text";
       xhr.onload = (event) => {
         if (xhr.status == 200) {
-          res({"code": xhr.response});
+          res({ code: xhr.response });
         } else {
           console.log(xhr.status);
           rej();
@@ -163,17 +167,18 @@ function StudentPage({ socket, curUser }) {
         console.log(xhr.status);
         rej();
       };
-      xhr.open('GET', url);
+      xhr.open("GET", url);
       xhr.send(); // is xhr onload async
     });
-  }
+  };
 
 
   // for file downloading (via fb):
   const downloadFile = (fileLocation) => {
     const fileStorageRef = ref(storage, fileLocation);
-    return getDownloadURL(fileStorageRef)
-      .then((url) => makeDownloadFileRequest(url));
+    return getDownloadURL(fileStorageRef).then((url) =>
+      makeDownloadFileRequest(url)
+    );
   };
 
   
@@ -234,21 +239,55 @@ function StudentPage({ socket, curUser }) {
     }
     // for when code + codePath correspond to session, so an uploaded file can take over code slide
 
-    socket.on("hey", (data) => {
-      setReceivingCall(true);
-      setCaller(data.from);
-      setCallerSignal(data.signal);
-    })
-
     console.log("load student page complete");
   }, []);
-
 
   useEffect(() => {
     if(flag)
       socket.emit("fetch init", code);
   }, [flag])
+  
+  useEffect(() => {
+    if (callSystemInited) {
+      console.log("initing call system")
+      socket.on("all users", (users) => {
+        console.log(users)
+        const peers = [];
+        users.forEach((userId) => {
+          console.log(`stream is ${callStream}`)
+          const peer = createPeer(userId, socket.id, callStream);
+          peersRef.current.push({
+            peerID: userId,
+            peer,
+          });
+          peers.push(peer);
+        });
+        console.log(`peers are ${peers}`)
+        setPeers(peers);
+      });
 
+      socket.on("user joined", (payload) => {
+        console.log("user joined")
+        console.log(`stream is ${callStream}`)
+        const peer = addPeer(payload.signal, payload.callerID, callStream);
+        peersRef.current.push({
+          peerID: payload.callerID,
+          peer,
+        });
+
+        setPeers((users) => [...users, peer]);
+      });
+
+      socket.on("receiving returned signal", (payload) => {
+        console.log("receiving returned signal")
+        console.log(peersRef.current)
+        console.log(payload.id)
+        const item = peersRef.current.find((p) => p.peerID === payload.id);
+        console.log(item)
+        item.peer.signal(payload.signal);
+      });
+    }
+  }, [callSystemInited])
 
   const onChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
@@ -257,88 +296,71 @@ function StudentPage({ socket, curUser }) {
     setCode(value);
   };
 
-
   const run = () => {
     const { out, err } = runCode(code, language);
     setOut(out);
     setErr(err);
   };
 
-
   const clearExecutionRes = () => {
     setOut(null);
     setErr(null);
   };
 
-
-  const setupCall = async (teacherSocketId) => {
-    console.log(teacherSocketId)
-    console.log("seting up call")
-    const localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-    console.log("hardware setup complete")
-    setCallStream(localStream)
-    if (localVideo.current) {
-      localVideo.current.srcObject = localStream;
+  const setupCall = async () => {
+    console.log("seting up call");
+    const localStream = await navigator.mediaDevices.getUserMedia({
+      video: false,
+      audio: true,
+    });
+    console.log("hardware setup complete");
+    setCallStream(localStream);
+    setCallSystemInited(true);
+    if (localAudio.current) {
+      localAudio.current.srcObject = localStream;
+      console.log("done setting local stream");
     }
+    socket.emit("joined chat", userRoom);
+  };
 
+  function createPeer(userTarget, callerID, stream) {
+    console.log(`stream is ${stream}`)
     const peer = new Peer({
       initiator: true,
       trickle: false,
-      config: servers,
-      stream: callStream
-    })
-    
-    peer.on("signal", data => {
-      //yourID
-      socket.emit("callUser", {userToCall: teacherSocketId, signalData: data, from: "yourID"}) 
-    })
+      stream,
+    });
 
-    peer.on("stream", stream => {
-      if (remoteVideo.current) {
-        remoteVideo.current.srcObject = stream;
-      }
-    })
+    peer.on("signal", (signal) => {
+      console.log(
+        `student call initiated. Calling from ${socket.id} to ${userTarget}`
+      );
+      socket.emit("sending signal", { userTarget, callerID, signal });
+    });
 
-    // todo-kw: move it out
-    socket.on("callAccepted", signal => {
-      setCallAccepted(true);
-      peer.signal(signal);
-    })
+    return peer;
   }
 
-
-  const acceptCall = () => {
-    setCallAccepted(true);
+  function addPeer(incomingSignal, callerID, stream) {
+    console.log(`stream is ${stream}`)
     const peer = new Peer({
       initiator: false,
       trickle: false,
-      stream: callStream,
-    });
-    peer.on("signal", data => {
-      socket.emit("acceptCall", { signal: data, to: caller })
-    })
-
-    peer.on("stream", stream => {
-      remoteVideo.current.srcObject = stream;
+      stream,
     });
 
-    peer.signal(callerSignal);
+    peer.on("signal", (signal) => {
+      socket.emit("returning signal", { signal, callerID });
+    });
+
+    peer.signal(incomingSignal);
+
+    return peer;
   }
 
-
-  let LocalVideo;
+  let LocalAudio;
   if (callStream) {
-    LocalVideo = (
-      <video playsInline muted ref={localVideo} autoPlay />
-    );
-  }
-
-
-  let RemoteVideo;
-  if (callAccepted) {
-    RemoteVideo = (
-      <video playsInline ref={remoteVideo} autoPlay />
-    );
+    LocalAudio = <audio playsInline muted ref={localAudio} autoPlay />;
   }
 
 
@@ -437,8 +459,15 @@ function StudentPage({ socket, curUser }) {
         </Grid>
       </Box>
       <StudentRightMenu drawerWidth={drawerWidth} socket={socket} />
-      <Stack direction="row">{LocalVideo}{RemoteVideo}</Stack>
-      <button className="call-button" onClick={() => setupCall("testid")}>Call</button>
+      <Stack direction="row">
+        {LocalAudio}
+        {peers.map((peer, index) => {
+          return <Audio key={index} peer={peer} />;
+        })}
+      </Stack>
+      <button className="call-button" onClick={() => setupCall()}>
+        Call
+      </button>
     </>
   );
 }

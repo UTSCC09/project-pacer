@@ -17,6 +17,7 @@
         "express": "^4.17.2",
         "express-session": "^1.17.3",
         "express-validator": "^6.14.2",
+        "firebase": "^9.9.1",
         "ioredis": "^5.2.1",
         "nedb": "^1.8.0",
         "nedb-session-store": "^1.1.2",

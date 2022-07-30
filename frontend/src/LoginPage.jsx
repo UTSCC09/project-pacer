@@ -19,13 +19,14 @@ import { Input, InputLabel } from '@mui/material';
 
 let adminIdentified = false;
 
-function LoginPage({curUser, isAdmin, setIsAdmin, socket}) {
+function LoginPage({curUser, isAdmin, userRoom, setIsAdmin, socket}) {
   const [username, setUsername] = useState(() => '');
   const [password, setPassword] = useState(() => '');
   // todo: pass socket id as a student attribute
   // suggest: store socket id as a list for the case that multiple windows/devices
   // logins with the same user
   const [socketid, setSocketid] = useState(socket.id);
+  const [showAlert, setShowAlert] = useState("");
   const navigate = useNavigate();
 
   function updateUserName(e) {
@@ -40,14 +41,17 @@ function LoginPage({curUser, isAdmin, setIsAdmin, socket}) {
     adminIdentified = false
     if (curUser) {
       console.log("already logged in")
-      if (isAdmin) 
-      navigate("/teacher", { replace: true });
-      else navigate('/student', { replace: true });
+      if (userRoom) {
+        if (isAdmin) 
+        navigate("/teacher", { replace: true });
+        else navigate('/student', { replace: true });
+      } else {
+        navigate("/rooms", { replace: true })
+      }
     }
     console.log("login page loaded")
   }, []);
 
-  const [showAlert, setShowAlert] = useState("");
   const handleLogin = (e) => {
     e.preventDefault()
     if (!adminIdentified) {
@@ -59,14 +63,14 @@ function LoginPage({curUser, isAdmin, setIsAdmin, socket}) {
       authenticationService.signin(username, password, "Admin", function(err, res) {
         // authenticationService.signin(username, password, "Admin", socketid, function(err, res) {
         if (err) return setShowAlert(String(err))
-        navigate("/teacher", { replace: true });
+        navigate("/rooms", { replace: true });
       })
     } else {
       console.log("logging as student")
       authenticationService.signin(username, password, "User", function(err,res) {
         // authenticationService.signin(username, password, "User", socketid, function(err,res) {
         if (err) return setShowAlert(String(err))
-        navigate("/student", { replace: true });
+        navigate("/rooms", { replace: true });
       })
     }
   };
@@ -81,13 +85,13 @@ function LoginPage({curUser, isAdmin, setIsAdmin, socket}) {
       console.log("signing up as admin")
       authenticationService.signup(username, password, "Admin", function(err, res) {
         if (err) return setShowAlert(String(err))
-        navigate("/teacher", { replace: true });
+        navigate("/rooms", { replace: true });
       })
     } else {
       console.log("signing up as student")
       authenticationService.signup(username, password, "User", function(err,res) {
         if (err) return setShowAlert(String(err))
-        navigate("/student", { replace: true });
+        navigate("/rooms", { replace: true });
       })
     }
   };

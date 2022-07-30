@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect, cloneElement, useRef } from "react";
+import Peer from "simple-peer";
 import CodeMirror from "@uiw/react-codemirror";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
@@ -19,13 +20,15 @@ import { python, pythonLanguage } from "@codemirror/lang-python";
 import { CompletionContext } from "@codemirror/autocomplete";
 import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
 import { java, javaLanguage } from "@codemirror/lang-java";
-import { authenticationService } from "./_services";
+import { authenticationService, getAllRooms, getRoomByHost } from "./_services";
 import TeacherRightMenu from "./components/TeacherRightMenu";
 import runCode from "./_helpers/codeRunner";
 // [kw]
 import React from "react";
 // import { socket } from "./_services";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
+import "./CodePage.css";
+
 
 // for file up/downloading (via fb):
 import { storage } from "./_components/FireBase";
@@ -56,6 +59,13 @@ function TeacherPage({ socket, curUser }) {
   // const [stuJoin, setStuJoin] = useState(() => {});
   const [studentName, setStudentName] = useState(() => "");
   const [connectedUsers, setConnectedUsers] = useState([]);
+  const [callStream, setCallStream] = useState(() => null);
+  const [callSystemInited, setCallSystemInited] = useState(() => false);
+  const [callInprogress, setCallInprogress] = useState(() => false);
+  const [peers, setPeers] = useState(() => []);
+
+  const localAudio = useRef();
+  const peersRef = useRef([]);
 
 
   let extensions = [javascript({ jsx: true })];
@@ -69,7 +79,21 @@ function TeacherPage({ socket, curUser }) {
     extensions[1] = globalJavaScriptCompletions;
   }
 
+  const Audio = ({peer}) => {
+    const ref = useRef();
 
+    useEffect(() => {
+        peer.on("stream", stream => {
+            console.log("this is streaming")
+            console.log(`stream is ${stream}`)
+            ref.current.srcObject = stream;
+        })
+    }, []);
+
+    return (
+        <audio playsInline autoPlay ref={ref} />
+      );
+  }
   // for cloud sync (via fb) [experimental - TODO]:
   // todo-kw: uncomment this
   // useEffect(() => {
@@ -164,7 +188,23 @@ function TeacherPage({ socket, curUser }) {
   
 
   useEffect(() => {
-    // if(!socket.id) socket.connect()
+    async function fetchRoomInfoByHost(host) {
+      const roomInfo = await getRoomByHost(host);
+      if (roomInfo.err) console.log(roomInfo.err);
+      else {
+        console.log(roomInfo.res);
+        // remove current user from the list of users for later code
+        let cleanedUsers = [];
+        if (roomInfo.res.users) {
+            cleanedUsers = roomInfo.res.users.filter(
+            (user) => user.socketId !== socket.id
+          );
+        }
+        setConnectedUsers(cleanedUsers);
+      }
+    }
+
+    // if(!socket.id) socket.connect() 
 
     socket.emit("set attributes", "teacher", curUser);
 
@@ -278,6 +318,48 @@ function TeacherPage({ socket, curUser }) {
     console.log("load teacher page complete");
   }, []);
 
+  useEffect(() => {
+    if (callSystemInited) {
+      console.log("initing call system")
+      socket.on("all users", (users) => {
+        console.log(users)
+        const peers = [];
+        users.forEach((userId) => {
+          console.log(`stream is ${callStream}`)
+          const peer = createPeer(userId, socket.id, callStream);
+          peersRef.current.push({
+            peerID: userId,
+            peer,
+          });
+          peers.push(peer);
+        });
+        console.log(`peers are ${peers}`)
+        setPeers(peers);
+      });
+
+      socket.on("user joined", (payload) => {
+        console.log("user joined")
+        console.log(`stream is ${callStream}`)
+        const peer = addPeer(payload.signal, payload.callerID, callStream);
+        peersRef.current.push({
+          peerID: payload.callerID,
+          peer,
+        });
+
+        setPeers((users) => [...users, peer]);
+      });
+
+      socket.on("receiving returned signal", (payload) => {
+        console.log("receiving returned signal")
+        console.log(peersRef.current)
+        console.log(payload.id)
+        const item = peersRef.current.find((p) => p.peerID === payload.id);
+        console.log(item)
+        item.peer.signal(payload.signal);
+      });
+    }
+  }, [callSystemInited])
+
 
   // new
   useEffect(() => {
@@ -324,6 +406,61 @@ function TeacherPage({ socket, curUser }) {
     setStuOut(out);
     setStuErr(err);
   };
+
+  const setupCall = async () => {
+    if (!callInprogress) {
+      console.log("seting up call");
+      const localStream = await navigator.mediaDevices.getUserMedia({
+        video: false,
+        audio: true,
+      });
+      console.log("hardware setup complete");
+      setCallStream(localStream);
+      setCallSystemInited(true);
+      if (localAudio.current) {
+        localAudio.current.srcObject = localStream;
+        console.log("done setting local stream");
+      }
+      socket.emit("joined chat", userRoom);
+      setCallInprogress(true);
+    } else {
+      console.log("closing call");
+      
+      setCallInprogress(false);
+    }
+  };
+
+  function createPeer(userTarget, callerID, stream) {
+    console.log(`stream is ${stream}`)
+    const peer = new Peer({
+      initiator: true,
+      trickle: false,
+      stream,
+    });
+
+    peer.on("signal", (signal) => {
+      console.log(
+        `student call initiated. Calling from ${socket.id} to ${userTarget}`
+      );
+      socket.emit("sending signal", { userTarget, callerID, signal });
+    });
+    return peer;
+  }
+
+  function addPeer(incomingSignal, callerID, stream) {
+    console.log(`stream is ${stream}`)
+    const peer = new Peer({
+      initiator: false,
+      trickle: false,
+      stream,
+    });
+    peer.on("signal", (signal) => {
+      socket.emit("returning signal", { signal, callerID });
+    });
+    peer.signal(incomingSignal);
+
+    return peer;
+  }
 
 
   const clearStuExecutionRes = () => {
@@ -449,6 +586,15 @@ function TeacherPage({ socket, curUser }) {
         connectedUsers={connectedUsers}
         socket={socket}
       />
+      <Stack direction="row">
+      <audio playsInline muted ref={localAudio} autoPlay />
+        {peers.map((peer, index) => {
+          return <Audio key={index} peer={peer} />;
+        })}
+      </Stack>
+      <button className="call-button" onClick={() => setupCall()}>
+        {callInprogress ? "Disconnect" : "Call"}
+      </button>
     </>
   );
 }
