@@ -160,12 +160,10 @@ function TeacherPage({ socket, curUser }) {
       makeDownloadFileRequest(url)
     );
   };
-
+  
 
   useEffect(() => {
-    if(!socket.id) socket.connect()
-
-    console.log("[TeacherPage] socket id:", socket.id);
+    // if(!socket.id) socket.connect()
 
     socket.emit("set attributes", "teacher", curUser);
 
@@ -185,8 +183,6 @@ function TeacherPage({ socket, curUser }) {
           `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
         );
       }
-      // let student know who the teacher is 
-      // socket.emit("teacher join", SktId);
       // init teacher's code on student end
       setCode(currentCode => {
         socket.emit("onLecChange", currentCode);
@@ -227,6 +223,7 @@ function TeacherPage({ socket, curUser }) {
 
     socket.on("fetch init", (code, sid) => {
       socket.sid = sid;
+      socket.on = true;
       setStuCode(code);
     });
 
@@ -234,9 +231,14 @@ function TeacherPage({ socket, curUser }) {
       setStuCode(value);
     });
 
+    // socket.on("reset display", () => {
+    //   setDisplayStudent(false);
+    // });
+
     // todo-kw: revisit this function - may be useless given current logic
     socket.on("no student", (msg) => {
       socket.sid = "";
+      socket.on = true;
       setStuCode(msg);
     });
 
@@ -262,17 +264,16 @@ function TeacherPage({ socket, curUser }) {
 
 
   const onChange = (value, viewUpdate) => {
-    socket.emit("onLecChange", value);
+    if (!socket.sid) socket.emit("onLecChange", value);
     setCode(value);
   };
 
 
   const onStuChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
-    setStuCode(value);
-    // if (editor) socket.emit("onChange", value, sid);
+    console.log(`from teacher page: ${value} ${socket.sid}`);
     if (editor) socket.emit("onChange", value, socket.sid);
-
+    setStuCode(value);
   };
 
 

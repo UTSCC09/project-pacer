@@ -101,6 +101,7 @@ let users = [
 ];
 
 const webhookRoutes = require('./routes/webhookRoutes');
+const { SocketClosedUnexpectedlyError } = require("redis");
 app.use('/api', webhookRoutes);
 
 const saltRounds = 10;
@@ -240,10 +241,9 @@ app.use((error, req, res, next) => {
 // socket io
 // teacher socket atribute: id / username / role / sid / prvRequest(todo)
 // student socket atribute: id / username / role / tid /request
-
+// todo-kw: set prvRequest as teacher's socket's attribute
 var prevRequest = '';
 io.on('connection', async (socket) => {
-  // const sockets = await io.fetchSockets();
   // console.log("[server fetchSockets]:", sockets);
   // console.log("[Server] current room: " + socket.rooms); // Set { <socket.id> }
   // socket.join("room1");
@@ -256,17 +256,16 @@ io.on('connection', async (socket) => {
   socket.on('set attributes', (role, curUser) => {
     socket.role = role;
     socket.username = curUser;
+    if (role === 'teacher') {
+      socket.pr = "";
+      // socket.sid = "";
+      // socket.onn = false;
+    }
     socket.broadcast.emit("connection broadcast", socket.id, role, curUser);
   });
 
 
   socket.on('teacher join', () => {
-    // if (sid) {
-    //   socket.to(sid).emit('teacher join', socket.id);
-    // } else {
-    //   socket.join('teacher');
-    //   socket.broadcast.emit('teacher join', socket.id);
-    // }
     socket.join('teacher');
     socket.broadcast.emit('teacher join', socket.id);
   });
@@ -290,29 +289,36 @@ io.on('connection', async (socket) => {
   socket.on('fetch code', async (studentId, adminId) => {
     const sockets = await io.fetchSockets()
       .catch((err) => { console.error(err); });
-    
-    if (sockets.filter(skt => skt.id === studentId).length > 0){
-      // socket.to(studentId).emit("fetch request", adminId);
-      socket.to(studentId).emit("fetch request");
+    // todo-kw: simplifify this logic
 
+    // if(socket.sid === studentId && socket.onn && false) {
+    //   console.log("load inner");
+    //   socket.onn = false;
+    //   socket.emit("reset display");
+    // } else 
+    // console.log(`fetch code ${socket.sid}`);
+    if (sockets.filter(skt => skt.id === studentId).length > 0){
+      // socket.sid = studentId;
+      // socket.onn = true;
+      console.log(`socket sid is ${socket.sid}`);
+      socket.to(studentId).emit("fetch request");
     } else {
       socket.to(adminId).emit('no student',"no student here");
     }
 
-    if (prevRequest){
-      socket.to(prevRequest).emit("stop request");
-    } 
-    
-    prevRequest = studentId;
+    // if(!prevRequest || prevRequest != studentId){
+    //   prevRequest = studentId;
+    // } else if (prevRequest && prevRequest !== studentId){
+    //   socket.to(prevRequest).emit("stop request");
+    // }
+    if(socket.pr) socket.to(socket.pr).emit("stop request");
 
-    // todo-kw: move them out
-    socket.on("callUser", (data) => {
-        io.to(data.userToCall).emit('hey', {signal: data.signalData, from: data.from});
-    })
-
-    socket.on("acceptCall", (data) => {
-        io.to(data.to).emit('callAccepted', data.signal);
-    })
+    // if (socket.pr && socket.pr !== studentId){
+    //   socket.to(socket.pr).emit("stop request");
+    // } else {
+    //   socket.pr = studentId;
+    // }
+    socket.pr = studentId;
   });
 
 
@@ -326,17 +332,21 @@ io.on('connection', async (socket) => {
   });
 
 
-  // socket.on("disconnection broadcast", () => {
-  //   socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
-  // });
-
-
   socket.on('disconnect', (reason) => {
     // const count = io.of("/").sockets.size - 1;
     const count = io.of("/").sockets.size;
     socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username);
     console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
   });
+
+
+  socket.on("callUser", (data) => {
+    io.to(data.userToCall).emit('hey', {signal: data.signalData, from: data.from});
+  })
+
+  socket.on("acceptCall", (data) => {
+      io.to(data.to).emit('callAccepted', data.signal);
+  })
 });
 
 

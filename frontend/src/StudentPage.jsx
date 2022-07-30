@@ -178,11 +178,9 @@ function StudentPage({ socket, curUser }) {
 
   
   useEffect(() => {
-    if(!socket.id) socket.connect()
+    // if(!socket.id) socket.connect()
 
     socket.emit("set attributes", "student", curUser);
-
-    // socket.volatile.emit('student join', curUser);
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
       console.log(`connection broadcast: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
@@ -194,21 +192,23 @@ function StudentPage({ socket, curUser }) {
     });
 
     socket.on("teacher join", (tid) => {
-      // todo-kw: revisit this setting
       socket.tid = tid; 
       socket.emit('student join', curUser);
     });
 
     socket.on("fetch request", () => {
-      setFlag(true)
+      setFlag(true);
     });
 
     socket.on("stop request", () => {
-      setFlag(false)
+      setFlag(false);
     });
 
-    socket.on("onChange", (value, adminId) => {
-      if (flag) setCode(value);
+    socket.on("onChange", (value, tid) => {
+      setFlag(flag => {
+        if (flag) setCode(value);
+        return flag;
+      });
     });
 
     socket.on("onLecChange", (value, tid) => {
@@ -251,12 +251,8 @@ function StudentPage({ socket, curUser }) {
 
   const onChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
+    if (flag && editor) socket.emit("onChange", value, socket.tid);
 
-    // if (request && editor) {
-    if (flag && editor) {
-      // socket.emit("onChange", value, adminId);
-      socket.emit("onChange", value, socket.tid);
-    }
     setCode(value);
   };
 

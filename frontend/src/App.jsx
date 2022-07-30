@@ -77,15 +77,19 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(() => "");
   const [loadingComplete, setLoadingComplete] = useState(() => false);
 
-  socket.on("connect", () => {
-    // if(!socket.id) socket.connect()
-    console.log("[form App]socket.id: " ,socket.connected, socket.id);
-  }, []);
+  if(!socket.connected){
+    socket.connect()
+    console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
+  } else {
+    console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
+  }
+  // socket.on("connect", () => {
+  //   // if(!socket.id) socket.connect()
+  //   console.log("[form App]socket.id: " ,socket.connected, socket.id);
+  // }, []);
 
-
-  console.log("[form App]socket.id: " ,socket.connected, socket.id);
-
-
+  // student sync
+  // console.log("[form App]socket.id: " ,socket.connected, socket.id);
 
   useEffect(() => {
     async function fetchUserInfo() {

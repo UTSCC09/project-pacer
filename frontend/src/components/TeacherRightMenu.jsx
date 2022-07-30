@@ -39,10 +39,27 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
   }, [])
 
   function loadStudentSession(studentName, studentCurSocket) {
-      setDisplayStudent(true)
-      console.log(studentName)
-      setStudentName(studentName)
-      socket.emit("fetch code", studentCurSocket, socket.id)
+    // if (socket.sid === studentCurSocket && socket.on && false){
+    //   console.log(`right menu: ${socket.sid}`);
+    //   socket.on = false;
+    //   setDisplayStudent(false);
+    // } else {
+    if (!socket.sid || socket.sid !== studentCurSocket){
+      socket.on = true;
+      console.log(`else right menu: ${socket.sid}`);
+      setDisplayStudent(true);
+      // console.log(studentName);
+      setStudentName(studentName);
+      socket.emit("fetch code", studentCurSocket, socket.id);
+    } else if (socket.on) {
+      socket.on = false;
+      setDisplayStudent(false);
+    } else {
+      socket.on = true;
+      setDisplayStudent(true);
+    }
+
+    // }
   }
 
   function logoutHandler(){
@@ -112,7 +129,7 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
               color: "#fff",
               zIndex: (theme) => theme.zIndex.drawer + 2,
             }}
-            onClick={logoutHandler}
+            onClick={authenticationService.logout}
           >
             Logout
           </Button>
