@@ -33,37 +33,40 @@ import "./CodePage.css";
 // for file up/downloading (via fb):
 import { storage } from "./_components/FireBase";
 import { ref, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
+import { display } from "@mui/system";
 
 const drawerWidth = 200;
-var sid = "";
-
 // for cloud sync (via fb) [experimental - TODO]:
-let t = 0; // ns
+let t = 0; //ns
 
-// let StudentEditor = cloneElement(CodeMirror, {value:"", height:"600px", theme:"dark", hint:"true"})
 
-function TeacherPage({ socket, curUser, userRoom }) {
-  const [code, setCode] = useState("");
-  const [codePath, setCodePath] = useState("");
-  const [codeFilename, setCodeFilename] = useState("");
-  const [stuCode, setStuCode] = useState(() => "no student here");
+function TeacherPage({ socket, curUser }) {
+  // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
   const [displayStudent, setDisplayStudent] = useState(() => false);
-  const [studentName, setStudentName] = useState(() => "");
+  // code display and transmission
+  const [code, setCode] = useState("");
+  const [stuCode, setStuCode] = useState(() => "no student here");
+  // execution
   const [out, setOut] = useState(() => null);
   const [err, setErr] = useState(() => null);
   const [stuOut, setStuOut] = useState(() => null);
   const [stuErr, setStuErr] = useState(() => null);
-  const [stuJoin, setStuJoin] = useState(() => {});
-  const [connectedUsers, setConnectedUsers] = useState(() => []);
+  // save and load
+  const [codePath, setCodePath] = useState("");
+  const [codeFilename, setCodeFilename] = useState("");
+  // audio call
+  // const [stuJoin, setStuJoin] = useState(() => {});
+  const [studentName, setStudentName] = useState(() => "");
+  const [connectedUsers, setConnectedUsers] = useState([]);
   const [callStream, setCallStream] = useState(() => null);
   const [callSystemInited, setCallSystemInited] = useState(() => false);
   const [callInprogress, setCallInprogress] = useState(() => false);
   const [peers, setPeers] = useState(() => []);
 
   const localAudio = useRef();
-  const remoteAudio = useRef();
   const peersRef = useRef([]);
+
 
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
@@ -92,6 +95,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
       );
   }
   // for cloud sync (via fb) [experimental - TODO]:
+  // todo-kw: uncomment this
   // useEffect(() => {
   //   setTimeout(() => {
   //     if (t == 1) {
@@ -173,6 +177,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
     });
   };
 
+
   // for file downloading (via fb):
   const downloadFile = (fileLocation) => {
     const fileStorageRef = ref(storage, fileLocation);
@@ -180,7 +185,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
       makeDownloadFileRequest(url)
     );
   };
-
+  
 
   useEffect(() => {
     async function fetchRoomInfoByHost(host) {
@@ -201,79 +206,97 @@ function TeacherPage({ socket, curUser, userRoom }) {
 
     // if(!socket.id) socket.connect() 
 
-    console.log("[TeacherPage] socket id:", socket.id);
-
     socket.emit("set attributes", "teacher", curUser);
 
-    socket.emit("onLecChange", code);
+    // socket.emit("onLecChange", code);
 
     socket.emit("teacher join");
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
-      // if (connectedUsers.includes({ curUser, SktId })) {
-      //   console.log(
-      //     `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
-      //   );
-      // } else {
+      // add newly connected student
+      if (connectedUsers.includes({ curUser, SktId })) {
+        console.log(
+          `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
+        );
+      } else {
         setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser, SktId }]);
         console.log(
           `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
         );
-        // console.log([...connectedUsers]);
-      // }
+      }
+      // init remote window on student's end
+      setDisplayStudent(display => {
+        // emit teacher's code if not on review mode
+        if (!display){
+          setCode(currentCode => {
+            socket.emit("onLecChange", currentCode);
+            return currentCode;
+          });
+        } else { // emit student's code if on review mode
+          setStuCode(curStuCode => {
+            socket.emit("onLecChange", curStuCode);
+            return curStuCode;
+          })
+        }
+        return display;
+      });
+
     });
 
-    socket.on("disconnection broadcast", (SktId, role, curUser) => {
-      //console.log({ curUser, SktId });
+    socket.on("disconnection broadcast", (SktId, role, curUser, curSid) => {
       setConnectedUsers(eixstingUsers => {
         const userCopy = [...eixstingUsers];
-        const idx = userCopy.findIndex((user) => user.socketId === SktId);
+        const idx = userCopy.findIndex((user) => user.SktId === SktId);
         if (idx >= 0) {
           console.log("clearing");
           userCopy.splice(idx, 1);
         }
         return userCopy
       });
-      
-      if(SktId) setDisplayStudent(false)
-      console.log(
-        `[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`
-      );
-    });
+    
+      if(SktId === curSid) {
+        setDisplayStudent(false);
+        socket.sid = "";
+      }
 
+      console.log(`[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`);
+    });
 
     socket.on("student join", (sSktId, username) => {
       console.log(
-        "[TeacherPage - student join] joining student socket id: ",
-        sSktId,
-        " and student name: ",
-        username
+        "[TeacherPage - student join] joining student socket id: ", sSktId,
+        " and student name: ", username
       );
-      setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser: username, SktId: sSktId }]);    
-      // todo: use stuJoin(username here) store joined sutdents to backend
-      socket.emit("onLecChange", code);
-      setStuJoin({ sSktId: username });
+      // add connected student
+      if (!connectedUsers.includes({ curUser: username, sSktId }))
+        setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser: username, SktId: sSktId }]);
+      // init teacher code on student's window
+      socket.emit("onLecChange", code)
     });
 
-    socket.on("fetch init", (code) => {
-      // console.log("student code:",code)
-      setStuCode(code);
+    socket.on("fetch init", (code, sid) => {
+      socket.sid = sid;
+      socket.on = true;
+
+      setStuCode(() => {
+        socket.emit("onLecChange", code);
+        return code;
+      });
     });
 
     socket.on("onChange", (value, id) => {
-      // console.log("[onChange] value: " + value);
-      // console.log("editor id " + sid);
-      sid = id;
-      setStuCode(value);
+      setStuCode(() => {
+        socket.emit("onLecChange", value);
+        return value;
+      });
     });
 
+    // todo-kw: revisit this function - may be useless given current logic
     socket.on("no student", (msg) => {
-      console.log("no student get called");
-      sid = "";
+      socket.sid = "";
+      socket.on = true;
       setStuCode(msg);
     });
-
-    console.log("load teacher page complete");
 
     // for file downloading (via fb):
     if (code === "" && codePath === "" && codeFilename === "") {
@@ -292,6 +315,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
         });
     } // for when code + codePath correspond to session, so an uploaded file can take over code slide
 
+    console.log("load teacher page complete");
   }, []);
 
   useEffect(() => {
@@ -337,16 +361,28 @@ function TeacherPage({ socket, curUser, userRoom }) {
   }, [callSystemInited])
 
 
+  // new
+  useEffect(() => {
+    if(!displayStudent) socket.emit("onLecChange", code);
+    
+    if(displayStudent) socket.emit("onLecChange", stuCode);
+    
+  },[displayStudent]);
+
+
   const onChange = (value, viewUpdate) => {
-    socket.emit("onLecChange", value);
+    if (!displayStudent) socket.emit("onLecChange", value);
     setCode(value);
   };
 
 
   const onStuChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
+    if (editor) {
+      socket.emit("onChange", value, socket.sid);
+      socket.emit("onLecChange", value);
+    }
     setStuCode(value);
-    if (editor) socket.emit("onChange", value, sid);
   };
 
 
@@ -431,6 +467,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
     setStuOut(null);
     setStuErr(null);
   };
+
 
   return (
     <>

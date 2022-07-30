@@ -153,6 +153,7 @@ const NewRoom = (function () {
 })();
 
 const webhookRoutes = require("./routes/webhookRoutes");
+const { SocketClosedUnexpectedlyError } = require("redis");
 app.use("/api", webhookRoutes);
 
 const saltRounds = 10;
@@ -645,9 +646,8 @@ app.use((req, res, next) => {
 // });
 
 // socket io
-var prevRequest = "";
-io.on("connection", async (socket) => {
-  // const sockets = await io.fetchSockets();
+// var prevRequest = '';
+io.on('connection', async (socket) => {
   // console.log("[server fetchSockets]:", sockets);
   // console.log("[Server] current room: " + socket.rooms); // Set { <socket.id> }
   // socket.join("room1");
@@ -659,15 +659,17 @@ io.on("connection", async (socket) => {
   socket.on("set attributes", (role, curUser) => {
     socket.role = role;
     socket.username = curUser;
-    console.log("setting");
-    // redisClient.setEx(curUser, DEFAULT_EXPIRATION, socket.id)
+    if (role === 'teacher') {
+      socket.pr = "";
+      socket.sid = "";
+    }
     socket.broadcast.emit("connection broadcast", socket.id, role, curUser);
   });
 
-  socket.on("teacher join", () => {
-    socket.join("teacher");
-    console.log("teacher join");
-    socket.broadcast.emit("teacher join", socket.id);
+
+  socket.on('teacher join', () => {
+    socket.join('teacher');
+    socket.broadcast.emit('teacher join', socket.id);
   });
 
   socket.on("student join", (curUser) => {
@@ -680,8 +682,9 @@ io.on("connection", async (socket) => {
     socket.to(id).emit("onChange", value, socket.id);
   });
 
-  socket.on("onLecChange", (value) => {
-    console.log("onLecChange");
+
+  socket.on('onLecChange', (value) => {
+    console.log("onLecChange tiggered," ,value);
     socket.broadcast.emit("onLecChange", value, socket.id);
   });
 
@@ -696,28 +699,21 @@ io.on("connection", async (socket) => {
       });
   });
 
-  socket.on("acceptCall", (data) => {
-    console.log(`accepting call from ${data.to}`);
-    socket.to(data.to).emit("callAccepted", data.signal);
-  });
+  socket.on('fetch code', async (studentId, adminId) => {
+    const sockets = await io.fetchSockets()
+      .catch((err) => { console.error(err); });
 
-  socket.on("fetch code", async (studentId, adminId) => {
-    console.log(`fetch code`);
-    const sockets = await io.fetchSockets().catch((err) => {
-      console.error(err);
-    });
-
-    if (sockets.filter((skt) => skt.id === studentId).length > 0) {
-      socket.to(studentId).emit("fetch request", adminId);
+    if (sockets.filter(skt => skt.id === studentId).length > 0){
+      socket.sid = studentId;
+      socket.to(studentId).emit("fetch request");
     } else {
       socket.to(adminId).emit("no student", "no student here");
     }
 
-    if (prevRequest) {
-      socket.to(prevRequest).emit("stop request");
-    }
+    if(socket.pr) socket.to(socket.pr).emit("stop request");
 
-    prevRequest = studentId;
+
+    socket.pr = studentId;
   });
 
   socket.on("joined chat", (roomHost) => {
@@ -756,10 +752,9 @@ io.on("connection", async (socket) => {
       signal: payload.signal,
       id: socket.id,
     });
-  });
-
-  socket.on("fetch init", (code) => {
-    socket.to("teacher").emit("fetch init", code);
+    
+  socket.on("fetch init", code => {
+    socket.to('teacher').emit("fetch init", code, socket.id);
   });
 
   socket.on("help request", () => {
@@ -776,14 +771,18 @@ io.on("connection", async (socket) => {
     // if (socket.username) redisClient.del(socket.username)
     if (reason === "client namespace disconnect")
       deleteUserFromRoom(socket.username);
-    socket.broadcast.emit(
-      "disconnection broadcast",
-      socket.id,
-      socket.role,
-      socket.username
-    );
+    socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username, socket.sid);
     console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
   });
+
+
+  socket.on("callUser", (data) => {
+    io.to(data.userToCall).emit('hey', {signal: data.signalData, from: data.from});
+  })
+
+  socket.on("acceptCall", (data) => {
+      io.to(data.to).emit('callAccepted', data.signal);
+  })
 });
 
 server.listen(PORT, function (err) {

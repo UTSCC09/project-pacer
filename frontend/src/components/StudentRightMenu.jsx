@@ -29,8 +29,6 @@ function StudentRightMenu({drawerWidth, socket}) {
   }
 
   function logoutHandler(){
-    // socket.disconnect()
-    // socket.emit("disconnection broadcast");
     authenticationService.logout();
     socket.disconnect()
   }

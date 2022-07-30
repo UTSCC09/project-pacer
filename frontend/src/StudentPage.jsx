@@ -34,33 +34,35 @@ import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
 import "./CodePage.css";
 
 const drawerWidth = 200;
-// todo-kw: set those two as attributes
-let request = false;
-let adminId = "";
-
 // for cloud sync (via fb) [experimental - TODO]:
 let t = 0; // ns
 
-function StudentPage({ socket, curUser, userRoom }) {
-  const [code, setCode] = useState(() => ""); // like a cache: keeping this since downloading & uploading the file on each update is very inefficient
-  const [codePath, setCodePath] = useState(""); // set init val to ""
-  const [codeFilename, setCodeFilename] = useState("");
+function StudentPage({ socket, curUser }) {
+  // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
+  // code display and transmission
+  // like a cache: keeping this since downloading & uploading the file on each update is very inefficient
+  const [code, setCode] = useState(() => ""); 
+  const [lecCode, setLecCode] = useState(() => "console.log('hello students!');");
   const [flag, setFlag] = useState(() => false);
-  const [lecCode, setLecCode] = useState(
-    () => "console.log('hello students!');"
-  );
+  // execution
   const [out, setOut] = useState(() => null);
   const [err, setErr] = useState(() => null);
+  // save and load
+  const [codePath, setCodePath] = useState(""); // set init val to ""
+  const [codeFilename, setCodeFilename] = useState("");
+  // audio call
   const [callStream, setCallStream] = useState(() => null);
   const [caller, setCaller] = useState(() => "");
   const [callerSignal, setCallerSignal] = useState(() => null);
   const [callSystemInited, setCallSystemInited] = useState(() => false);
   const [peers, setPeers] = useState(() => []);
 
+
   const localAudio = useRef();
   const peersRef = useRef([]);
 
+  
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
     extensions[0] = javascript({ jsx: true });
@@ -89,6 +91,7 @@ function StudentPage({ socket, curUser, userRoom }) {
   }
 
   // for cloud sync (via fb) [experimental - TODO]:
+  // todo-kw: uncomment this
   // useEffect(() => {
   //   setTimeout(() => {
   //     if (t == 1) {
@@ -112,6 +115,7 @@ function StudentPage({ socket, curUser, userRoom }) {
       });
     });
   };
+
 
   // for file uploading (via fb):
   const uploadFile = (f) => {
@@ -144,6 +148,7 @@ function StudentPage({ socket, curUser, userRoom }) {
     });
   };
 
+
   // for file downloading (via fb):
   const makeDownloadFileRequest = (url) => {
     return new Promise(function (res, rej) {
@@ -167,6 +172,7 @@ function StudentPage({ socket, curUser, userRoom }) {
     });
   };
 
+
   // for file downloading (via fb):
   const downloadFile = (fileLocation) => {
     const fileStorageRef = ref(storage, fileLocation);
@@ -175,57 +181,46 @@ function StudentPage({ socket, curUser, userRoom }) {
     );
   };
 
-  // [kw]
+  
   useEffect(() => {
-    // todo-kw: set adminId as an attribute
-    // todo-kw: student cant receive adminId
-
     // if(!socket.id) socket.connect()
-
-    console.log("[StudentPage] socket id:", socket.id);
-
     socket.emit("set attributes", "student", curUser);
 
-    socket.volatile.emit("student join", curUser);
-
-    socket.on("connection broadcast", (SktId, role, curUser) => {    
-        console.log(
-          `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
-        );
-        // console.log([...connectedUsers]);
-      // }
+    socket.on("connection broadcast", (SktId, role, curUser) => {
+      console.log(`connection broadcast: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
     });
 
-    socket.on("disconnection broadcast", (SktId, role, curUser) => {
-      console.log(
-        `disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`
-      );
+    socket.on("disconnection broadcast", (SktId, role, curUser, curSid) => {
+      if (role === 'teacher') socket.tid = "";
+      console.log(`disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`);
     });
 
-    socket.on("teacher join", (tSktId) => {
-      // todo-kw: revisit this setting
-      socket.emit("student join", curUser);
-      console.log(
-        "[StudentPage - teacher join] join request from student: ",
-        socket.id
-      );
+    socket.on("teacher join", (tid) => {
+      socket.tid = tid; 
+      socket.emit('student join', curUser);
     });
 
-    socket.on("fetch request", (Id) => {
-      request = true;
+    socket.on("fetch request", () => {
       setFlag(true);
-      // console.log("emitted code", code);
     });
 
     socket.on("stop request", () => {
-      request = false;
       setFlag(false);
-      // console.log("Thanks for the help!!", request, adminId);
     });
 
-    socket.on("onChange", (value, adminId) => {
-      if (request) setCode(value);
+    socket.on("onChange", (value, tid) => {
+      setFlag(flag => {
+        if (flag) setCode(value);
+        return flag;
+      });
     });
+
+    socket.on("onLecChange", (value, tid) => {
+      // console.log(`studentPage onLecChang triggered: ${value}`);
+      if(!socket.tid) socket.tid = tid;
+      setLecCode(value);
+    });
+
     // for file downloading (via fb):
     if (code === "" && codePath === "" && codeFilename === "") {
       let cp = "/files/defaults/ystudent.txt";
@@ -241,17 +236,17 @@ function StudentPage({ socket, curUser, userRoom }) {
             setCodeFilename(res.file.name);
           });
         });
-    } // for when code + codePath correspond to session, so an uploaded file can take over code slide
-
-    socket.on("onLecChange", (value, id) => {
-      // console.log(`from student page: before teacher's code ${lecCode}`)
-      setLecCode(value);
-      // console.log(`from student page: teacher's code ${lecCode}`)
-    });
+    }
+    // for when code + codePath correspond to session, so an uploaded file can take over code slide
 
     console.log("load student page complete");
   }, []);
 
+  useEffect(() => {
+    if(flag)
+      socket.emit("fetch init", code);
+  }, [flag])
+  
   useEffect(() => {
     if (callSystemInited) {
       console.log("initing call system")
@@ -294,16 +289,10 @@ function StudentPage({ socket, curUser, userRoom }) {
     }
   }, [callSystemInited])
 
-  useEffect(() => {
-    socket.emit("fetch init", code);
-  }, [flag]);
-
   const onChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
+    if (flag && editor) socket.emit("onChange", value, socket.tid);
 
-    if (request && editor) {
-      socket.emit("onChange", value, adminId);
-    }
     setCode(value);
   };
 
@@ -373,6 +362,7 @@ function StudentPage({ socket, curUser, userRoom }) {
   if (callStream) {
     LocalAudio = <audio playsInline muted ref={localAudio} autoPlay />;
   }
+
 
   return (
     <>
