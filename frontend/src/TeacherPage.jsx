@@ -30,6 +30,7 @@ import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
 // for file up/downloading (via fb):
 import { storage } from "./_components/FireBase";
 import { ref, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
+import { display } from "@mui/system";
 
 const drawerWidth = 200;
 // for cloud sync (via fb) [experimental - TODO]:
@@ -167,7 +168,7 @@ function TeacherPage({ socket, curUser }) {
 
     socket.emit("set attributes", "teacher", curUser);
 
-    socket.emit("onLecChange", code);
+    // socket.emit("onLecChange", code);
 
     socket.emit("teacher join");
 
@@ -185,6 +186,7 @@ function TeacherPage({ socket, curUser }) {
       }
       // init teacher's code on student end
       setCode(currentCode => {
+        // console.log(`TeacherPage connection code senting triggerd ${currentCode}`);
         socket.emit("onLecChange", currentCode);
         return currentCode;
       })
@@ -218,22 +220,31 @@ function TeacherPage({ socket, curUser }) {
       if (!connectedUsers.includes({ curUser: username, sSktId }))
         setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser: username, SktId: sSktId }]);
       // init teacher code on student's window
+      // console.log(`student join triggered: ${code}`)
       socket.emit("onLecChange", code)
     });
 
     socket.on("fetch init", (code, sid) => {
       socket.sid = sid;
       socket.on = true;
-      setStuCode(code);
+      // setStuCode(code);
+      // new
+      setStuCode(() => {
+        // console.log(`fetch init triggered: ${code}`)
+        socket.emit("onLecChange", code);
+        return code;
+      });
     });
 
     socket.on("onChange", (value, id) => {
-      setStuCode(value);
+      // setStuCode(value);
+      //new 
+      setStuCode(() => {
+        // console.log(`socket onChange triggered: ${code}`)
+        socket.emit("onLecChange", value);
+        return value;
+      });
     });
-
-    // socket.on("reset display", () => {
-    //   setDisplayStudent(false);
-    // });
 
     // todo-kw: revisit this function - may be useless given current logic
     socket.on("no student", (msg) => {
@@ -263,8 +274,29 @@ function TeacherPage({ socket, curUser }) {
   }, []);
 
 
+  // new
+  useEffect(() => {
+    if(!displayStudent) 
+    {
+      // console.log(`useEffect onLecChange triggered ${code}`);
+      socket.emit("onLecChange", code);
+    }
+
+    if(displayStudent) {
+      // console.log(`triggerd from useEffect - dispplay ${stuCode}`);
+      socket.emit("onLecChange", stuCode);
+    }
+  },[displayStudent]);
+
+
   const onChange = (value, viewUpdate) => {
-    if (!socket.sid) socket.emit("onLecChange", value);
+    // if (!socket.sid) socket.emit("onLecChange", value);
+    // new
+    // if (!socket.sid && !displayStudent) {
+    //   console.log(`triggerd from onChange ${value}`);
+    //   socket.emit("onLecChange", value);
+    // }
+    if (!displayStudent) socket.emit("onLecChange", value);
     setCode(value);
   };
 
@@ -272,7 +304,12 @@ function TeacherPage({ socket, curUser }) {
   const onStuChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
     console.log(`from teacher page: ${value} ${socket.sid}`);
-    if (editor) socket.emit("onChange", value, socket.sid);
+    if (editor) {
+      // console.log(`triggerd from OnStuChange ${value}`);
+      socket.emit("onChange", value, socket.sid);
+      // new
+      socket.emit("onLecChange", value);
+    }
     setStuCode(value);
   };
 

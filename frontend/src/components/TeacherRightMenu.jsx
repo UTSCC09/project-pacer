@@ -39,11 +39,6 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
   }, [])
 
   function loadStudentSession(studentName, studentCurSocket) {
-    // if (socket.sid === studentCurSocket && socket.on && false){
-    //   console.log(`right menu: ${socket.sid}`);
-    //   socket.on = false;
-    //   setDisplayStudent(false);
-    // } else {
     if (!socket.sid || socket.sid !== studentCurSocket){
       socket.on = true;
       console.log(`else right menu: ${socket.sid}`);
@@ -58,8 +53,6 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
       socket.on = true;
       setDisplayStudent(true);
     }
-
-    // }
   }
 
   function logoutHandler(){

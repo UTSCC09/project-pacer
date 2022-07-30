@@ -179,7 +179,6 @@ function StudentPage({ socket, curUser }) {
   
   useEffect(() => {
     // if(!socket.id) socket.connect()
-
     socket.emit("set attributes", "student", curUser);
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
@@ -212,6 +211,7 @@ function StudentPage({ socket, curUser }) {
     });
 
     socket.on("onLecChange", (value, tid) => {
+      // console.log(`studentPage onLecChang triggered: ${value}`);
       if(!socket.tid) socket.tid = tid;
       setLecCode(value);
     });
@@ -245,6 +245,7 @@ function StudentPage({ socket, curUser }) {
 
 
   useEffect(() => {
+    if(flag)
       socket.emit("fetch init", code);
   }, [flag])
 

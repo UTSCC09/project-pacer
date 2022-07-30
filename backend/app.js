@@ -282,6 +282,7 @@ io.on('connection', async (socket) => {
 
 
   socket.on('onLecChange', (value) => {
+    console.log("onLecChange tiggered," ,value);
     socket.broadcast.emit("onLecChange", value, socket.id);
   });
 
@@ -289,35 +290,16 @@ io.on('connection', async (socket) => {
   socket.on('fetch code', async (studentId, adminId) => {
     const sockets = await io.fetchSockets()
       .catch((err) => { console.error(err); });
-    // todo-kw: simplifify this logic
 
-    // if(socket.sid === studentId && socket.onn && false) {
-    //   console.log("load inner");
-    //   socket.onn = false;
-    //   socket.emit("reset display");
-    // } else 
-    // console.log(`fetch code ${socket.sid}`);
     if (sockets.filter(skt => skt.id === studentId).length > 0){
-      // socket.sid = studentId;
-      // socket.onn = true;
-      console.log(`socket sid is ${socket.sid}`);
       socket.to(studentId).emit("fetch request");
     } else {
       socket.to(adminId).emit('no student',"no student here");
     }
 
-    // if(!prevRequest || prevRequest != studentId){
-    //   prevRequest = studentId;
-    // } else if (prevRequest && prevRequest !== studentId){
-    //   socket.to(prevRequest).emit("stop request");
-    // }
     if(socket.pr) socket.to(socket.pr).emit("stop request");
 
-    // if (socket.pr && socket.pr !== studentId){
-    //   socket.to(socket.pr).emit("stop request");
-    // } else {
-    //   socket.pr = studentId;
-    // }
+
     socket.pr = studentId;
   });
 
