@@ -14,6 +14,7 @@ import Toolbar from "@mui/material/Toolbar";
 import StudentRightMenu from "./components/StudentRightMenu";
 import Storage from "./components/Storage";
 import CallIcon from "@mui/icons-material/Call";
+import CloseIcon from '@mui/icons-material/Close';
 
 // for file up/downloading (via fb):
 import { storage } from "./_components/FireBase";
@@ -56,6 +57,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
   const [caller, setCaller] = useState(() => "");
   const [callerSignal, setCallerSignal] = useState(() => null);
   const [callSystemInited, setCallSystemInited] = useState(() => false);
+  const [callInprogress, setCallInprogress] = useState(() => false);
   const [peers, setPeers] = useState(() => []);
 
 
@@ -293,6 +295,23 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
         console.log(item)
         item.peer.signal(payload.signal);
       });
+
+      socket.on("user disconnected audio", (socketId) => {
+        console.log("user disconnected audio")
+        console.log(peersRef.current)
+        console.log(socketId)
+        const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
+        if (itemIdx >= 0) {
+          peersRef.current[itemIdx].peer.removeAllListeners();
+          peersRef.current[itemIdx].peer.destroy();
+          peersRef.current.splice(itemIdx, 1)
+          setPeers((users) => {
+            const peerIdx = users.findIndex((p) => p === socketId);
+            return users.splice(peerIdx, 1)
+          }); 
+        }
+        console.log(peersRef.current)
+      })
     }
   }, [callSystemInited])
 
@@ -319,22 +338,32 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
 
 
   const setupCall = async () => {
-    console.log("seting up call");
-    const localStream = await navigator.mediaDevices.getUserMedia({
-      video: false,
-      audio: true,
-    });
-    console.log("hardware setup complete");
-    setCallStream(localStream);
-    setCallSystemInited(true);
-    if (localAudio.current) {
-      localAudio.current.srcObject = localStream;
-      console.log("done setting local stream");
+    if (!callInprogress) {
+      console.log("seting up call");
+      const localStream = await navigator.mediaDevices.getUserMedia({
+        video: false,
+        audio: true,
+      });
+      console.log("hardware setup complete");
+      setCallStream(localStream);
+      setCallSystemInited(true);
+      if (localAudio.current) {
+        localAudio.current.srcObject = localStream;
+        console.log("done setting local stream");
+      }
+      // todo: you many wanna change this 
+      socket.emit("joined chat", roomId);
+      setCallInprogress(true);
+    } else {
+      console.log("closing call");
+      setCallStream(null);
+      if (localAudio.current) {
+        localAudio.current.srcObject = null;
+        console.log("done resetting local stream");
+      }
+      setCallInprogress(false);
+      socket.emit("disconnect audio", roomId)
     }
-    // todo: you may wanna change this
-    socket.emit("joined chat", userRoom);
-    // socket.emit("joined chat", roomId);
-
   };
 
 
@@ -353,6 +382,10 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
       socket.emit("sending signal", { userTarget, callerID, signal });
     });
 
+    peer.on('close', () => {
+      console.log("initiator closed")
+    })
+
     return peer;
   }
 
@@ -367,6 +400,10 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
     peer.on("signal", (signal) => {
       socket.emit("returning signal", { signal, callerID });
     });
+
+    peer.on('close', () => {
+      console.log("new peer closed")
+    })
 
     peer.signal(incomingSignal);
 
@@ -393,10 +430,8 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
           <Grid item xs={6}>
           <Stack
               direction="column"
-              rowSpacing={4}
-              columnSpacing={3}
+              spacing={2}
               sx={{maxWidth: "100%"}}
-              zeroMinWidth
             >
               <Grid item xs={12}>
                 <p>Server Screen (remote):</p>
@@ -418,10 +453,8 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
           <Grid item xs={6}>
             <Stack
               direction="column"
-              rowSpacing={4}
-              columnSpacing={3}
+              spacing={2}
               sx={{maxWidth: "100%"}}
-              zeroMinWidth
             >
               <Grid item xs={12}>
                 <EditorOptionsBar
@@ -450,9 +483,10 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
                   justifyContent="center"
                   alignItems="space-evenly"
                 >
+                  {language==="java" ? null : 
                   <Button onClick={run} variant="contained">
                     Run
-                  </Button>
+                  </Button>}
                   <Storage value={code}></Storage>
                 </Stack>
               </Grid>
@@ -483,7 +517,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
         })}
       </Stack>
       <button className="call-button" onClick={() => setupCall()}>
-        Call
+        {callInprogress ? <CloseIcon fontSize="large"/> : <CallIcon fontSize="large"/>}
       </button>
     </>
   );

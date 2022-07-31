@@ -11,6 +11,8 @@ import Grid from "@mui/material/Grid";
 import EditorOptionsBar from "./components/EditorOptions";
 import Toolbar from "@mui/material/Toolbar";
 import Stack from "@mui/material/Stack";
+import CallIcon from '@mui/icons-material/Call';
+import CloseIcon from '@mui/icons-material/Close';
 import Storage from "./components/Storage";
 
 import { upperPythonKeys, lowerPythonKeys, javaKeys } from "./_helpers";
@@ -359,24 +361,25 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         console.log(item)
         item.peer.signal(payload.signal);
       });
+
+      socket.on("user disconnected audio", (socketId) => {
+        console.log("user disconnected audio")
+        console.log(peersRef.current)
+        console.log(socketId)
+        const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
+        if (itemIdx >= 0) {
+          peersRef.current[itemIdx].peer.removeAllListeners();
+          peersRef.current[itemIdx].peer.destroy();
+          peersRef.current.splice(itemIdx, 1)
+          setPeers((users) => {
+            const peerIdx = users.findIndex((p) => p === socketId);
+            return users.splice(peerIdx, 1)
+          }); 
+        }
+        console.log(peersRef.current)
+      })
     }
     
-    socket.on("user disconnected audio", (socketId) => {
-      console.log("user disconnected audio")
-      console.log(peersRef.current)
-      console.log(socketId)
-      const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
-      if (itemIdx >= 0) {
-        peersRef.current[itemIdx].peer.removeAllListeners();
-        peersRef.current[itemIdx].peer.destroy();
-        peersRef.current.splice(itemIdx, 1)
-        setPeers((users) => {
-          const peerIdx = users.findIndex((p) => p === socketId);
-          return users.splice(peerIdx, 1)
-        }); 
-      }
-      console.log(peersRef.current)
-    })
   }, [callSystemInited])
 
 
@@ -440,9 +443,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         localAudio.current.srcObject = localStream;
         console.log("done setting local stream");
       }
-      // todo: you many wanna change this 
-      socket.emit("joined chat", userRoom);
-      // socket.emit("joined chat", roomId);
+      socket.emit("joined chat", String(roomId));
       setCallInprogress(true);
     } else {
       console.log("closing call");
@@ -452,7 +453,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         console.log("done resetting local stream");
       }
       setCallInprogress(false);
-      socket.emit("disconnect audio", userRoom)
+      socket.emit("disconnect audio", String(roomId))
     }
   };
 
@@ -498,6 +499,11 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
     return peer;
   }
 
+  let LocalAudio;
+  if (callStream) {
+    LocalAudio = <audio playsInline muted ref={localAudio} autoPlay />;
+  }
+
 
   const clearStuExecutionRes = () => {
     setStuOut(null);
@@ -516,21 +522,19 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         }}
       >
         <Toolbar />
-        <Grid container spacing={2} sx={{maxWidth: "100%"}} zeroMinWidth>
+        <Grid container spacing={2} sx={{maxWidth: "100%"}}>
           {displayStudent ? (
             <Grid item xs={6}>
               <Stack
               direction="column"
-              rowSpacing={4}
-              columnSpacing={3}
+              spacing={2}
               sx={{maxWidth: "100%"}}
-              zeroMinWidth
             >
                 <Grid item xs={12}>
                   <p>Code session for student {studentName}:</p>
                 </Grid>
                 {/* server display */}
-                <Grid item xs={12} sx={{maxWidth: "100%"}} zeroMinWidth>
+                <Grid item xs={12} sx={{maxWidth: "100%"}}>
                   <div>
                     <CodeMirror
                       value={stuCode}
@@ -544,9 +548,10 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
                 </Grid>
                 <Grid item xs={12}>
                   <Stack spacing={2} direction="row">
-                    <Button onClick={runStuCode} variant="contained">
-                      Run
-                    </Button>
+                  {language==="java" ? null : 
+                  <Button onClick={runStuCode} variant="contained">
+                    Run
+                  </Button>}
                   </Stack>
                 </Grid>
                 <Grid item xs={12}>
@@ -560,13 +565,11 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
             </Grid>
           ) : null}
 
-          <Grid item xs={displayStudent ? 6 : 12} sx={{maxWidth: "100%"}} zeroMinWidth>
+          <Grid item xs={displayStudent ? 6 : 12} sx={{maxWidth: "100%"}}>
             <Stack
               direction="column"
-              rowSpacing={4}
-              columnSpacing={3}
+              spacing={2}
               sx={{maxWidth: "100%"}}
-              zeroMinWidth
             >
               <Grid item xs={12}>
                 <EditorOptionsBar
@@ -577,7 +580,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
               <Grid item xs={12}>
                 <p>Client Screen (local):</p>
               </Grid>
-              <Grid item xs={12} sx={{maxWidth: "100%"}} zeroMinWidth>
+              <Grid item xs={12} sx={{maxWidth: "100%"}}>
                 {/* client display */}
                 <div>
                   <CodeMirror
@@ -598,9 +601,11 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
                   justifyContent="center"
                   alignItems="space-evenly"
                 >
+                  {language==="java" ? null : 
                   <Button onClick={run} variant="contained">
                     Run
-                  </Button>
+                  </Button>}
+                  
                   <Storage value={code}></Storage>
                 </Stack>
               </Grid>
@@ -631,13 +636,13 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         roomId={roomId}
       />
       <Stack direction="row">
-      <audio playsInline muted ref={localAudio} autoPlay />
+        {LocalAudio}
         {peers.map((peer, index) => {
           return <Audio key={index} peer={peer} />;
         })}
       </Stack>
       <button className="call-button" onClick={() => setupCall()} >
-        {callInprogress ? "Disconnect" : "Call"}
+        {callInprogress ? <CloseIcon fontSize="large"/> : <CallIcon fontSize="large"/>}
       </button>
     </>
   );

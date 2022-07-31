@@ -703,18 +703,6 @@ io.on('connection', async (socket) => {
     socket.to(userRoom).emit("onLecChange", value, socket.id);
   });
 
-
-  socket.on("callUser", (data) => {
-    console.log(`calling user ${data.userToCall}`);
-    socket
-      .to(data.userToCall)
-      .emit("hey", {
-        signal: data.signalData,
-        from: data.from,
-        stream: data.stream,
-      });
-  });
-
   socket.on('fetch code', async (studentId, adminId, userRoom) => {
     const sockets = await io.fetchSockets()
       .catch((err) => { console.error(err); });
@@ -731,25 +719,28 @@ io.on('connection', async (socket) => {
     socket.pr = studentId;
   });
 
-  socket.on("joined chat", (roomHost) => {
-    const roomID = rooms.findIndex(room => room.host === roomHost)
-    console.log(`joining room with peers ${rooms[roomID].peers}`)
-    if (rooms[roomID].peers) {
-      // const length = users[roomID].peers.length;
+  socket.on("joined chat", (roomId) => {
+    const roomIdx = rooms.findIndex(room => String(room.id) === roomId)
+    console.log(rooms)
+    console.log(roomId)
+    console.log(roomIdx)
+    if (rooms[roomIdx].peers) {
+      // const length = users[roomIdx].peers.length;
       // if (length === 4) {
       //     socket.emit("room full");
       //     return;
       // }
-      rooms[roomID].peers.push(socket.id);
+      rooms[roomIdx].peers.push(socket.id);
     } else {
-      rooms[roomID].peers = [socket.id];
+      rooms[roomIdx].peers = [socket.id];
     }
-    const usersInThisRoom = rooms[roomID].peers.filter(
+    console.log(`joining room with peers ${rooms[roomIdx].peers}`)
+    const usersInThisRoom = rooms[roomIdx].peers.filter(
       (id) => id !== socket.id
     );
     
     console.log(`all users in chat room ${usersInThisRoom}`)
-    socket.emit("all users", usersInThisRoom);
+    socket.to(roomId).emit("all users", usersInThisRoom);
   });
 
   // socket.on("joined chat", (roomId) => {
@@ -792,14 +783,14 @@ io.on('connection', async (socket) => {
     });
   })
 
-  socket.on("disconnect audio", (roomHost) => {
+  socket.on("disconnect audio", (roomId) => {
     console.log("disconnect audio")
-    const roomID = rooms.findIndex(room => room.host === roomHost)
-        let peers = rooms[roomID].peers;
+    const roomIdx = rooms.findIndex(room => String(room.id) === roomId)
+        let peers = rooms[roomIdx].peers;
         console.log(`peers: ${peers}`)
         if (peers) {
             peers = peers.filter(id => id !== socket.id);
-            rooms[roomID].peers = peers;
+            rooms[roomIdx].peers = peers;
         }
         peers.forEach((peer) => {
           socket.to(peer).emit("user disconnected audio", socket.id)
