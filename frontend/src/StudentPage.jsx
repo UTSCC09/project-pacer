@@ -389,12 +389,12 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
         <Toolbar />
         <Grid container spacing={2}>
           <Grid item xs={6}>
-            <Grid
-              container
+          <Stack
               direction="column"
-              alignItems="stretch"
-              rowSpacing={1}
+              rowSpacing={4}
               columnSpacing={3}
+              sx={{maxWidth: "100%"}}
+              zeroMinWidth
             >
               <Grid item xs={12}>
                 <p>Server Screen (remote):</p>
@@ -411,15 +411,15 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
                   readOnly="true"
                 />
               </Grid>
-            </Grid>
+            </Stack>
           </Grid>
           <Grid item xs={6}>
-            <Grid
-              container
+            <Stack
               direction="column"
-              alignItems="stretch"
               rowSpacing={4}
               columnSpacing={3}
+              sx={{maxWidth: "100%"}}
+              zeroMinWidth
             >
               <Grid item xs={12}>
                 <EditorOptionsBar
@@ -455,7 +455,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
                 </Stack>
               </Grid>
               <Grid item xs={12}>
-                <form onSubmit={uploadFileFormHandler}>
+                <form className="submit-file" onSubmit={uploadFileFormHandler}>
                   <input type="file" className="input" />
                   <button type="submit">Upload</button>
                 </form>
@@ -467,7 +467,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
                   clear={clearExecutionRes}
                 />
               </Grid>
-            </Grid>
+            </Stack>
           </Grid>
         </Grid>
       </Box>

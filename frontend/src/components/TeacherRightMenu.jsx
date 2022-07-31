@@ -11,20 +11,69 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import { Button } from "@mui/material";
+import { Button, styled } from "@mui/material";
 import { authenticationService, socket } from "../_services";
 // [kw]
 import React, { useEffect } from 'react';
 import Notifications from './Notifications';
 
-function getConnectedStudents() {
-    return ["Student1", "Student2", "Student3", "Student4"]
-}
+const CustomEntry = styled(ListItem)({
+  backgroundColor: 'var(--color)',
+  '& .MuiSlider-thumb': {
+    [`&:hover, &.Mui-focusVisible`]: {
+      boxShadow: '0px 0px 0px 8px var(--box-shadow)',
+    },
+    [`&.Mui-active`]: {
+      boxShadow: '0px 0px 0px 14px var(--box-shadow)',
+    },
+  },
+});
+
+const connectedState = {
+  '--color': '#4caf50',
+  '--box-shadow': 'rgb(76, 175, 80, .16)',
+};
+
+const requestingHelpState = {
+  '--color': '#FF8C00',
+  '--box-shadow': 'rgb(76, 175, 80, .16)',
+};
+
+const defaultState = {
+  '--color': '#FFF',
+  '--box-shadow': 'rgb(25, 118, 210, .16)',
+};
 
 
 function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, connectedUsers, setConnectedUsers, socket }) {
   const [notificationToggle, setNotificationToggle] = React.useState(() => null);
   const [helpMsg, setHelpMsg] = React.useState(() => "default msg");
+  const [userState, setUserState] = React.useState(() => {
+    let res = {}
+    connectedUsers.forEach(e => {
+      res[e.SktId] = defaultState
+    });
+    return res
+  });
+  // const [isTriggered, setIsTriggered] = React.useState(() => "")
+
+  // React.useEffect(() => {
+  //   let timer = null
+  //   if (isTriggered) {
+  //     timer = setTimeout(() => {
+  //       setUserState((next) => {
+  //         if (next[isTriggered] === requestingHelpState) {
+  //           next[isTriggered] = defaultState
+  //           console.log("triggered")
+  //           return next
+  //         }
+  //       })
+  //       setIsTriggered(false)
+  //     })
+  //   }
+  //   return () => clearTimeout(timer);
+  // }, [isTriggered])
+
 
   React.useEffect(() => {
     // todo-kw: revisit
@@ -34,6 +83,14 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
         console.log(
           `[TeacherPage - help request] student [${username}] need help; student socket id: ${stuId} `
         );
+        setUserState((existing) => {
+          if (existing[stuId] !== connectedState) {
+            existing[stuId] = requestingHelpState
+            console.log(existing)
+            // setIsTriggered(stuId)
+          }
+          return existing
+        });
         const msg = `Help requested from ${username} with socket id ${stuId}`
         setHelpMsg(oldmsg => msg)
         setNotificationToggle(oldState => !oldState)
@@ -44,16 +101,36 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
   function loadStudentSession(studentName, studentCurSocket) {
     if (!socket.sid || socket.sid !== studentCurSocket){
       socket.on = true;
-      // console.log(`else right menu: ${socket.sid}`);
+      console.log(`else right menu: ${socket.sid}`);
+      setUserState((existing) => {
+        Object.keys(existing).forEach(key => {
+          existing[key] = defaultState;
+        });
+        existing[studentCurSocket] = connectedState
+        console.log(existing)
+        return existing
+      });
       setDisplayStudent(true);
       // console.log(studentName);
       setStudentName(studentName);
       socket.emit("fetch code", studentCurSocket, socket.id, socket.userRoom);
     } else if (socket.on) {
       socket.on = false;
+      setUserState((existing) => {
+        existing[studentCurSocket] = defaultState
+        return existing
+      });
       setDisplayStudent(false);
     } else {
       socket.on = true;
+      setUserState((existing) => {
+        Object.keys(existing).forEach(key => {
+          existing[key] = defaultState;
+        });
+        existing[studentCurSocket] = connectedState
+        console.log(existing)
+        return existing
+      });
       setDisplayStudent(true);
     }
   }
@@ -83,14 +160,14 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
       <Divider />
       <List>
         {connectedUsers.map((text, index) => (
-          <ListItem key={text.SktId} disablePadding>
-            <ListItemButton value={text.SktId} onClick={() => loadStudentSession(text.curUser, text.SktId)}>
+          <CustomEntry key={text.SktId} style={userState[text.SktId]} disablePadding>
+            <ListItemButton value={text.SktId} onClick={() => loadStudentSession(text.curUser, text.SktId, )}>
               <ListItemIcon>
                 <PersonIcon />
               </ListItemIcon>
               <ListItemText primary={text.SktId} secondary={text.curUser}/>
             </ListItemButton>
-          </ListItem>
+          </CustomEntry>
         ))}
       </List>
       <Divider />
