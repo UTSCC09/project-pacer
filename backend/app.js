@@ -146,13 +146,13 @@ let rooms = [
 ];
 
 const NewRoom = (function () {
-  return function item(roomName, host, user) {
+  return function item(roomName, host, hasTeacher) {
     // todo-kw
     this.id = Date.now();
     this.host = host;
-    this.hasTeacher = user.role === Role.Admin;
+    this.hasTeacher = hasTeacher
     this.roomName = roomName;
-    this.users = [user];
+    this.users = [];
   };
 })();
 
@@ -168,6 +168,7 @@ app.get("/api/whoami", function (req, res) {
   if (!userName) return res.json(null);
   // BEFORE FB:
   const user = users.find((x) => x.username === userName);
+  console.log(user)
   return res.json({
     id: user.id,
     username: user.username,
@@ -476,7 +477,7 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
     console.log(req.body.socketId);
     const socketId = req.body.socketId;
     // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
-    users[idx].roomHost = user.username;
+    const room = new NewRoom(req.body.roomName, req.session.username, user.role === Role.Admin);
     const userInfo = {
       id: user.id,
       username: user.username,
@@ -484,7 +485,8 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
       roomHost: user.roomHost,
       socketId,
     };
-    const room = new NewRoom(req.body.roomName, req.session.username, userInfo);
+    room.users.push(userInfo)
+    users[idx].roomHost = room.id;
     rooms.push(room);
     return res.json(room);
   }
@@ -553,12 +555,12 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
     // console.log(socketId)
     // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
     // }
-    users[idx].roomHost = rooms[room_idx].host;
+    users[idx].roomHost = rooms[room_idx].id;
     const userInfo = {
       id: user.id,
       username: user.username,
       role: user.role,
-      roomHost: user.roomHost,
+      roomHost: rooms[room_idx].host,
       socketId,
     };
     rooms[room_idx].users.push(userInfo);
@@ -612,15 +614,15 @@ app.delete("/api/rooms/:host/", isAuthenticated, function (req, res) {
 function deleteUserFromRoom(username) {
   console.log("deleting user " + username + " from rooms");
   const idx = users.findIndex((x) => x.username === username);
-  let host = null;
+  let room_id = null;
   let isAdmin = false;
   if (idx >= 0) {
-    host = users[idx].roomHost;
+    room_id = users[idx].roomHost;
     users[idx].roomHost = null;
     isAdmin = users[idx].role === "Admin";
   }
-  if (host) {
-    const room_idx = rooms.findIndex((room) => room.host === host);
+  if (room_id) {
+    const room_idx = rooms.findIndex((room) => room.id === room_id);
     if (room_idx >= 0) {
       console.log(room_idx);
       const roomUsers = rooms[room_idx].users;
@@ -724,23 +726,25 @@ io.on('connection', async (socket) => {
     console.log(rooms)
     console.log(roomId)
     console.log(roomIdx)
-    if (rooms[roomIdx].peers) {
-      // const length = users[roomIdx].peers.length;
-      // if (length === 4) {
-      //     socket.emit("room full");
-      //     return;
-      // }
-      rooms[roomIdx].peers.push(socket.id);
-    } else {
-      rooms[roomIdx].peers = [socket.id];
+    if (roomIdx >= 0) {
+      if (rooms[roomIdx].peers) {
+        // const length = users[roomIdx].peers.length;
+        // if (length === 4) {
+        //     socket.emit("room full");
+        //     return;
+        // }
+        rooms[roomIdx].peers.push(socket.id);
+      } else {
+        rooms[roomIdx].peers = [socket.id];
+      }
+      console.log(`joining room with peers ${rooms[roomIdx].peers}`)
+      const usersInThisRoom = rooms[roomIdx].peers.filter(
+        (id) => id !== socket.id
+      );
+      
+      console.log(`all users in chat room ${usersInThisRoom}`)
+      socket.emit("all users", usersInThisRoom);
     }
-    console.log(`joining room with peers ${rooms[roomIdx].peers}`)
-    const usersInThisRoom = rooms[roomIdx].peers.filter(
-      (id) => id !== socket.id
-    );
-    
-    console.log(`all users in chat room ${usersInThisRoom}`)
-    socket.to(roomId).emit("all users", usersInThisRoom);
   });
 
   // socket.on("joined chat", (roomId) => {
@@ -785,8 +789,10 @@ io.on('connection', async (socket) => {
 
   socket.on("disconnect audio", (roomId) => {
     console.log("disconnect audio")
+    console.log(roomId)
     const roomIdx = rooms.findIndex(room => String(room.id) === roomId)
-        let peers = rooms[roomIdx].peers;
+    if (roomIdx >= 0) {
+      let peers = rooms[roomIdx].peers;
         console.log(`peers: ${peers}`)
         if (peers) {
             peers = peers.filter(id => id !== socket.id);
@@ -795,6 +801,7 @@ io.on('connection', async (socket) => {
         peers.forEach((peer) => {
           socket.to(peer).emit("user disconnected audio", socket.id)
         })
+    } 
   })
     
 
