@@ -113,7 +113,7 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
       setDisplayStudent(true);
       // console.log(studentName);
       setStudentName(studentName);
-      socket.emit("fetch code", studentCurSocket, socket.id);
+      socket.emit("fetch code", studentCurSocket, socket.id, socket.userRoom);
     } else if (socket.on) {
       socket.on = false;
       setUserState((existing) => {
@@ -142,12 +142,12 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
     socket.disconnect();
   }
 
-  function logoutHandler(){
-    // socket.disconnect()
-    // socket.emit("disconnection broadcast");
-    authenticationService.logout();
-    socket.disconnect()
-  }
+  // function logoutHandler(){
+  //   // socket.disconnect()
+  //   // socket.emit("disconnection broadcast");
+  //   authenticationService.logout();
+  //   socket.disconnect()
+  // }
 
   // useEffect(() => {
   //   console.log("current Socket Id:", socket.id)

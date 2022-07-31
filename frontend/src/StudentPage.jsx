@@ -37,7 +37,7 @@ const drawerWidth = 200;
 // for cloud sync (via fb) [experimental - TODO]:
 let t = 0; // ns
 
-function StudentPage({ socket, curUser, userRoom }) {
+function StudentPage({ socket, curUser, userRoom, roomId }) {
   // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
   // code display and transmission
@@ -183,10 +183,13 @@ function StudentPage({ socket, curUser, userRoom }) {
 
   
   useEffect(() => {
+
+    console.log(`from student: roomId ${roomId}`);
     // if(!socket.id) socket.connect()
     socket.role = 'student';
     socket.username = curUser;
-    socket.emit("set attributes", "student", curUser);
+    socket.roomId = roomId;
+    socket.emit("set attributes", "student", curUser, roomId);
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
       console.log(`connection broadcast: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
@@ -199,7 +202,7 @@ function StudentPage({ socket, curUser, userRoom }) {
 
     socket.on("teacher join", (tid) => {
       socket.tid = tid; 
-      socket.emit('student join', curUser);
+      socket.emit('student join', curUser, roomId);
     });
 
     socket.on("fetch request", () => {
@@ -244,11 +247,13 @@ function StudentPage({ socket, curUser, userRoom }) {
     console.log("load student page complete");
   }, []);
 
+
   useEffect(() => {
     if(flag)
-      socket.emit("fetch init", code);
+      socket.emit("fetch init", code, roomId);
   }, [flag])
   
+
   useEffect(() => {
     if (callSystemInited) {
       console.log("initing call system")
@@ -291,12 +296,14 @@ function StudentPage({ socket, curUser, userRoom }) {
     }
   }, [callSystemInited])
 
+
   const onChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
-    if (flag && editor) socket.emit("onChange", value, socket.tid);
+    if (flag && editor) socket.emit("onChange", value, socket.tid, roomId);
 
     setCode(value);
   };
+
 
   const run = () => {
     const { out, err } = runCode(code, language);
@@ -304,10 +311,12 @@ function StudentPage({ socket, curUser, userRoom }) {
     setErr(err);
   };
 
+
   const clearExecutionRes = () => {
     setOut(null);
     setErr(null);
   };
+
 
   const setupCall = async () => {
     console.log("seting up call");
@@ -322,8 +331,10 @@ function StudentPage({ socket, curUser, userRoom }) {
       localAudio.current.srcObject = localStream;
       console.log("done setting local stream");
     }
+    // todo: you may wanna change this
     socket.emit("joined chat", userRoom);
   };
+
 
   function createPeer(userTarget, callerID, stream) {
     console.log(`stream is ${stream}`)

@@ -6,6 +6,8 @@ const session = require("express-session");
 // const Redis = require("redis")
 let RedisStore = require("connect-redis")(session);
 const { body, validationResult } = require("express-validator");
+// generate uuid
+// const uuidv4 = require("uuid/v4");
 
 const firebaseConfig = {
   apiKey: "AIzaSyAtUPhMKwJxUDwQUPezFsojNPMn0gUkkoA",
@@ -145,6 +147,8 @@ let rooms = [
 
 const NewRoom = (function () {
   return function item(roomName, host, user) {
+    // todo-kw
+    this.id = Date.now();
     this.host = host;
     this.hasTeacher = user.role === Role.Admin;
     this.roomName = roomName;
@@ -489,21 +493,24 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
 app.get("/api/rooms/", isAuthenticated, function (req, res) {
   //TODO: adapt GET for pagination and firebase
   console.log("hit get all rooms endpoint");
+  // console.log(`rooms ${rooms}`);
   return res.json(rooms);
 });
 
-// app.get("/api/rooms/:host/", isAuthenticated, function (req, res) {
-//   console.log("hit get room info endpoint");
-//   const room = rooms.find((room) => room.host === req.params.host);
-//   if (room) {
-//     /* a room with specified host already exists */
-//     return res.json(room);
-//   } else {
-//     return res
-//       .status(404)
-//       .json("Room with host " + req.params.host + " not found.");
-//   }
-// });
+// todo-kw
+app.get("/api/rooms/:host/", isAuthenticated, function (req, res) {
+  console.log("hit get room info endpoint");
+  // console.log(`rooms ${rooms}`);
+  const room = rooms.find((room) => room.host === req.params.host);
+  if (room) {
+    /* a room with specified host already exists */
+    return res.json(room);
+  } else {
+    return res
+      .status(404)
+      .json("Room with host " + req.params.host + " not found.");
+  }
+});
 
 app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
   console.log("hit update room info endpoint");
@@ -648,45 +655,54 @@ function deleteUserFromRoom(username) {
 // socket io
 // var prevRequest = '';
 io.on('connection', async (socket) => {
-  // console.log("[server fetchSockets]:", sockets);
-  // console.log("[Server] current room: " + socket.rooms); // Set { <socket.id> }
   // socket.join("room1");
   // console.log("[Server] joined room: " + socket.rooms); // Set { <socket.id>, "room1" }
   console.log("[Server] a user connected, socket id is :" + socket.id);
   // const count = io.engine.clientsCount;
   // console.log("[server count]:", count);
 
-  socket.on("set attributes", (role, curUser) => {
+  socket.on("room update", () =>{
+    socket.broadcast.emit("room update", "received");
+  })
+
+  socket.on("set attributes", (role, curUser, userRoom) => {
     socket.role = role;
     socket.username = curUser;
+    socket.userRoom = userRoom;
+    socket.join(userRoom);
+    console.log("rooms", socket.rooms);
     if (role === 'teacher') {
       socket.pr = "";
       socket.sid = "";
     }
-    socket.broadcast.emit("connection broadcast", socket.id, role, curUser);
+    // socket.broadcast.emit("connection broadcast", socket.id, role, curUser);
+    socket.to(userRoom).emit("connection broadcast", socket.id, role, curUser);
   });
 
+  //new
+  socket.on('teacher join', (userRoom) => {
+    socket.join('teacher: ' + userRoom);
+    // socket.broadcast.emit('teacher join', socket.id);
+    socket.to(userRoom).emit('teacher join', socket.id);
 
-  socket.on('teacher join', () => {
-    socket.join('teacher');
-    socket.broadcast.emit('teacher join', socket.id);
   });
 
-  socket.on("student join", (curUser) => {
+  socket.on("student join", (curUser, userRoom) => {
     console.log("student join");
-    socket.to("teacher").emit("student join", socket.id, curUser);
+    socket.to('teacher: ' + userRoom).emit("student join", socket.id, curUser);
   });
 
-  socket.on("onChange", (value, id) => {
+  socket.on("onChange", (value, id, userRoom) => {
     console.log("onChange");
     socket.to(id).emit("onChange", value, socket.id);
   });
 
 
-  socket.on('onLecChange', (value) => {
-    console.log("onLecChange tiggered," ,value);
-    socket.broadcast.emit("onLecChange", value, socket.id);
+  socket.on('onLecChange', (value, userRoom) => {
+    // socket.broadcast.emit("onLecChange", value, socket.id);
+    socket.to(userRoom).emit("onLecChange", value, socket.id);
   });
+
 
   socket.on("callUser", (data) => {
     console.log(`calling user ${data.userToCall}`);
@@ -699,7 +715,7 @@ io.on('connection', async (socket) => {
       });
   });
 
-  socket.on('fetch code', async (studentId, adminId) => {
+  socket.on('fetch code', async (studentId, adminId, userRoom) => {
     const sockets = await io.fetchSockets()
       .catch((err) => { console.error(err); });
 
@@ -712,9 +728,9 @@ io.on('connection', async (socket) => {
 
     if(socket.pr) socket.to(socket.pr).emit("stop request");
 
-
     socket.pr = studentId;
   });
+
 
   socket.on("joined chat", (roomHost) => {
     const roomID = rooms.findIndex(room => room.host === roomHost)
@@ -737,6 +753,7 @@ io.on('connection', async (socket) => {
     socket.emit("all users", usersInThisRoom);
   });
 
+
   socket.on("sending signal", (payload) => {
     console.log("sending signal")
     console.log(`target is ${payload.userTarget}, caller is ${payload.callerID}`)
@@ -745,6 +762,7 @@ io.on('connection', async (socket) => {
       callerID: payload.callerID,
     });
   });
+
 
   socket.on("returning signal", (payload) => {
     console.log("receiving returned signal")
@@ -768,16 +786,18 @@ io.on('connection', async (socket) => {
         })
   })
     
-  socket.on("fetch init", code => {
-    socket.to('teacher').emit("fetch init", code, socket.id);
+
+  socket.on("fetch init", (code, userRoom) => {
+    socket.to('teacher: ' + userRoom).emit("fetch init", code, socket.id);
   });
 
-  socket.on("help request", () => {
-    socket.to("teacher").emit("help request", socket.id, socket.username);
+
+  socket.on("help request", (userRoom) => {
+    socket.to('teacher: ' + userRoom).emit("help request", socket.id, socket.username);
   });
 
-  socket.on("disconnect", (reason) => {
-    // const count = io.of("/").sockets.size - 1;
+
+  socket.on("disconnect", (reason, msg) => {
     const count = io.of("/").sockets.size;
     // if user is logging out, update room info, else ignore
     console.log("deleting");
@@ -786,7 +806,9 @@ io.on('connection', async (socket) => {
     // if (socket.username) redisClient.del(socket.username)
     if (reason === "client namespace disconnect")
       deleteUserFromRoom(socket.username);
-    socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username, socket.sid);
+    // socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username, socket.sid);
+    console.log(`from disconnect: ${socket.id} ${socket.sid}`);
+    socket.to(socket.userRoom).emit("disconnection broadcast", socket.id, socket.role, socket.username);
     console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
   });
 

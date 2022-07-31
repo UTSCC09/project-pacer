@@ -75,6 +75,7 @@ function logout() {
 
 function App() {
   const [curUser, setCurUser] = useState(() => "");
+  const [roomId, setRoomId] = useState(() => "");
   const [userRoom, setUserRoom] = useState(() => null)
   const [isAdmin, setIsAdmin] = useState(() => "");
   const [loadingComplete, setLoadingComplete] = useState(() => false);
@@ -124,6 +125,7 @@ function App() {
                   <StudentPage socket={socket}
                                curUser={curUser}
                                userRoom={userRoom}
+                               roomId={roomId}
                   />
                 </PrivateRoute>
               }
@@ -136,6 +138,7 @@ function App() {
                   <TeacherPage  socket={socket} 
                                 curUser={curUser}
                                 userRoom={userRoom}
+                                roomId={roomId}
                   />
                 </PrivateRoute>
               }
@@ -150,6 +153,7 @@ function App() {
                     isAdmin={isAdmin}
                     userRoom={userRoom}
                     setUserRoom={(e) => setUserRoom(e)}
+                    setRoomId={(e) => setRoomId(e)}
                     socket={socket}
                   />
                 </PrivateRoute>
