@@ -40,11 +40,12 @@ const drawerWidth = 200;
 let t = 0; //ns
 
 
-function TeacherPage({ socket, curUser, userRoom }) {
+function TeacherPage({ socket, curUser, userRoom, roomId}) {
   // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
   const [displayStudent, setDisplayStudent] = useState(() => false);
   // code display and transmission
+  const [sid, setSid] = useState(() => "");
   const [code, setCode] = useState("");
   const [stuCode, setStuCode] = useState(() => "no student here");
   // execution
@@ -187,15 +188,18 @@ function TeacherPage({ socket, curUser, userRoom }) {
   };
   
 
-  useEffect(() => {
-
-    // if(!socket.id) socket.connect() 
-
-    socket.emit("set attributes", "teacher", curUser);
+  useEffect(async () => {
+    
+    console.log(`from teacherPage: roomId ${roomId}`);
+    
+    //
+    socket.emit("set attributes", "teacher", curUser, roomId);
+    socket.roomId = roomId;
 
     // socket.emit("onLecChange", code);
 
-    socket.emit("teacher join");
+    //new
+    socket.emit("teacher join", roomId);
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
       // add newly connected student
@@ -215,12 +219,12 @@ function TeacherPage({ socket, curUser, userRoom }) {
         // emit teacher's code if not on review mode
         if (!display){
           setCode(currentCode => {
-            socket.emit("onLecChange", currentCode);
+            socket.emit("onLecChange", currentCode, roomId);
             return currentCode;
           });
         } else { // emit student's code if on review mode
           setStuCode(curStuCode => {
-            socket.emit("onLecChange", curStuCode);
+            socket.emit("onLecChange", curStuCode, roomId);
             return curStuCode;
           })
         }
@@ -229,7 +233,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
 
     });
 
-    socket.on("disconnection broadcast", (SktId, role, curUser, curSid) => {
+    socket.on("disconnection broadcast", (SktId, role, curUser) => {
       setConnectedUsers(eixstingUsers => {
         const userCopy = [...eixstingUsers];
         const idx = userCopy.findIndex((user) => user.SktId === SktId);
@@ -239,11 +243,20 @@ function TeacherPage({ socket, curUser, userRoom }) {
         }
         return userCopy
       });
+
+      setSid(init => {
+        if(SktId === init) {
+          setDisplayStudent(false);
+          socket.sid = "";
+          return "";
+        }
+        return init;
+      });
     
-      if(SktId === curSid) {
-        setDisplayStudent(false);
-        socket.sid = "";
-      }
+      // if(SktId === curSid) {
+      //   setDisplayStudent(false);
+      //   socket.sid = "";
+      // }
 
       console.log(`[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`);
     });
@@ -257,22 +270,24 @@ function TeacherPage({ socket, curUser, userRoom }) {
       if (!connectedUsers.includes({ curUser: username, sSktId }))
         setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser: username, SktId: sSktId }]);
       // init teacher code on student's window
-      socket.emit("onLecChange", code)
+      socket.emit("onLecChange", code, roomId)
     });
 
     socket.on("fetch init", (code, sid) => {
+      // revisit
+      setSid(sid);
       socket.sid = sid;
       socket.on = true;
 
       setStuCode(() => {
-        socket.emit("onLecChange", code);
+        socket.emit("onLecChange", code, roomId);
         return code;
       });
     });
 
     socket.on("onChange", (value, id) => {
       setStuCode(() => {
-        socket.emit("onLecChange", value);
+        socket.emit("onLecChange", value, roomId);
         return value;
       });
     });
@@ -280,6 +295,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
     // todo-kw: revisit this function - may be useless given current logic
     socket.on("no student", (msg) => {
       socket.sid = "";
+      setSid("");
       socket.on = true;
       setStuCode(msg);
     });
@@ -349,15 +365,15 @@ function TeacherPage({ socket, curUser, userRoom }) {
 
   // new
   useEffect(() => {
-    if(!displayStudent) socket.emit("onLecChange", code);
+    if(!displayStudent) socket.emit("onLecChange", code, roomId);
     
-    if(displayStudent) socket.emit("onLecChange", stuCode);
+    if(displayStudent) socket.emit("onLecChange", stuCode, roomId);
     
   },[displayStudent]);
 
 
   const onChange = (value, viewUpdate) => {
-    if (!displayStudent) socket.emit("onLecChange", value);
+    if (!displayStudent) socket.emit("onLecChange", value, roomId);
     setCode(value);
   };
 
@@ -365,8 +381,8 @@ function TeacherPage({ socket, curUser, userRoom }) {
   const onStuChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
     if (editor) {
-      socket.emit("onChange", value, socket.sid);
-      socket.emit("onLecChange", value);
+      socket.emit("onChange", value, socket.sid, roomId);
+      socket.emit("onLecChange", value, roomId);
     }
     setStuCode(value);
   };
@@ -407,6 +423,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
         localAudio.current.srcObject = localStream;
         console.log("done setting local stream");
       }
+      // todo: you many wanna change this 
       socket.emit("joined chat", userRoom);
       setCallInprogress(true);
     } else {

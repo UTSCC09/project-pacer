@@ -44,11 +44,11 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
   function loadStudentSession(studentName, studentCurSocket) {
     if (!socket.sid || socket.sid !== studentCurSocket){
       socket.on = true;
-      console.log(`else right menu: ${socket.sid}`);
+      // console.log(`else right menu: ${socket.sid}`);
       setDisplayStudent(true);
       // console.log(studentName);
       setStudentName(studentName);
-      socket.emit("fetch code", studentCurSocket, socket.id);
+      socket.emit("fetch code", studentCurSocket, socket.id, socket.userRoom);
     } else if (socket.on) {
       socket.on = false;
       setDisplayStudent(false);
@@ -65,12 +65,12 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
     socket.disconnect();
   }
 
-  function logoutHandler(){
-    // socket.disconnect()
-    // socket.emit("disconnection broadcast");
-    authenticationService.logout();
-    socket.disconnect()
-  }
+  // function logoutHandler(){
+  //   // socket.disconnect()
+  //   // socket.emit("disconnection broadcast");
+  //   authenticationService.logout();
+  //   socket.disconnect()
+  // }
 
   // useEffect(() => {
   //   console.log("current Socket Id:", socket.id)

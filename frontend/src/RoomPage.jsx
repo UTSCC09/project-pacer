@@ -23,7 +23,7 @@ import DataSaverOffIcon from "@mui/icons-material/DataSaverOff";
 import DataSaverOnIcon from "@mui/icons-material/DataSaverOn";
 import { useNavigate } from "react-router-dom";
 
-function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, socket }) {
+function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }) {
   const [roomInfo, setRoomInfo] = React.useState(() => null);
   const [loadRoomsComplete, setLoadRoomsComplete] = React.useState(() => false);
   const [roomName, setRoomName] = React.useState(() => "");
@@ -41,14 +41,18 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, socket }) {
     socket.disconnect();
   }
 
-  async function selectRoom(host) {
+  // async function selectRoom(host) {
+  async function selectRoom(host, id) {
     console.log(`joining ${host}`);
+    console.log(`selectRoom id ${id}`);
     const res = await joinRoom(host, socket.id);
     if (res.err) setShowAlert(res.err);
     else {
-      console.log("loading room done")
-      setJoinedRoom(true)
+      console.log("loading room done");
+      setRoomId(String(id));
+      setJoinedRoom(true);
       setUserRoom(host);
+      
     }
   }
 
@@ -71,12 +75,20 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, socket }) {
     }
   }, [joinedRoom])
 
-  const onCreateNewRoom = () => {
+  // todo-kw: delete
+//   {"res":{"id":1659251374085,"host":"t1","hasTeacher":true,"roomName":"r5","users":[{"id":0,"username":"t1","role":"Admin","roomHost":"t1","socketId":"UZYJVIrwYqfdlFcNAABT"}]}
+// }
+
+  // const onCreateNewRoom = () => {
+  const onCreateNewRoom = async () => {
     console.log(roomName);
-    const res = createNewRoom(roomName, socket.id);
+    const res = await createNewRoom(roomName, socket.id);
     if (res.err) setShowAlert(res.err);
     else {
       setUserRoom(curUser);
+      console.log("conCreateNewRoom return item", JSON.stringify(res["res"]["id"]));
+      setRoomId(JSON.stringify(res["res"]["id"]));
+      // setRoomId(res["res"]["id"].toString());
       if (isAdmin) navigate("/teacher", { replace: true });
       else navigate("/student", { replace: true });
     }
@@ -131,7 +143,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, socket }) {
                   <ListItemButton
                     value={room.host}
                     sx={{ backgroundColor: "#30404d", ml: "30px" }}
-                    onClick={() => selectRoom(room.host)}
+                    onClick={() => selectRoom(room.host, room.id)}
                   >
                     Join
                   </ListItemButton>
