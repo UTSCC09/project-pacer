@@ -112,7 +112,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
   // for file uploading (via fb):
   const uploadFileFormHandler = (event) => {
     event.preventDefault();
-    uploadFile(event.target[0].files[0]).then((res) => {
+    uploadFile(event.target.files[0]).then((res) => {
       res.file.text().then((code) => {
         setCode(code);
         setCodePath(res.codePath);
@@ -185,12 +185,12 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
       makeDownloadFileRequest(url)
     );
   };
-  
+
 
   useEffect(async () => {
-    
+
     console.log(`from teacherPage: roomId ${roomId}`);
-    
+
     //
     socket.emit("set attributes", "teacher", curUser, roomId);
     socket.roomId = roomId;
@@ -251,7 +251,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         }
         return init;
       });
-    
+
       // if(SktId === curSid) {
       //   setDisplayStudent(false);
       //   socket.sid = "";
@@ -360,7 +360,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         item.peer.signal(payload.signal);
       });
     }
-    
+
     socket.on("user disconnected audio", (socketId) => {
       console.log("user disconnected audio")
       console.log(peersRef.current)
@@ -373,7 +373,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         setPeers((users) => {
           const peerIdx = users.findIndex((p) => p === socketId);
           return users.splice(peerIdx, 1)
-        }); 
+        });
       }
       console.log(peersRef.current)
     })
@@ -383,9 +383,9 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
   // new
   useEffect(() => {
     if(!displayStudent) socket.emit("onLecChange", code, roomId);
-    
+
     if(displayStudent) socket.emit("onLecChange", stuCode, roomId);
-    
+
   },[displayStudent]);
 
 
@@ -440,7 +440,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         localAudio.current.srcObject = localStream;
         console.log("done setting local stream");
       }
-      // todo: you many wanna change this 
+      // todo: you many wanna change this
       socket.emit("joined chat", userRoom);
       setCallInprogress(true);
     } else {
@@ -596,14 +596,8 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
                   <Button onClick={run} variant="contained">
                     Run
                   </Button>
-                  <Storage value={code}></Storage>
+                  <Storage code={code} uploadFileFormHandler={uploadFileFormHandler}></Storage>
                 </Stack>
-              </Grid>
-              <Grid item xs={12} alignItems="center">
-                <form className="submit-file" onSubmit={uploadFileFormHandler}>
-                  <input type="file" className="input" />
-                  <button type="submit">Upload</button>
-                </form>
               </Grid>
               <Grid item xs={12}>
                 <CodeExecutionResWidgit

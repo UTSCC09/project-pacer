@@ -42,7 +42,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
   const [language, setLanguage] = useState(() => "javascript");
   // code display and transmission
   // like a cache: keeping this since downloading & uploading the file on each update is very inefficient
-  const [code, setCode] = useState(() => ""); 
+  const [code, setCode] = useState(() => "");
   const [lecCode, setLecCode] = useState(() => "console.log('hello students!');");
   const [flag, setFlag] = useState(() => false);
   // execution
@@ -62,7 +62,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
   const localAudio = useRef();
   const peersRef = useRef([]);
 
-  
+
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
     extensions[0] = javascript({ jsx: true });
@@ -76,7 +76,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
 
   const Audio = ({peer}) => {
     const ref = useRef();
-  
+
     useEffect(() => {
         peer.on("stream", stream => {
             console.log("this is streaming")
@@ -84,7 +84,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
             ref.current.srcObject = stream;
         })
     }, []);
-  
+
     return (
         <audio playsInline autoPlay ref={ref} />
     );
@@ -107,7 +107,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
   // for file uploading (via fb):
   const uploadFileFormHandler = (event) => {
     event.preventDefault();
-    uploadFile(event.target[0].files[0]).then((res) => {
+    uploadFile(event.target.files[0]).then((res) => {
       res.file.text().then((code) => {
         setCode(code);
         setCodePath(res.codePath);
@@ -181,7 +181,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
     );
   };
 
-  
+
   useEffect(() => {
 
     console.log(`from student: roomId ${roomId}`);
@@ -201,7 +201,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
     });
 
     socket.on("teacher join", (tid) => {
-      socket.tid = tid; 
+      socket.tid = tid;
       socket.emit('student join', curUser, roomId);
     });
 
@@ -252,7 +252,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
     if(flag)
       socket.emit("fetch init", code, roomId);
   }, [flag])
-  
+
 
   useEffect(() => {
     if (callSystemInited) {
@@ -447,14 +447,8 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
                   <Button onClick={run} variant="contained">
                     Run
                   </Button>
-                  <Storage value={code}></Storage>
+                  <Storage code={code} uploadFileFormHandler={uploadFileFormHandler}></Storage>
                 </Stack>
-              </Grid>
-              <Grid item xs={12}>
-                <form className="submit-file" onSubmit={uploadFileFormHandler}>
-                  <input type="file" className="input" />
-                  <button type="submit">Upload</button>
-                </form>
               </Grid>
               <Grid item xs={12}>
                 <CodeExecutionResWidgit
