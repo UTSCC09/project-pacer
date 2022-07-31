@@ -64,6 +64,10 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
       setLoadRoomsComplete(true);
     }
     fetchRoomInfo();
+
+    socket.on("room update", () => {
+      fetchRoomInfo();
+    });
   }, []);
 
   React.useEffect(() => {
@@ -85,6 +89,8 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
     const res = await createNewRoom(roomName, socket.id);
     if (res.err) setShowAlert(res.err);
     else {
+      // update room list to all other online users
+      socket.emit("room update");
       setUserRoom(curUser);
       console.log("conCreateNewRoom return item", JSON.stringify(res["res"]["id"]));
       setRoomId(JSON.stringify(res["res"]["id"]));

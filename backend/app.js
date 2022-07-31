@@ -661,6 +661,10 @@ io.on('connection', async (socket) => {
   // const count = io.engine.clientsCount;
   // console.log("[server count]:", count);
 
+  socket.on("room update", () =>{
+    socket.broadcast.emit("room update", "received");
+  })
+
   socket.on("set attributes", (role, curUser, userRoom) => {
     socket.role = role;
     socket.username = curUser;
