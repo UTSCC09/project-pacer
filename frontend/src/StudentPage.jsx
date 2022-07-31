@@ -333,6 +333,8 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
     }
     // todo: you may wanna change this
     socket.emit("joined chat", userRoom);
+    // socket.emit("joined chat", roomId);
+
   };
 
 

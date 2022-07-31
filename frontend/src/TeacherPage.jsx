@@ -425,6 +425,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
       }
       // todo: you many wanna change this 
       socket.emit("joined chat", userRoom);
+      // socket.emit("joined chat", roomId);
       setCallInprogress(true);
     } else {
       console.log("closing call");
