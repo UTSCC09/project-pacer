@@ -719,7 +719,6 @@ io.on('connection', async (socket) => {
     socket.pr = studentId;
   });
 
-
   socket.on("joined chat", (roomId) => {
     const roomIdx = rooms.findIndex(room => String(room.id) === roomId)
     console.log(rooms)
@@ -743,6 +742,27 @@ io.on('connection', async (socket) => {
     console.log(`all users in chat room ${usersInThisRoom}`)
     socket.to(roomId).emit("all users", usersInThisRoom);
   });
+
+  // socket.on("joined chat", (roomId) => {
+  //   const roomID = rooms.findIndex(room => room.id === roomId);
+  //   console.log(`joining room with peers ${rooms[roomID].peers}`);
+  //   if (rooms[roomID].peers) {
+  //     // const length = users[roomID].peers.length;
+  //     // if (length === 4) {
+  //     //     socket.emit("room full");
+  //     //     return;
+  //     // }
+  //     rooms[roomID].peers.push(socket.id);
+  //   } else {
+  //     rooms[roomID].peers = [socket.id];
+  //   }
+  //   const usersInThisRoom = rooms[roomID].peers.filter(
+  //     (id) => id !== socket.id
+  //   );
+    
+  //   console.log(`all users in chat room ${usersInThisRoom}`)
+  //   socket.emit("all users", usersInThisRoom);
+  // });
 
 
   socket.on("sending signal", (payload) => {

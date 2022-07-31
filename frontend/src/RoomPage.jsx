@@ -39,6 +39,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
 
   function logoutHandler() {
     authenticationService.logout();
+    socket.removeAllListeners();
     socket.disconnect();
   }
 

@@ -507,7 +507,9 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
           </Grid>
         </Grid>
       </Box>
-      <StudentRightMenu drawerWidth={drawerWidth} socket={socket} />
+      <StudentRightMenu drawerWidth={drawerWidth} 
+                        socket={socket}
+                        roomId={roomId} />
       <Stack direction="row">
         {LocalAudio}
         {peers.map((peer, index) => {

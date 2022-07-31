@@ -443,7 +443,6 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         localAudio.current.srcObject = localStream;
         console.log("done setting local stream");
       }
-      // todo: you many wanna change this 
       socket.emit("joined chat", String(roomId));
       setCallInprogress(true);
     } else {
@@ -634,6 +633,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         connectedUsers={connectedUsers.filter((user) => user.curUser !== curUser)}
         setConnectedUsers={setConnectedUsers}
         socket={socket}
+        roomId={roomId}
       />
       <Stack direction="row">
         {LocalAudio}
