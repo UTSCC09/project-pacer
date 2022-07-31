@@ -464,7 +464,7 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
     /* a room with specified host already exists */
     return res
       .status(409)
-      .json("room with host" + user.username + " already exists");
+      .json("room with host" + req.session.username + " already exists");
   } else {
     const idx = users.findIndex((x) => x.username === req.session.username);
     const user = users[idx];

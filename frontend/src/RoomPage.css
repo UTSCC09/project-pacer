@@ -6,9 +6,21 @@
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    margin: auto;
 }
+
 
 .room-occupancy-text {
     font-size: 10px;
     text-align: center;
-} 
+    margin: 0 10px 0 10px;
+}
+
+.btn {
+    width: 70%;
+    text-align: center;
+}
+
+.room-btn {
+    border-radius: 6px;
+}
