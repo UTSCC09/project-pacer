@@ -61,6 +61,7 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
   function logoutHandler(){
     authenticationService.logout();
     setConnectedUsers([]);
+    socket.removeAllListeners();
     socket.disconnect();
   }
 
@@ -70,9 +71,6 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
     authenticationService.logout();
     socket.disconnect()
   }
-
-  console.log("from teacher rightMenu all connected user:", connectedUsers);
-
 
   // useEffect(() => {
   //   console.log("current Socket Id:", socket.id)
