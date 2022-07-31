@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import DataSaverOffIcon from "@mui/icons-material/DataSaverOff";
 import DataSaverOnIcon from "@mui/icons-material/DataSaverOn";
+import PeopleIcon from '@mui/icons-material/People';
 import { useNavigate } from "react-router-dom";
 
 function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }) {
@@ -128,7 +129,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
                         display: "flex",
                         flexDirection: "column",
                         justifyContent: "center",
-                        width: "100px"
+                        width: "80px"
                       }}
                       className="room-item"
                     >
@@ -147,7 +148,24 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
                         {room.hasTeacher ? "class in progress" : "waiting"}
                       </p>
                     </Box>
-                    <ListItemText primary={room.roomName} secondary={room.host} sx={{mr: "10px", flexGrow: 2}}/>
+                    <ListItemText primary={"Name: " + room.roomName} secondary={"Host: " + room.host} sx={{mr: "10px", flexGrow: 1}}/>
+                    <Box sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        width: "70px"
+                      }}
+                      className="room-item">
+                      <ListItemIcon
+                        fontSize="large"
+                        sx={{ justifyContent: "center" }}
+                      >
+                        <PeopleIcon />
+                      </ListItemIcon>
+                      <p className="room-occupancy-text">
+                        {room.users.length}
+                      </p>
+                    </Box>
                     <ListItemButton
                       className="room-btn"
                       value={room.host}

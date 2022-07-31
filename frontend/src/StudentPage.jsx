@@ -444,9 +444,10 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
                   justifyContent="center"
                   alignItems="space-evenly"
                 >
+                  {language==="java" ? null : 
                   <Button onClick={run} variant="contained">
                     Run
-                  </Button>
+                  </Button>}
                   <Storage value={code}></Storage>
                 </Stack>
               </Grid>

@@ -541,9 +541,10 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
                 </Grid>
                 <Grid item xs={12}>
                   <Stack spacing={2} direction="row">
-                    <Button onClick={runStuCode} variant="contained">
-                      Run
-                    </Button>
+                  {language==="java" ? null : 
+                  <Button onClick={runStuCode} variant="contained">
+                    Run
+                  </Button>}
                   </Stack>
                 </Grid>
                 <Grid item xs={12}>
@@ -593,9 +594,11 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
                   justifyContent="center"
                   alignItems="space-evenly"
                 >
+                  {language==="java" ? null : 
                   <Button onClick={run} variant="contained">
                     Run
-                  </Button>
+                  </Button>}
+                  
                   <Storage value={code}></Storage>
                 </Stack>
               </Grid>
