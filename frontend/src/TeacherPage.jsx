@@ -11,6 +11,8 @@ import Grid from "@mui/material/Grid";
 import EditorOptionsBar from "./components/EditorOptions";
 import Toolbar from "@mui/material/Toolbar";
 import Stack from "@mui/material/Stack";
+import CallIcon from '@mui/icons-material/Call';
+import CloseIcon from '@mui/icons-material/Close';
 import Storage from "./components/Storage";
 
 import { upperPythonKeys, lowerPythonKeys, javaKeys } from "./_helpers";
@@ -359,24 +361,25 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         console.log(item)
         item.peer.signal(payload.signal);
       });
+
+      socket.on("user disconnected audio", (socketId) => {
+        console.log("user disconnected audio")
+        console.log(peersRef.current)
+        console.log(socketId)
+        const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
+        if (itemIdx >= 0) {
+          peersRef.current[itemIdx].peer.removeAllListeners();
+          peersRef.current[itemIdx].peer.destroy();
+          peersRef.current.splice(itemIdx, 1)
+          setPeers((users) => {
+            const peerIdx = users.findIndex((p) => p === socketId);
+            return users.splice(peerIdx, 1)
+          }); 
+        }
+        console.log(peersRef.current)
+      })
     }
     
-    socket.on("user disconnected audio", (socketId) => {
-      console.log("user disconnected audio")
-      console.log(peersRef.current)
-      console.log(socketId)
-      const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
-      if (itemIdx >= 0) {
-        peersRef.current[itemIdx].peer.removeAllListeners();
-        peersRef.current[itemIdx].peer.destroy();
-        peersRef.current.splice(itemIdx, 1)
-        setPeers((users) => {
-          const peerIdx = users.findIndex((p) => p === socketId);
-          return users.splice(peerIdx, 1)
-        }); 
-      }
-      console.log(peersRef.current)
-    })
   }, [callSystemInited])
 
 
@@ -441,7 +444,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         console.log("done setting local stream");
       }
       // todo: you many wanna change this 
-      socket.emit("joined chat", userRoom);
+      socket.emit("joined chat", String(roomId));
       setCallInprogress(true);
     } else {
       console.log("closing call");
@@ -451,7 +454,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         console.log("done resetting local stream");
       }
       setCallInprogress(false);
-      socket.emit("disconnect audio", userRoom)
+      socket.emit("disconnect audio", String(roomId))
     }
   };
 
@@ -495,6 +498,11 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
     peer.signal(incomingSignal);
 
     return peer;
+  }
+
+  let LocalAudio;
+  if (callStream) {
+    LocalAudio = <audio playsInline muted ref={localAudio} autoPlay />;
   }
 
 
@@ -628,13 +636,13 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         socket={socket}
       />
       <Stack direction="row">
-      <audio playsInline muted ref={localAudio} autoPlay />
+        {LocalAudio}
         {peers.map((peer, index) => {
           return <Audio key={index} peer={peer} />;
         })}
       </Stack>
       <button className="call-button" onClick={() => setupCall()} >
-        {callInprogress ? "Disconnect" : "Call"}
+        {callInprogress ? <CloseIcon fontSize="large"/> : <CallIcon fontSize="large"/>}
       </button>
     </>
   );
