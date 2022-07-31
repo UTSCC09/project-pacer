@@ -203,7 +203,8 @@ function TeacherPage({ socket, curUser, userRoom }) {
         console.log(
           `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
         );
-      } else {
+      // } else if( role === 'student') { // new
+      } else { // new
         setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser, SktId }]);
         console.log(
           `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
@@ -602,6 +603,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
         setDisplayStudent={setDisplayStudent}
         setStudentName={setStudentName}
         connectedUsers={connectedUsers.filter((user) => user.curUser !== curUser)}
+        setConnectedUsers={setConnectedUsers}
         socket={socket}
       />
       <Stack direction="row">
