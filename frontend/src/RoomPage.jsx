@@ -113,7 +113,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
     // console.log(roomInfo);
     return (
       <Box display="flex" className="room-container">
-        <Stack spacing={4}>
+        <Stack spacing={4} sx={{alignItems: "center" }}>
           <p className="title">Rooms</p>
           {showAlert && <Alert variant="filled" severity="error">{showAlert}</Alert>}
           <Box
@@ -123,45 +123,48 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
           >
             <List>
               {roomInfo.map((room, index) => (
-                <ListItem key={room.host} sx={{ backgroundColor: "#ebf1f5" }}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <ListItemIcon
-                      fontSize="large"
-                      sx={{ justifyContent: "center" }}
+                <ListItem key={room.host} sx={{ backgroundColor: "#C6DEFF", my: 2 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        width: "100px"
+                      }}
+                      className="room-item"
                     >
-                      {room.hasTeacher ? (
-                        <DataSaverOnIcon />
-                      ) : (
-                        <DataSaverOffIcon />
-                      )}
-                    </ListItemIcon>
-                    <p className="room-occupancy-text">
-                      {" "}
-                      {room.hasTeacher ? "class in progress" : "waiting"}
-                    </p>
-                  </Box>
-                  <ListItemText primary={room.roomName} secondary={room.host} />
-                  <ListItemButton
-                    value={room.host}
-                    sx={{ backgroundColor: "#30404d", ml: "30px" }}
-                    onClick={() => selectRoom(room.host, room.id)}
-                  >
-                    Join
-                  </ListItemButton>
+                      <ListItemIcon
+                        fontSize="large"
+                        sx={{ justifyContent: "center" }}
+                      >
+                        {room.hasTeacher ? (
+                          <DataSaverOnIcon />
+                        ) : (
+                          <DataSaverOffIcon />
+                        )}
+                      </ListItemIcon>
+                      <p className="room-occupancy-text">
+                        {" "}
+                        {room.hasTeacher ? "class in progress" : "waiting"}
+                      </p>
+                    </Box>
+                    <ListItemText primary={room.roomName} secondary={room.host} sx={{mr: "10px", flexGrow: 2}}/>
+                    <ListItemButton
+                      className="room-btn"
+                      value={room.host}
+                      sx={{ backgroundColor: "#CB6D51", maxWidth: "70px", borderRadius: "8px"}}
+                      onClick={() => selectRoom(room.host, room.id)}
+                    >
+                      Join
+                    </ListItemButton>
                 </ListItem>
               ))}
             </List>
           </Box>
-          <Button variant="contained" onClick={handleToggle}>
+          <Button variant="contained" onClick={handleToggle} className="btn">
             Create New Room
           </Button>
-          <Button variant="contained" onClick={logoutHandler}>
+          <Button variant="contained" onClick={logoutHandler} className="btn">
             Logout
           </Button>
         </Stack>
