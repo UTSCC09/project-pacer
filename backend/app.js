@@ -753,6 +753,20 @@ io.on('connection', async (socket) => {
       id: socket.id,
     });
   })
+
+  socket.on("disconnect audio", (roomHost) => {
+    console.log("disconnect audio")
+    const roomID = rooms.findIndex(room => room.host === roomHost)
+        let peers = rooms[roomID].peers;
+        console.log(`peers: ${peers}`)
+        if (peers) {
+            peers = peers.filter(id => id !== socket.id);
+            rooms[roomID].peers = peers;
+        }
+        peers.forEach((peer) => {
+          socket.to(peer).emit("user disconnected audio", socket.id)
+        })
+  })
     
   socket.on("fetch init", code => {
     socket.to('teacher').emit("fetch init", code, socket.id);

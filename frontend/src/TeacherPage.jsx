@@ -310,15 +310,16 @@ function TeacherPage({ socket, curUser, userRoom }) {
         console.log(users)
         const peers = [];
         users.forEach((userId) => {
-          console.log(`stream is ${callStream}`)
           const peer = createPeer(userId, socket.id, callStream);
+          console.log(peer)
           peersRef.current.push({
             peerID: userId,
             peer,
           });
           peers.push(peer);
         });
-        console.log(`peers are ${peers}`)
+        console.log(peersRef.current)
+        console.log(`peers length is ${peers.length}`)
         setPeers(peers);
       });
 
@@ -343,6 +344,23 @@ function TeacherPage({ socket, curUser, userRoom }) {
         item.peer.signal(payload.signal);
       });
     }
+    
+    socket.on("user disconnected audio", (socketId) => {
+      console.log("user disconnected audio")
+      console.log(peersRef.current)
+      console.log(socketId)
+      const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
+      if (itemIdx >= 0) {
+        peersRef.current[itemIdx].peer.removeAllListeners();
+        peersRef.current[itemIdx].peer.destroy();
+        peersRef.current.splice(itemIdx, 1)
+        setPeers((users) => {
+          const peerIdx = users.findIndex((p) => p === socketId);
+          return users.splice(peerIdx, 1)
+        }); 
+      }
+      console.log(peersRef.current)
+    })
   }, [callSystemInited])
 
 
@@ -410,8 +428,13 @@ function TeacherPage({ socket, curUser, userRoom }) {
       setCallInprogress(true);
     } else {
       console.log("closing call");
-      
+      setCallStream(null);
+      if (localAudio.current) {
+        localAudio.current.srcObject = null;
+        console.log("done resetting local stream");
+      }
       setCallInprogress(false);
+      socket.emit("disconnect audio", userRoom)
     }
   };
 
@@ -429,6 +452,11 @@ function TeacherPage({ socket, curUser, userRoom }) {
       );
       socket.emit("sending signal", { userTarget, callerID, signal });
     });
+
+    peer.on('close', () => {
+      console.log("initiator closed")
+    })
+
     return peer;
   }
 
@@ -442,6 +470,11 @@ function TeacherPage({ socket, curUser, userRoom }) {
     peer.on("signal", (signal) => {
       socket.emit("returning signal", { signal, callerID });
     });
+
+    peer.on('close', () => {
+      console.log("new peer closed")
+    })
+
     peer.signal(incomingSignal);
 
     return peer;
