@@ -589,6 +589,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         connectedUsers={connectedUsers.filter((user) => user.curUser !== curUser)}
         setConnectedUsers={setConnectedUsers}
         socket={socket}
+        roomId={roomId}
       />
       <Stack direction="row">
       <audio playsInline muted ref={localAudio} autoPlay />

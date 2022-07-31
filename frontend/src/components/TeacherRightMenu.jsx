@@ -22,15 +22,14 @@ function getConnectedStudents() {
 }
 
 
-function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, connectedUsers, setConnectedUsers, socket }) {
+function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, connectedUsers, setConnectedUsers, socket, roomId }) {
   const [notificationToggle, setNotificationToggle] = React.useState(() => null);
   const [helpMsg, setHelpMsg] = React.useState(() => "default msg");
 
   React.useEffect(() => {
     // todo-kw: revisit
-    if (socket){
+    // if (socket){
       socket.on("help request", (stuId, username) => {
-        // todo: data for help request implementation
         console.log(
           `[TeacherPage - help request] student [${username}] need help; student socket id: ${stuId} `
         );
@@ -38,7 +37,7 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
         setHelpMsg(oldmsg => msg)
         setNotificationToggle(oldState => !oldState)
       });
-    }
+    // }
   }, [])
 
   function loadStudentSession(studentName, studentCurSocket) {
