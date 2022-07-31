@@ -184,6 +184,8 @@ function StudentPage({ socket, curUser, userRoom }) {
   
   useEffect(() => {
     // if(!socket.id) socket.connect()
+    socket.role = 'student';
+    socket.username = curUser;
     socket.emit("set attributes", "student", curUser);
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
