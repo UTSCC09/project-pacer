@@ -53,6 +53,7 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
     connectedUsers.forEach(e => {
       res[e.SktId] = defaultState
     });
+    console.log(res)
     return res
   });
   // const [isTriggered, setIsTriggered] = React.useState(() => "")

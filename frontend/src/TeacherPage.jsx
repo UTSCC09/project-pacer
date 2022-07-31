@@ -515,21 +515,19 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         }}
       >
         <Toolbar />
-        <Grid container spacing={2} sx={{maxWidth: "100%"}} zeroMinWidth>
+        <Grid container spacing={2} sx={{maxWidth: "100%"}}>
           {displayStudent ? (
             <Grid item xs={6}>
               <Stack
               direction="column"
-              rowSpacing={4}
-              columnSpacing={3}
+              spacing={2}
               sx={{maxWidth: "100%"}}
-              zeroMinWidth
             >
                 <Grid item xs={12}>
                   <p>Code session for student {studentName}:</p>
                 </Grid>
                 {/* server display */}
-                <Grid item xs={12} sx={{maxWidth: "100%"}} zeroMinWidth>
+                <Grid item xs={12} sx={{maxWidth: "100%"}}>
                   <div>
                     <CodeMirror
                       value={stuCode}
@@ -559,13 +557,11 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
             </Grid>
           ) : null}
 
-          <Grid item xs={displayStudent ? 6 : 12} sx={{maxWidth: "100%"}} zeroMinWidth>
+          <Grid item xs={displayStudent ? 6 : 12} sx={{maxWidth: "100%"}}>
             <Stack
               direction="column"
-              rowSpacing={4}
-              columnSpacing={3}
+              spacing={2}
               sx={{maxWidth: "100%"}}
-              zeroMinWidth
             >
               <Grid item xs={12}>
                 <EditorOptionsBar
@@ -576,7 +572,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
               <Grid item xs={12}>
                 <p>Client Screen (local):</p>
               </Grid>
-              <Grid item xs={12} sx={{maxWidth: "100%"}} zeroMinWidth>
+              <Grid item xs={12} sx={{maxWidth: "100%"}}>
                 {/* client display */}
                 <div>
                   <CodeMirror

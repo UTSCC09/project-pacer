@@ -391,10 +391,8 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
           <Grid item xs={6}>
           <Stack
               direction="column"
-              rowSpacing={4}
-              columnSpacing={3}
+              spacing={2}
               sx={{maxWidth: "100%"}}
-              zeroMinWidth
             >
               <Grid item xs={12}>
                 <p>Server Screen (remote):</p>
@@ -416,10 +414,8 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
           <Grid item xs={6}>
             <Stack
               direction="column"
-              rowSpacing={4}
-              columnSpacing={3}
+              spacing={2}
               sx={{maxWidth: "100%"}}
-              zeroMinWidth
             >
               <Grid item xs={12}>
                 <EditorOptionsBar
