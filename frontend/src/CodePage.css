@@ -26,3 +26,8 @@
 .call-button:not(:first-child) {
   margin-top: 10px;
 }
+
+.submit-file {
+  margin: auto;
+    max-width: 60%;
+}

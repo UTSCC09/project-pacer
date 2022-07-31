@@ -33,7 +33,6 @@ import "./CodePage.css";
 // for file up/downloading (via fb):
 import { storage } from "./_components/FireBase";
 import { ref, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
-import { display } from "@mui/system";
 
 const drawerWidth = 200;
 // for cloud sync (via fb) [experimental - TODO]:
@@ -495,32 +494,35 @@ function TeacherPage({ socket, curUser, userRoom }) {
           flexGrow: 1,
           p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
+          maxWidth: `calc(100% - ${drawerWidth}px)`
         }}
       >
         <Toolbar />
-        <Grid container spacing={2}>
+        <Grid container spacing={2} sx={{maxWidth: "100%"}} zeroMinWidth>
           {displayStudent ? (
             <Grid item xs={6}>
-              <Grid
-                container
-                direction="column"
-                alignItems="stretch"
-                rowSpacing={1}
-                columnSpacing={3}
-              >
+              <Stack
+              direction="column"
+              rowSpacing={4}
+              columnSpacing={3}
+              sx={{maxWidth: "100%"}}
+              zeroMinWidth
+            >
                 <Grid item xs={12}>
                   <p>Code session for student {studentName}:</p>
                 </Grid>
                 {/* server display */}
-                <Grid item xs={12}>
-                  <CodeMirror
-                    value={stuCode}
-                    height="600px"
-                    theme="dark"
-                    extensions={extensions}
-                    onChange={onStuChange}
-                    hint="true"
-                  />
+                <Grid item xs={12} sx={{maxWidth: "100%"}} zeroMinWidth>
+                  <div>
+                    <CodeMirror
+                      value={stuCode}
+                      height="600px"
+                      theme="dark"
+                      extensions={extensions}
+                      onChange={onStuChange}
+                      hint="true"
+                    />
+                  </div>
                 </Grid>
                 <Grid item xs={12}>
                   <Stack spacing={2} direction="row">
@@ -536,17 +538,17 @@ function TeacherPage({ socket, curUser, userRoom }) {
                     clear={clearStuExecutionRes}
                   />
                 </Grid>
-              </Grid>
+              </Stack>
             </Grid>
           ) : null}
 
-          <Grid item xs={displayStudent ? 6 : 12}>
-            <Grid
-              container
+          <Grid item xs={displayStudent ? 6 : 12} sx={{maxWidth: "100%"}} zeroMinWidth>
+            <Stack
               direction="column"
-              alignItems="stretch"
               rowSpacing={4}
               columnSpacing={3}
+              sx={{maxWidth: "100%"}}
+              zeroMinWidth
             >
               <Grid item xs={12}>
                 <EditorOptionsBar
@@ -557,16 +559,19 @@ function TeacherPage({ socket, curUser, userRoom }) {
               <Grid item xs={12}>
                 <p>Client Screen (local):</p>
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} sx={{maxWidth: "100%"}} zeroMinWidth>
                 {/* client display */}
-                <CodeMirror
-                  value={code}
-                  height="600px"
-                  theme="dark"
-                  extensions={extensions}
-                  onChange={onChange}
-                  hint="true"
-                />
+                <div>
+                  <CodeMirror
+                    value={code}
+                    height="600px"
+                    theme="dark"
+                    extensions={extensions}
+                    onChange={onChange}
+                    hint="true"
+                    className="code-editor"
+                  />
+                </div>
               </Grid>
               <Grid item xs={12}>
                 <Stack
@@ -581,8 +586,8 @@ function TeacherPage({ socket, curUser, userRoom }) {
                   <Storage value={code}></Storage>
                 </Stack>
               </Grid>
-              <Grid item xs={12}>
-                <form onSubmit={uploadFileFormHandler}>
+              <Grid item xs={12} alignItems="center">
+                <form className="submit-file" onSubmit={uploadFileFormHandler}>
                   <input type="file" className="input" />
                   <button type="submit">Upload</button>
                 </form>
@@ -594,7 +599,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
                   clear={clearExecutionRes}
                 />
               </Grid>
-            </Grid>
+            </Stack>
           </Grid>
         </Grid>
       </Box>
@@ -612,7 +617,7 @@ function TeacherPage({ socket, curUser, userRoom }) {
           return <Audio key={index} peer={peer} />;
         })}
       </Stack>
-      <button className="call-button" onClick={() => setupCall()}>
+      <button className="call-button" onClick={() => setupCall()} >
         {callInprogress ? "Disconnect" : "Call"}
       </button>
     </>

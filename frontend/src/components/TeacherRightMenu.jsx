@@ -17,10 +17,6 @@ import { authenticationService, socket } from "../_services";
 import React, { useEffect } from 'react';
 import Notifications from './Notifications';
 
-function getConnectedStudents() {
-    return ["Student1", "Student2", "Student3", "Student4"]
-}
-
 const CustomEntry = styled(ListItem)({
   backgroundColor: 'var(--color)',
   '& .MuiSlider-thumb': {
@@ -59,6 +55,24 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
     });
     return res
   });
+  // const [isTriggered, setIsTriggered] = React.useState(() => "")
+
+  // React.useEffect(() => {
+  //   let timer = null
+  //   if (isTriggered) {
+  //     timer = setTimeout(() => {
+  //       setUserState((next) => {
+  //         if (next[isTriggered] === requestingHelpState) {
+  //           next[isTriggered] = defaultState
+  //           console.log("triggered")
+  //           return next
+  //         }
+  //       })
+  //       setIsTriggered(false)
+  //     })
+  //   }
+  //   return () => clearTimeout(timer);
+  // }, [isTriggered])
 
 
   React.useEffect(() => {
@@ -73,7 +87,7 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
           if (existing[stuId] !== connectedState) {
             existing[stuId] = requestingHelpState
             console.log(existing)
-            setTimeout( existing[stuId] = defaultState, 3000 );
+            // setIsTriggered(stuId)
           }
           return existing
         });
