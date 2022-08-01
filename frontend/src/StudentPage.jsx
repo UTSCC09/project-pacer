@@ -39,6 +39,7 @@ const drawerWidth = 200;
 let t = 0; // ns
 
 function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
+  console.log(socket.id)
   // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
   // code display and transmission
@@ -342,6 +343,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     socket.on("disconnection broadcast", (SktId, role, curUser, curSid) => {
       if (role === 'teacher') socket.tid = "";
       const itemIdx = peersRef.current.findIndex((p) => p.peerID === SktId);
+      console.log(itemIdx)
         if (itemIdx >= 0) {
           peersRef.current[itemIdx].peer.removeAllListeners();
           peersRef.current[itemIdx].peer.destroy();
@@ -351,6 +353,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
             return users.splice(peerIdx, 1)
           });
         } 
+      console.log(peersRef.current)
       console.log(`disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`);
     });
 
@@ -427,17 +430,21 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   useEffect(() => {
     if (callSystemInited) {
       console.log("initing call system")
+      console.log(socket.id)
       socket.on("all users", (users) => {
-        console.log(users)
         const peers = [];
         users.forEach((userId) => {
           console.log(`stream is ${callStream}`)
-          const peer = createPeer(userId, socket.id, callStream);
-          peersRef.current.push({
-            peerID: userId,
-            peer,
-          });
+          if (userId !== socket.id) {
+            const peer = createPeer(userId, socket.id, callStream);
+            peersRef.current.push({
+              peerID: userId,
+              peer,
+            });
           peers.push(peer);
+          console.log(userId)
+          }
+            
         });
         console.log(`peers are ${peers}`)
         setPeers(peers);

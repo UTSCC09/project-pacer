@@ -477,6 +477,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
   useEffect(() => {
     if (callSystemInited) {
       console.log("initing call system")
+      console.log(socket.id)
       socket.on("all users", (users) => {
         console.log(users)
         const peers = [];

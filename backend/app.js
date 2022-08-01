@@ -695,7 +695,9 @@ io.on('connection', async (socket) => {
       );
       
       console.log(`all users in chat room ${usersInThisRoom}`)
-      socket.emit("all users", usersInThisRoom);
+      console.log(usersInThisRoom)
+      // usersInThisRoom.forEach((userSocket) => socket.to(userSocket).emit("all users", usersInThisRoom))
+      io.to(roomId).emit("all users", usersInThisRoom)
     }
   });
 
