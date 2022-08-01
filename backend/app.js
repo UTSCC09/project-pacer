@@ -7,7 +7,6 @@ const session = require("express-session");
 let RedisStore = require("connect-redis")(session);
 const { body, validationResult } = require("express-validator");
 
-
 const firebaseConfig = {
   apiKey: "AIzaSyAtUPhMKwJxUDwQUPezFsojNPMn0gUkkoA",
   authDomain: "pacer-firebase-react-storage.firebaseapp.com",
@@ -18,15 +17,12 @@ const firebaseConfig = {
 };
 const { initializeApp } = require("firebase/app");
 const firebaseApp = initializeApp(firebaseConfig);
-const {
-  getFirestore,
-  collection,
-  getDocs,
-  addDoc,
-  updateDoc,
-  doc,
-} = require("firebase/firestore");
+const { getFirestore, collection, getDocs, addDoc, updateDoc, doc } = require("firebase/firestore");
 const fbfsdb = getFirestore(firebaseApp);
+
+/*
+see TODOO for FB TODOS
+*/
 
 // const { createClient } = require("redis")
 // let redisClient = createClient({ legacyMode: true })
@@ -166,47 +162,47 @@ app.get("/api/whoami", function (req, res) {
   console.log(`load user session is : ${req.session.username}`);
   const userName = req.session.username;
   if (!userName) return res.json(null);
-  // BEFORE FB:
-  const user = users.find((x) => x.username === userName);
-  console.log(user)
-  return res.json({
-    id: user.id,
-    username: user.username,
-    role: user.role,
-    roomHost: user.roomHost,
-  });
-  // /// AFTER FB:
-  // const collectionRef = collection(fbfsdb, "users");
-  // // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
-  // getDocs(collectionRef).then((snapshot) => {
-  //   let matchFound = 0;
-  //   let matchsRole = "";
-  //   let matchsId = -1;
-  //   let matchsRoomHost = "";
-  //   snapshot.docs.forEach((doc) => {
-  //     if (doc.data().username == userName) {
-  //       // MATCH FOUND:
-  //       matchFound = 1;
-  //       matchsRole = doc.data().role;
-  //       matchsId = doc.data().id;
-  //       matchsRoomHost = doc.data().roomHost;
-  //     }
-  //   });
-  //   if (matchFound) {
-  //     // MATCH FOUND:
-  //     return res.json({
-  //       id: matchsId,
-  //       username: userName,
-  //       role: matchsRole,
-  //       roomHost: matchsRoomHost,
-  //     });
-  //   } else {
-  //     // NO MATCH FOUND:
-  //     return res.status(404).json("user: " + userName + " doesn't exist");
-  //   }
-  // }).catch(err => {
-  //   return res.status(500).json(err.message);
+  // /// BEFORE FB:
+  // const user = users.find((x) => x.username === userName);
+  // console.log(user)
+  // return res.json({
+  //   id: user.id,
+  //   username: user.username,
+  //   role: user.role,
+  //   roomHost: user.roomHost,
   // });
+  /// AFTER FB:
+  const collectionRef = collection(fbfsdb, "users");
+  // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
+  getDocs(collectionRef).then((snapshot) => {
+    let matchFound = 0;
+    let matchsRole = "";
+    let matchsId = -1;
+    let matchsRoomHost = "";
+    snapshot.docs.forEach((doc) => {
+      if (matchFound == 0 && doc.data().username === userName) {
+        // MATCH FOUND:
+        matchFound = 1;
+        matchsRole = doc.data().role;
+        matchsId = doc.data().id;
+        matchsRoomHost = doc.data().roomHost;
+      }
+    });
+    if (matchFound) {
+      // MATCH FOUND:
+      return res.json({
+        id: matchsId,
+        username: userName,
+        role: matchsRole,
+        roomHost: matchsRoomHost,
+      });
+    } else {
+      // NO MATCH FOUND:
+      return res.status(404).json("user: " + userName + " doesn't exist");
+    }
+  }).catch((err) => {
+    return res.status(500).json(err.message);
+  });
 });
 
 app.patch(
@@ -236,7 +232,7 @@ app.patch(
         let matchFound = 0;
         let docId = "";
         snapshot.docs.forEach((doc) => {
-          if (doc.data().username == username) {
+          if (matchFound == 0 && doc.data().username === username) {
             // MATCH FOUND:
             matchFound = 1;
             docId = doc.id;
@@ -289,74 +285,74 @@ app.post(
     const username = req.body.username;
     const password = req.body.password;
     const role = req.body.role;
-    // BEFORE FB:
-    const user = users.find((x) => x.username === username);
-    if (!user) return res.status(401).json("invalid credentials");
-    if (user && user.role !== role)
-      return res.status(401).json("Incorrect role selected");
-    bcrypt.compare(password, user.password, function (err, result) {
-      if (err) return res.status(500).json(err);
-      if (!result) {
-        return res.status(401).json("invalid credentials");
-      }
-      req.session.username = username;
-      req.session.role = role;
-      console.log(`session is : ${req.session.username}`);
-      return res.json({
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        roomHost: user.roomHost,
-      });
-    });
-    // /// AFTER FB:
-    // const collectionRef = collection(fbfsdb, "users");
-    // // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
-    // getDocs(collectionRef).then((snapshot) => {
-    //   let matchFound = 0;
-    //   let matchsRole = "";
-    //   let matchsPassword = "";
-    //   let matchsRoomHost = "";
-    //   let matchsId = -1;
-    //   snapshot.docs.forEach((doc) => {
-    //     if (doc.data().username == username) {
-    //       // MATCH FOUND 1/3:
-    //       matchFound = 1;
-    //       matchsRole = doc.data().role;
-    //       matchsPassword = doc.data().password;
-    //       matchsId = doc.data().id;
-    //       matchsRoomHost = doc.data().roomHost;
-    //     }
-    //   });
-    //   if (matchFound) {
-    //     // MATCH FOUND 2/3:
-    //     if (matchsRole == role) {
-    //       // MATCH FOUND 3/3:
-    //       bcrypt.compare(password, matchsPassword, function (err, result) {
-    //         if (err) return res.status(500).json(err);
-    //         if (!result) {
-    //           return res.status(401).json("invalid credentials");
-    //         }
-    //         req.session.username = username;
-    //         req.session.role = role;
-    //         console.log(`session is : ${req.session.username}`);
-    //         return res.json({
-    //           id: matchsId,
-    //           username: username,
-    //           role: matchsRole,
-    //           roomHost: matchsRoomHost
-    //         });
-    //       });
-    //     } else {
-    //       return res.status(401).json('Incorrect role selected');
-    //     }
-    //   } else {
-    //     // NO MATCH FOUND:
+    // /// BEFORE FB:
+    // const user = users.find((x) => x.username === username);
+    // if (!user) return res.status(401).json("invalid credentials");
+    // if (user && user.role !== role)
+    //   return res.status(401).json("Incorrect role selected");
+    // bcrypt.compare(password, user.password, function (err, result) {
+    //   if (err) return res.status(500).json(err);
+    //   if (!result) {
     //     return res.status(401).json("invalid credentials");
     //   }
-    // }).catch(err => {
-    //   return res.status(500).json(err.message);
+    //   req.session.username = username;
+    //   req.session.role = role;
+    //   console.log(`session is : ${req.session.username}`);
+    //   return res.json({
+    //     id: user.id,
+    //     username: user.username,
+    //     role: user.role,
+    //     roomHost: user.roomHost,
+    //   });
     // });
+    /// AFTER FB:
+    const collectionRef = collection(fbfsdb, "users");
+    // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
+    getDocs(collectionRef).then((snapshot) => {
+      let matchFound = 0;
+      let matchsRole = "";
+      let matchsPassword = "";
+      let matchsRoomHost = "";
+      let matchsId = -1;
+      snapshot.docs.forEach((doc) => {
+        if (matchFound == 0 && doc.data().username === username) {
+          // MATCH FOUND 1/3:
+          matchFound = 1;
+          matchsRole = doc.data().role;
+          matchsPassword = doc.data().password;
+          matchsId = doc.data().id;
+          matchsRoomHost = doc.data().roomHost;
+        }
+      });
+      if (matchFound) {
+        // MATCH FOUND 2/3:
+        if (matchsRole == role) {
+          // MATCH FOUND 3/3:
+          bcrypt.compare(password, matchsPassword, function (err, result) {
+            if (err) return res.status(500).json(err);
+            if (!result) {
+              return res.status(401).json("invalid credentials");
+            }
+            req.session.username = username;
+            req.session.role = role;
+            console.log(`session is : ${req.session.username}`);
+            return res.json({
+              id: matchsId,
+              username: username,
+              role: matchsRole,
+              roomHost: matchsRoomHost
+            });
+          });
+        } else {
+          return res.status(401).json('Incorrect role selected');
+        }
+      } else {
+        // NO MATCH FOUND:
+        return res.status(401).json("invalid credentials");
+      }
+    }).catch((error) => {
+      return res.status(500).json(error.message);
+    });
   }
 );
 
@@ -391,65 +387,65 @@ app.post(
     const role = req.body.role;
     bcrypt.hash(password, saltRounds, function (err, hash) {
       if (err) return res.status(500).json(err);
-      // BEFORE FB:
-      const user = users.find((x) => x.username === username);
-      if (user)
-        return res.status(409).json("username " + username + " already exists");
-      const newUser = {
-        id: 0,
-        username: username,
-        password: hash,
-        role: role,
-        roomHost: null,
-      };
-      users.push(newUser);
-      req.session.username = username;
-      req.session.role = role;
-      console.log(`session is : ${req.session.username}`);
-      return res.json({
-        id: 0,
-        username: username,
-        role: role,
-        roomHost: null,
-      });
-      // // AFTER FB:
-      // const collectionRef = collection(fbfsdb, "users");
-      // // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
-      // getDocs(collectionRef).then((snapshot) => {
-      //   let matchFound = 0;
-      //   snapshot.docs.forEach((doc) => {
-      //     if (doc.data().username == username) {
-      //       // MATCH FOUND:
-      //       matchFound = 1;
-      //     }
-      //   });
-      //   if (matchFound) {
-      //     // MATCH FOUND:
-      //     return res.status(409).json("username " + username + " already exists");
-      //   } else {
-      //     // NO MATCH FOUND:
-      //     addDoc(collectionRef, {
-      //       id: 0,
-      //       username: username,
-      //       password: hash,
-      //       role: role,
-      //       roomHost: null
-      //     }).then(() => {
-      //       req.session.username = username;
-      //       req.session.role = role;
-      //       console.log(`session is : ${req.session.username}`);
-      //       console.log("here");
-      //       return res.json({
-      //         id: 0,
-      //         username: username,
-      //         role: role,
-      //         roomHost: null
-      //       });
-      //     });
-      //   }
-      // }).catch(err => {
-      //   return res.status(500).json(err.message);
+      // /// BEFORE FB:
+      // const user = users.find((x) => x.username === username);
+      // if (user)
+      //   return res.status(409).json("username " + username + " already exists");
+      // const newUser = {
+      //   id: 0,
+      //   username: username,
+      //   password: hash,
+      //   role: role,
+      //   roomHost: null,
+      // };
+      // users.push(newUser);
+      // req.session.username = username;
+      // req.session.role = role;
+      // console.log(`session is : ${req.session.username}`);
+      // return res.json({
+      //   id: 0,
+      //   username: username,
+      //   role: role,
+      //   roomHost: null,
       // });
+      /// AFTER FB:
+      const collectionRef = collection(fbfsdb, "users");
+      // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
+      getDocs(collectionRef).then((snapshot) => {
+        let matchFound = 0;
+        snapshot.docs.forEach((doc) => {
+          if (matchFound == 0 && doc.data().username === username) {
+            // MATCH FOUND:
+            matchFound = 1;
+          }
+        });
+        if (matchFound) {
+          // MATCH FOUND:
+          return res.status(409).json("username " + username + " already exists");
+        } else {
+          // NO MATCH FOUND:
+          addDoc(collectionRef, {
+            id: 0,
+            username: username,
+            password: hash,
+            role: role,
+            roomHost: null
+          }).then(() => {
+            req.session.username = username;
+            req.session.role = role;
+            console.log(`session is : ${req.session.username}`);
+            console.log("here");
+            return res.json({
+              id: 0,
+              username: username,
+              role: role,
+              roomHost: null
+            });
+          });
+        }
+      }).catch((errr) => {
+        return res.status(500).json(errr.message);
+      });
     });
   }
 );
@@ -467,6 +463,7 @@ app.post("/api/signout/", function (req, res) {
 });
 
 
+// TODOO: integrate 'rooms' collection:
 app.post("/api/rooms/", isAuthenticated, function (req, res) {
   console.log("hit post room info endpoint");
   if (rooms.filter((room) => room.host === req.session.username).length > 0) {
@@ -475,24 +472,65 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
       .status(409)
       .json("room with host" + req.session.username + " already exists");
   } else {
-    const idx = users.findIndex((x) => x.username === req.session.username);
-    const user = users[idx];
-    console.log("setting");
-    console.log(req.body.socketId);
-    const socketId = req.body.socketId;
-    // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
-    const room = new NewRoom(req.body.roomName, req.session.username, user.role === Role.Admin);
-    const userInfo = {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      roomHost: user.roomHost,
-      socketId,
-    };
-    room.users.push(userInfo)
-    users[idx].roomHost = room.id;
-    rooms.push(room);
-    return res.json(room);
+    // /// BEFORE FB:
+    // const idx = users.findIndex((x) => x.username === req.session.username);
+    // const user = users[idx];
+    // console.log("setting");
+    // console.log(req.body.socketId);
+    // const socketId = req.body.socketId;
+    // // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
+    // const room = new NewRoom(req.body.roomName, req.session.username, user.role === Role.Admin);
+    // const userInfo = {
+    //   id: user.id,
+    //   username: user.username,
+    //   role: user.role,
+    //   roomHost: user.roomHost,
+    //   socketId,
+    // };
+    // room.users.push(userInfo)
+    // users[idx].roomHost = room.id;
+    // rooms.push(room);
+    // return res.json(room);
+    /// AFTER FB:
+    const collectionRef = collection(fbfsdb, "users");
+    // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
+    getDocs(collectionRef).then((snapshot) => {
+      let matchFound = 0;
+      let docId = "";
+      let user = {};
+      let socketId = -1;
+      snapshot.docs.forEach((dc) => {
+        if (matchFound == 0 && dc.data().username === req.session.username) {
+          matchFound = 1;
+          docId = dc.id;
+          user = dc.data();
+          socketId = req.body.socketId;
+          // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
+          const room = new NewRoom(req.body.roomName, req.session.username, user.role === Role.Admin);
+          const userInfo = {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            roomHost: user.roomHost,
+            socketId,
+          };
+          room.users.push(userInfo);
+          // update the user's roomHost (via fb):
+          const documentRef = doc(fbfsdb, "users", docId);
+          updateDoc(documentRef, {
+            roomHost: room.id
+          }).then(() => {
+            rooms.push(room); // TODOO: this should be an additional query on a 'rooms' collection (NOTE: this query's occurance depends on the success of the roomHost update via updateDoc)
+            return res.json(room);
+          }).catch((err) => {
+            return res.status(500).json(err.message);
+          });
+        }
+      });
+      //return res.status(404);
+    }).catch((error) => {
+      return res.status(500).json(error.message);
+    });
   }
 });
 
@@ -505,6 +543,8 @@ app.get("/api/rooms/", isAuthenticated, function (req, res) {
   return res.json(rooms);
 });
 
+
+// TODOO: integrate 'rooms' collection:
 app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
   console.log("hit update room info endpoint");
   /* a room with specified host already exists */
@@ -535,64 +575,195 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
   if (!rooms[room_idx].hasTeacher && req.session.role === "Admin") {
     rooms[room_idx].hasTeacher = true
   }
-  const idx = users.findIndex((x) => x.username === req.session.username);
-  const user = users[idx];
-  console.log("getting");
-  try {
-    // let socketId = await redisClient.get(user.username)
-    // if (!socketId) {
-    //   console.log("failed")
-    const socketId = req.body.socketId;
-    // console.log(socketId)
-    // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
-    // }
-    users[idx].roomHost = rooms[room_idx].id;
-    const userInfo = {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      roomHost: rooms[room_idx].host,
-      socketId,
-    };
-    rooms[room_idx].users.push(userInfo);
-    console.log(rooms);
-    return res.json(rooms[room_idx]);
-  } catch (err) {
-    return res.status(500).json(err);
-  }
+  // /// BEFORE FB:
+  // const idx = users.findIndex((x) => x.username === req.session.username);
+  // const user = users[idx];
+  // console.log("getting");
+  // try {
+  //   // let socketId = await redisClient.get(user.username)
+  //   // if (!socketId) {
+  //   //   console.log("failed")
+  //   const socketId = req.body.socketId;
+  //   // console.log(socketId)
+  //   // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
+  //   // }
+  //   users[idx].roomHost = rooms[room_idx].id;
+  //   const userInfo = {
+  //     id: user.id,
+  //     username: user.username,
+  //     role: user.role,
+  //     roomHost: rooms[room_idx].host,
+  //     socketId,
+  //   };
+  //   rooms[room_idx].users.push(userInfo);
+  //   console.log(rooms);
+  //   return res.json(rooms[room_idx]);
+  // } catch (err) {
+  //   return res.status(500).json(err);
+  // }
+  /// AFTER FB:
+  const collectionRef = collection(fbfsdb, "users");
+  // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
+  getDocs(collectionRef).then((snapshot) => {
+    let matchFound = 0;
+    let docId = "";
+    let user = {};
+    let socketId = -1;
+    snapshot.docs.forEach((dc) => {
+      if (matchFound == 0 && dc.data().username === req.session.username) {
+        matchFound = 1;
+        docId = dc.id;
+        user = dc.data();
+        socketId = req.body.socketId;
+        // update the user's roomHost (via fb):
+        const documentRef = doc(fbfsdb, "users", docId);
+        updateDoc(documentRef, {
+          roomHost: rooms[room_idx].id
+        }).then(() => {
+          const userInfo = {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            roomHost: rooms[room_idx].host,
+            socketId,
+          };
+          rooms[room_idx].users.push(userInfo); // TODOO: this should be an additional query on a 'rooms' collection
+          return res.json(rooms[room_idx]);
+        }).catch((err) => {
+          return res.status(500).json(err.message);
+        });
+      }
+    });
+    //return res.status(404);
+  }).catch((error) => {
+    return res.status(500).json(error.message);
+  });
 });
 
 
+// TODOO: integrate 'rooms' collection:
 function deleteUserFromRoom(username) {
   console.log("deleting user " + username + " from rooms");
-  const idx = users.findIndex((x) => x.username === username);
-  let room_id = null;
-  let isAdmin = false;
-  if (idx >= 0) {
-    console.log(`from deleteUser - idx`);
-    room_id = users[idx].roomHost;
-    users[idx].roomHost = null;
-    isAdmin = users[idx].role === "Admin";
-  }
-  if (room_id) {
-    console.log(`from deleteUser - room_id`);
-    const room_idx = rooms.findIndex((room) => room.id === room_id);
-    if (room_idx >= 0) {
-      console.log(room_idx);
-      const roomUsers = rooms[room_idx].users;
-      const roomUserIdx = roomUsers.findIndex((x) => x.username === username);
-      if (roomUserIdx >= 0) {
-        rooms[room_idx].users.splice(roomUserIdx, 1);
-        if (isAdmin) {
-          rooms[room_idx].hasTeacher = false;
-        }
+  // /// BEFORE FB:
+  // const idx = users.findIndex((x) => x.username === username);
+  // let room_id = null;
+  // let isAdmin = false;
+  // if (idx >= 0) {
+  //   console.log(`from deleteUser - idx`);
+  //   room_id = users[idx].roomHost;
+  //   users[idx].roomHost = null;
+  //   isAdmin = users[idx].role === "Admin";
+  // }
+  // if (room_id) {
+  //   console.log(`from deleteUser - room_id`);
+  //   const room_idx = rooms.findIndex((room) => room.id === room_id);
+  //   if (room_idx >= 0) {
+  //     console.log(room_idx);
+  //     const roomUsers = rooms[room_idx].users;
+  //     const roomUserIdx = roomUsers.findIndex((x) => x.username === username);
+  //     if (roomUserIdx >= 0) {
+  //       rooms[room_idx].users.splice(roomUserIdx, 1);
+  //       if (isAdmin) {
+  //         rooms[room_idx].hasTeacher = false;
+  //       }
+  //     }
+  //     if (rooms[room_idx].users.length === 0) {
+  //       rooms.splice(room_idx, 1);
+  //     }
+  //     console.log(`deleteUserFromRoom running result: ${rooms}`);
+  //   }
+  // }
+  /// AFTER FB:
+  const collectionRef = collection(fbfsdb, "users");
+  // NOTE: there needs to be at least 1 document in the collection 'users' for the following to work:
+  getDocs(collectionRef).then((snapshot) => {
+    let matchFound = 0;
+    let docId = "";
+    let user = {};
+    let room_id = null;
+    let isAdmin = false;
+    snapshot.docs.forEach((dc) => {
+      if (matchFound == 0 && dc.data().username === username) {
+        matchFound = 1;
+        docId = dc.id;
+        user = dc.data();
+        room_id = user.roomHost;
+        isAdmin = user.role === "Admin";
+        // update the user's roomHost (via fb):
+        const documentRef = doc(fbfsdb, "users", docId);
+        updateDoc(documentRef, {
+          roomHost: null
+        }).then(() => {
+          if (room_id) {
+
+
+
+             // TODOO: this should be an additional query on a 'rooms' collection:
+            const room_idx = rooms.findIndex((room) => room.id === room_id);
+            if (room_idx >= 0) {
+              const roomUsers = rooms[room_idx].users;
+              const roomUserIdx = roomUsers.findIndex((x) => x.username === username);
+              if (roomUserIdx >= 0) {
+                rooms[room_idx].users.splice(roomUserIdx, 1);
+                if (isAdmin) {
+                  rooms[room_idx].hasTeacher = false;
+                }
+              }
+              if (rooms[room_idx].users.length === 0) {
+                rooms.splice(room_idx, 1);
+              }
+            }
+
+
+
+          }
+        }).catch((err) => {
+          return err.message;
+        });
       }
-      if (rooms[room_idx].users.length === 0) {
-        rooms.splice(room_idx, 1);
-      }
-      console.log(`deleteUserFromRoom running result: ${rooms}`);
-    }
-  }
+    });
+    //return 'deleteUserFromRoom error';
+  }).catch((error) => {
+    return error.message;
+  });
+
+
+
+
+
+  // //const idx = users.findIndex((x) => x.username === username);
+  // //let room_id = null;
+  // //let isAdmin = false;
+  // if (idx >= 0) {
+  //   //console.log(`from deleteUser - idx`);
+  //   //room_id = users[idx].roomHost;
+  //   //users[idx].roomHost = null;
+  //   //isAdmin = users[idx].role === "Admin";
+  // }
+  // //if (room_id) {
+  //   //console.log(`from deleteUser - room_id`);
+  //   const room_idx = rooms.findIndex((room) => room.id === room_id);
+  //   if (room_idx >= 0) {
+  //     //console.log(room_idx);
+  //     const roomUsers = rooms[room_idx].users;
+  //     const roomUserIdx = roomUsers.findIndex((x) => x.username === username);
+  //     if (roomUserIdx >= 0) {
+  //       rooms[room_idx].users.splice(roomUserIdx, 1);
+  //       if (isAdmin) {
+  //         rooms[room_idx].hasTeacher = false;
+  //       }
+  //     }
+  //     if (rooms[room_idx].users.length === 0) {
+  //       rooms.splice(room_idx, 1);
+  //     }
+  //     //console.log(`deleteUserFromRoom running result: ${rooms}`);
+  //   }
+  // //}
+
+
+
+
+
 }
 
 
@@ -693,7 +864,7 @@ io.on('connection', async (socket) => {
       const usersInThisRoom = rooms[roomIdx].peers.filter(
         (id) => id !== socket.id
       );
-      
+
       console.log(`all users in chat room ${usersInThisRoom}`)
       socket.emit("all users", usersInThisRoom);
     }
@@ -733,9 +904,9 @@ io.on('connection', async (socket) => {
               socket.to(peer).emit("user disconnected audio", socket.id)
             })
         }
-    } 
+    }
   })
-    
+
 
   socket.on("fetch init", (code, roomId) => {
     socket.to('teacher: ' + roomId).emit("fetch init", code, socket.id);
@@ -753,9 +924,9 @@ io.on('connection', async (socket) => {
     // TODO: investigate why socket.username is occassionally undefined
     console.log(socket.username);
     // if (socket.username) redisClient.del(socket.username)
-    if (reason === "client namespace disconnect") 
+    if (reason === "client namespace disconnect")
       deleteUserFromRoom(socket.username);
-    
+
     socket.to(socket.roomId).emit("disconnection broadcast", socket.id, socket.role, socket.username);
     console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
   });
