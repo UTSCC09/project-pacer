@@ -62,6 +62,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
     // if(!socket.connected) socket.connect()
     async function fetchRoomInfo() {
       const rooms = await getAllRooms();
+      console.log(`from RoomPage-useEffect: ${JSON.stringify(rooms)}`);
       if (rooms.err) setShowAlert(rooms.err);
       else setRoomInfo(rooms.res);
       setLoadRoomsComplete(true);
@@ -69,6 +70,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
     fetchRoomInfo();
 
     socket.on("room update", () => {
+      console.log(`[RoomPage] room update point`);
       fetchRoomInfo();
     });
   }, []);
@@ -95,7 +97,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
       // update room list to all other online users
       socket.emit("room update");
       setUserRoom(curUser);
-      console.log("conCreateNewRoom return item", JSON.stringify(res["res"]["id"]));
+      console.log("conCreateNewRoom return item", JSON.stringify(res["res"]));
       setRoomId(JSON.stringify(res["res"]["id"]));
       // setRoomId(res["res"]["id"].toString());
       if (isAdmin) navigate("/teacher", { replace: true });
