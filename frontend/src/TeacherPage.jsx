@@ -194,13 +194,9 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
     
     console.log(`from teacherPage: roomId ${roomId}`);
     
-    // if(!socket.id) socket.connect()
     socket.emit("set attributes", "teacher", curUser, roomId);
     socket.roomId = roomId;
 
-    // socket.emit("onLecChange", code);
-
-    //new
     socket.emit("teacher join", roomId);
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
@@ -232,7 +228,6 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
         }
         return display;
       });
-
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
@@ -310,7 +305,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
       socket.sid = "";
       setSid("");
       socket.on = true;
-      setStuCode(msg);
+      setStuCode("");
     });
 
     // for file downloading (via fb):
