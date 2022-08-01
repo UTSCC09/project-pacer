@@ -239,6 +239,11 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
       setLecCode(value);
     });
 
+
+    socket.on("teacher: execution", (out, err) => {
+      console.log(`Teacher's execution: results ${out}; error: ${err}`);
+    });
+
     // for file downloading (via fb):
     if (code === "" && codePath === "" && codeFilename === "") {
       let cp = "/files/defaults/ystudent.txt";

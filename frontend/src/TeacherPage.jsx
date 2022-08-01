@@ -426,6 +426,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
     const { out, err } = runCode(code, language);
     setOut(out);
     setErr(err);
+    socket.emit("teacher: execution", out, err, roomId);
   };
 
 
