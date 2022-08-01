@@ -158,6 +158,7 @@ const NewRoom = (function () {
 
 const webhookRoutes = require("./routes/webhookRoutes");
 const { SocketClosedUnexpectedlyError } = require("redis");
+const { json } = require("body-parser");
 app.use("/api", webhookRoutes);
 
 const saltRounds = 10;
@@ -639,6 +640,39 @@ function deleteUserFromRoom(username) {
   }
 }
 
+// function deleteUserFromRoom(username, roomId) {
+//   console.log("deleting user " + username + " from rooms");
+//   const idx = users.findIndex((x) => x.username === username);
+//   let host = null;
+//   let isAdmin = false;
+
+//   if (idx >= 0) {
+//     host = users[idx].roomHost;
+//     users[idx].roomHost = null;
+//     isAdmin = users[idx].role === "Admin";
+//   }
+  
+//   if (host) {
+//     const room_idx = rooms.findIndex((room) => room.host === host);
+//     if (room_idx >= 0) {
+//       console.log(room_idx);
+//       const roomUsers = rooms[room_idx].users;
+//       const roomUserIdx = roomUsers.findIndex((x) => x.username === username);
+//       if (roomUserIdx >= 0) {
+//         rooms[room_idx].users.splice(roomUserIdx, 1);
+//         if (isAdmin) {
+//           rooms[room_idx].hasTeacher = false;
+//         }
+//       }
+//       if (rooms[room_idx].users.length === 0) {
+//         rooms.splice(room_idx, 1);
+//       }
+//       console.log(rooms);
+//     }
+//   }
+// }
+
+
 // `Not Found` request handler
 // app.use((req, res, next) => {
 //   const error = new Error("Not Found");
@@ -665,45 +699,45 @@ io.on('connection', async (socket) => {
     socket.broadcast.emit("room update", "received");
   })
 
-  socket.on("set attributes", (role, curUser, userRoom) => {
+  socket.on("set attributes", (role, curUser, roomId) => {
     socket.role = role;
     socket.username = curUser;
-    socket.userRoom = userRoom;
-    socket.join(userRoom);
+    socket.roomId = roomId;
+    socket.join(roomId);
     console.log("rooms", socket.rooms);
     if (role === 'teacher') {
       socket.pr = "";
       socket.sid = "";
     }
     // socket.broadcast.emit("connection broadcast", socket.id, role, curUser);
-    socket.to(userRoom).emit("connection broadcast", socket.id, role, curUser);
+    socket.to(roomId).emit("connection broadcast", socket.id, role, curUser);
   });
 
   //new
-  socket.on('teacher join', (userRoom) => {
-    socket.join('teacher: ' + userRoom);
+  socket.on('teacher join', (roomId) => {
+    socket.join('teacher: ' + roomId);
     // socket.broadcast.emit('teacher join', socket.id);
-    socket.to(userRoom).emit('teacher join', socket.id);
+    socket.to(roomId).emit('teacher join', socket.id);
 
   });
 
-  socket.on("student join", (curUser, userRoom) => {
+  socket.on("student join", (curUser, roomId) => {
     console.log("student join");
-    socket.to('teacher: ' + userRoom).emit("student join", socket.id, curUser);
+    socket.to('teacher: ' + roomId).emit("student join", socket.id, curUser);
   });
 
-  socket.on("onChange", (value, id, userRoom) => {
+  socket.on("onChange", (value, id, roomId) => {
     console.log("onChange");
     socket.to(id).emit("onChange", value, socket.id);
   });
 
 
-  socket.on('onLecChange', (value, userRoom) => {
+  socket.on('onLecChange', (value, roomId) => {
     // socket.broadcast.emit("onLecChange", value, socket.id);
-    socket.to(userRoom).emit("onLecChange", value, socket.id);
+    socket.to(roomId).emit("onLecChange", value, socket.id);
   });
 
-  socket.on('fetch code', async (studentId, adminId, userRoom) => {
+  socket.on('fetch code', async (studentId, adminId, roomId) => {
     const sockets = await io.fetchSockets()
       .catch((err) => { console.error(err); });
 
@@ -798,18 +832,27 @@ io.on('connection', async (socket) => {
   })
     
 
-  socket.on("fetch init", (code, userRoom) => {
-    socket.to('teacher: ' + userRoom).emit("fetch init", code, socket.id);
+  socket.on("fetch init", (code, roomId) => {
+    socket.to('teacher: ' + roomId).emit("fetch init", code, socket.id);
   });
 
 
-  socket.on("help request", (userRoom) => {
-    socket.to('teacher: ' + userRoom).emit("help request", socket.id, socket.username);
+  socket.on("help request", (roomId) => {
+    socket.to('teacher: ' + roomId).emit("help request", socket.id, socket.username);
   });
 
 
-  socket.on("disconnect", (reason, msg) => {
-    const count = io.of("/").sockets.size;
+  socket.on("disconnect", (reason) => {
+    var activeUsers = new Set();
+    var socketLeft = io.sockets.adapter.rooms;
+    var clients = io.sockets.adapter.rooms[socket.roomId];
+    activeUsers.add(clients);
+    console.log("active Users", activeUsers);
+    console.log(`disconnection socketLeft ${JSON.stringify(socketLeft)} ${JSON.stringify(clients)}`);
+    if(!socketLeft){
+      console.log(`disconnection reach disconnection point`);
+      socket.emit("room update");
+    }
     // if user is logging out, update room info, else ignore
     console.log("deleting");
     // TODO: investigate why socket.username is occassionally undefined
@@ -817,9 +860,8 @@ io.on('connection', async (socket) => {
     // if (socket.username) redisClient.del(socket.username)
     if (reason === "client namespace disconnect")
       deleteUserFromRoom(socket.username);
-    // socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username, socket.sid);
-    console.log(`from disconnect: ${socket.id} ${socket.sid}`);
-    socket.to(socket.userRoom).emit("disconnection broadcast", socket.id, socket.role, socket.username);
+
+    socket.to(socket.roomId).emit("disconnection broadcast", socket.id, socket.role, socket.username);
     console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
   });
 
