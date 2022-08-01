@@ -52,7 +52,7 @@ dotenv.config();
 const app = express();
 
 const http = require("http");
-const PORT = 3000;
+const PORT = 8080;
 const version = "1.0.0";
 
 // const redisClient = Redis.createClient()
@@ -84,7 +84,7 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server, {
   cors: {
-    origin: "https://pacer.codes",
+    origin: "http://localhost:3000",
     credentials: true,
   },
 });
@@ -93,7 +93,7 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.json());
 app.use(
   cors({
-    origin: "https://pacer.codes",
+    origin: "http://localhost:3000",
     credentials: true,
   })
 );
@@ -616,24 +616,23 @@ io.on('connection', async (socket) => {
 
   console.log("[Server] a user connected, socket id is :" + socket.id);
 
-
-  socket.on("room update", () =>{
-    socket.broadcast.emit("room update", "received");
-  })
-
-
   socket.on("set attributes", (role, curUser, roomId) => {
     socket.role = role;
     socket.username = curUser;
     socket.roomId = roomId;
     socket.join(roomId);
-    console.log("rooms", socket.rooms);
     if (role === 'teacher') {
       socket.pr = "";
       socket.sid = "";
     }
     socket.to(roomId).emit("connection broadcast", socket.id, role, curUser);
+    // console.log("[socket - set attributes] rooms", socket.rooms);
   });
+
+
+  socket.on("room update", () =>{
+    socket.broadcast.emit("room update");
+  })
 
 
   socket.on('teacher join', (roomId) => {
@@ -643,13 +642,45 @@ io.on('connection', async (socket) => {
 
 
   socket.on("student join", (curUser, roomId) => {
-    console.log("student join");
     socket.to('teacher: ' + roomId).emit("student join", socket.id, curUser);
   });
 
 
+  socket.on("teacher: execution", (out, err, roomId) => {
+    socket.to(roomId).emit("teacher: execution", out, err);
+  });
+
+
+  socket.on("help request", (roomId) => {
+    socket.to('teacher: ' + roomId).emit("help request", socket.id, socket.username);
+  });
+
+
+  socket.on("fetch init", (code, roomId) => {
+    socket.to('teacher: ' + roomId).emit("fetch init", code, socket.id);
+  });
+
+
+  socket.on('fetch code', async (studentId, adminId, roomId) => {
+    // fetch all sockets
+    const sockets = await io.fetchSockets()
+      .catch((err) => { console.error(err); });
+    // find dispatched student
+    if (sockets.filter(skt => skt.id === studentId).length > 0){
+      socket.sid = studentId;
+      socket.to(studentId).emit("fetch request");
+    } else { // todo-kw : unnecessary logic - may remove this
+      socket.to(adminId).emit("no student", "no student here");
+    }
+    // stop fetching previous student's code if no longer requested
+    if(socket.pr) socket.to(socket.pr).emit("stop request");
+    // update previous requested student info for next request
+    socket.pr = studentId;
+  });
+
+
+  // todo-kw: delete unused arg
   socket.on("onChange", (value, id, roomId) => {
-    console.log("onChange");
     socket.to(id).emit("onChange", value, socket.id);
   });
 
@@ -658,26 +689,11 @@ io.on('connection', async (socket) => {
     socket.to(roomId).emit("onLecChange", value, socket.id);
   });
 
-  socket.on('fetch code', async (studentId, adminId, roomId) => {
-    const sockets = await io.fetchSockets()
-      .catch((err) => { console.error(err); });
 
-    if (sockets.filter(skt => skt.id === studentId).length > 0){
-      socket.sid = studentId;
-      socket.to(studentId).emit("fetch request");
-    } else {
-      socket.to(adminId).emit("no student", "no student here");
-    }
+  // socket.on("stop request", sid => {
+  //   socket.to(sid).emit("stop request");
+  // });
 
-    if(socket.pr) socket.to(socket.pr).emit("stop request");
-
-    socket.pr = studentId;
-  });
-
-
-  socket.on("teacher: execution", (out, err, roomId) => {
-    socket.to(roomId).emit("teacher: execution", out, err);
-  });
 
   socket.on("joined chat", (roomId) => {
     const roomIdx = rooms.findIndex(room => String(room.id) === roomId)
@@ -696,7 +712,9 @@ io.on('connection', async (socket) => {
       );
       
       console.log(`all users in chat room ${usersInThisRoom}`)
-      socket.emit("all users", usersInThisRoom);
+      console.log(usersInThisRoom)
+      // usersInThisRoom.forEach((userSocket) => socket.to(userSocket).emit("all users", usersInThisRoom))
+      io.to(roomId).emit("all users", usersInThisRoom)
     }
   });
 
@@ -720,6 +738,16 @@ io.on('connection', async (socket) => {
   })
 
 
+  socket.on("callUser", (data) => {
+    io.to(data.userToCall).emit('hey', {signal: data.signalData, from: data.from});
+  })
+
+
+  socket.on("acceptCall", (data) => {
+      io.to(data.to).emit('callAccepted', data.signal);
+  })
+
+
   socket.on("disconnect audio", (roomId) => {
     console.log("disconnect audio")
     console.log(roomId)
@@ -736,27 +764,16 @@ io.on('connection', async (socket) => {
         }
     } 
   })
-    
-
-  socket.on("fetch init", (code, roomId) => {
-    socket.to('teacher: ' + roomId).emit("fetch init", code, socket.id);
-  });
-
-
-  socket.on("help request", (roomId) => {
-    socket.to('teacher: ' + roomId).emit("help request", socket.id, socket.username);
-  });
 
 
   socket.on("disconnect", (reason) => {
-    // if user is logging out, update room info, else ignore
     console.log("deleting");
     // TODO: investigate why socket.username is occassionally undefined
     console.log(socket.username);
-    // if (socket.username) redisClient.del(socket.username)
+    // if user is logging out, update room info, else ignore
     if (reason === "client namespace disconnect") 
       deleteUserFromRoom(socket.username);
-    
+    // broadcast disconnection to all other users in the room
     socket.to(socket.roomId).emit("disconnection broadcast", socket.id, socket.role, socket.username);
     console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
   });

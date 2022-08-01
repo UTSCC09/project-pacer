@@ -43,11 +43,7 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
-    <textarea class="hidden" id="python-decoder"></textarea>
-    <div class="hidden" id="python-out"></div>
-    <div class="hidden" id="python-err"></div>
-    <div defer class="hidden">
-      <py-script class="hidden">
+      <py-script defer class="hidden">
         import sys
         import io
         from js import document, console
@@ -83,7 +79,5 @@
   
         document.getElementById("python-decoder").addEventListener("input", eventlog)
       </py-script>
-    </div>
-    <div id="python-out" ></div>
   </body>
 </html>

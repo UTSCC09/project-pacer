@@ -39,6 +39,7 @@ const drawerWidth = 200;
 let t = 0; // ns
 
 function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
+  console.log(socket.id)
   // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
   // code display and transmission
@@ -111,6 +112,8 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   // for file downloading (via fb):
   const loadCode = () => {
     downloadFile(codePath).then((res) => {
+      // new
+      if (flag) socket.emit("onChange", res.code, socket.tid, roomId);
       setCode(res.code);
     });
   }
@@ -324,16 +327,8 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   useEffect(() => {
 
     console.log(`from student: roomId ${roomId}`);
-    // console.log(typeof roomId)
-    // if(!socket.id) socket.connect()
-    socket.role = 'student';
-    // console.log(socket.role)
-    socket.username = curUser;
-    // console.log(socket.username)
-    socket.roomId = roomId;
-    // console.log(socket.roomId)
+
     socket.emit("set attributes", "student", curUser, roomId);
-    // console.log("emit complete")
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
       console.log(`connection broadcast: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
@@ -342,6 +337,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     socket.on("disconnection broadcast", (SktId, role, curUser, curSid) => {
       if (role === 'teacher') socket.tid = "";
       const itemIdx = peersRef.current.findIndex((p) => p.peerID === SktId);
+      console.log(itemIdx)
         if (itemIdx >= 0) {
           peersRef.current[itemIdx].peer.removeAllListeners();
           peersRef.current[itemIdx].peer.destroy();
@@ -351,6 +347,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
             return users.splice(peerIdx, 1)
           });
         } 
+      console.log(peersRef.current)
       console.log(`disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`);
     });
 
@@ -427,17 +424,21 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   useEffect(() => {
     if (callSystemInited) {
       console.log("initing call system")
+      console.log(socket.id)
       socket.on("all users", (users) => {
-        console.log(users)
         const peers = [];
         users.forEach((userId) => {
           console.log(`stream is ${callStream}`)
-          const peer = createPeer(userId, socket.id, callStream);
-          peersRef.current.push({
-            peerID: userId,
-            peer,
-          });
+          if (userId !== socket.id) {
+            const peer = createPeer(userId, socket.id, callStream);
+            peersRef.current.push({
+              peerID: userId,
+              peer,
+            });
           peers.push(peer);
+          console.log(userId)
+          }
+            
         });
         console.log(`peers are ${peers}`)
         setPeers(peers);
@@ -606,7 +607,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
               sx={{maxWidth: "100%"}}
             >
               <Grid item xs={12}>
-                <p>Server Screen (remote):</p>
+                <p>Teacher Screen:</p>
               </Grid>
               {/* server display */}
               {/* <CodeMirror value="" height="600px" theme="dark" hint="true" /> */}
@@ -642,7 +643,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
                 />
               </Grid>
               <Grid item xs={12}>
-                <p>Client Screen (local):</p>
+                <p>Student Screen:</p>
               </Grid>
               <Grid item xs={12}>
                 {/* client display */}

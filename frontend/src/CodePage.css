@@ -31,3 +31,8 @@
   margin: auto;
     max-width: 60%;
 }
+
+p {
+  max-width: 100%;
+  min-width: 0;
+}

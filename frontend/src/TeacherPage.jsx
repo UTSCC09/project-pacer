@@ -202,6 +202,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
     });
   };
 
+
   // for file uploading (via fb):
   const uploadFileFormHandler = (event) => {
     event.preventDefault();
@@ -214,6 +215,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
       });
     });
   };
+
 
   // for file maintenance (via fb):
   const getOnlyFilesName = () => {
@@ -237,6 +239,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
       });
     });
   };
+
 
   // for file uploading (via fb):
   const uploadFile = (f) => {
@@ -269,6 +272,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
     });
   };
 
+
   // for file downloading (via fb):
   const makeDownloadFileRequest = (url) => {
     return new Promise(function (res, rej) {
@@ -292,6 +296,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
     });
   };
 
+
   // for file downloading (via fb):
   const downloadFile = (fileLocation) => {
     const fileStorageRef = ref(storage, fileLocation);
@@ -299,6 +304,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
       makeDownloadFileRequest(url)
     );
   };
+
 
   // for file maintenance (via fb):
   const usersFileDirIsEmpty = () => {
@@ -325,10 +331,10 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
   useEffect(() => {
 
     console.log(`from teacherPage: roomId ${roomId}`);
+    
+    // socket.roomId = roomId;
 
-    //
     socket.emit("set attributes", "teacher", curUser, roomId);
-    socket.roomId = roomId;
 
     socket.emit("teacher join", roomId);
 
@@ -338,8 +344,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
         console.log(
           `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
         );
-      // } else if( role === 'student') { // new
-      } else { // new
+      } else {
         setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser, SktId }]);
         console.log(
           `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
@@ -363,7 +368,9 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
       });
     });
 
+
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
+      // add newly connected student
       setConnectedUsers(eixstingUsers => {
         const userCopy = [...eixstingUsers];
         const idx = userCopy.findIndex((user) => user.SktId === SktId);
@@ -373,7 +380,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
         }
         return userCopy
       });
-
+      // audio
       const itemIdx = peersRef.current.findIndex((p) => p.peerID === SktId);
       if (itemIdx >= 0) {
         peersRef.current[itemIdx].peer.removeAllListeners();
@@ -384,7 +391,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
           return users.splice(peerIdx, 1)
         });
       } 
-
+      // sid and display window update
       setSid(init => {
         if(SktId === init) {
           setDisplayStudent(false);
@@ -393,14 +400,9 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
         }
         return init;
       });
-
-      // if(SktId === curSid) {
-      //   setDisplayStudent(false);
-      //   socket.sid = "";
-      // }
-
       console.log(`[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`);
     });
+
 
     socket.on("student join", (sSktId, username) => {
       console.log(
@@ -414,24 +416,32 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
       socket.emit("onLecChange", code, roomId)
     });
 
+
     socket.on("fetch init", (code, sid) => {
       // revisit
       setSid(sid);
       socket.sid = sid;
       socket.on = true;
-
+      // update student code 
       setStuCode(() => {
         socket.emit("onLecChange", code, roomId);
         return code;
       });
     });
 
+    // new
     socket.on("onChange", (value, id) => {
-      setStuCode(() => {
-        socket.emit("onLecChange", value, roomId);
-        return value;
+      setDisplayStudent(display => {
+        if (display){
+          setStuCode(() => {
+            socket.emit("onLecChange", value, roomId);
+            return value;
+          });
+        }
+        return display
       });
     });
+
 
     // todo-kw: revisit this function - may be useless given current logic
     socket.on("no student", (msg) => {
@@ -440,6 +450,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
       socket.on = true;
       setStuCode("");
     });
+
 
     // for file downloading (via fb):
     if (code === "" && codePath === "" && codeFilename === "") {
@@ -474,9 +485,11 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
     setLoadPageComplete((val) => true);
   }, []);
 
+
   useEffect(() => {
     if (callSystemInited) {
       console.log("initing call system")
+      console.log(socket.id)
       socket.on("all users", (users) => {
         console.log(users)
         const peers = [];
@@ -535,12 +548,10 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
   }, [callSystemInited])
 
 
-  // new
+
   useEffect(() => {
     if(!displayStudent) socket.emit("onLecChange", code, roomId);
-
     if(displayStudent) socket.emit("onLecChange", stuCode, roomId);
-
   },[displayStudent]);
 
 
@@ -582,6 +593,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
     setStuErr(err);
   };
 
+
   const setupCall = async () => {
     if (!callInprogress) {
       console.log("seting up call");
@@ -612,6 +624,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
     }
   };
 
+
   function createPeer(userTarget, callerID, stream) {
     console.log(`stream is ${stream}`)
     const peer = new Peer({
@@ -634,6 +647,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
     return peer;
   }
 
+
   function addPeer(incomingSignal, callerID, stream) {
     console.log(`stream is ${stream}`)
     const peer = new Peer({
@@ -653,6 +667,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
 
     return peer;
   }
+
 
   let LocalAudio;
   if (callStream) {
@@ -733,7 +748,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
                 />
               </Grid>
               <Grid item xs={12}>
-                <p>Client Screen (local):</p>
+                <p>Teacher Screen:</p>
               </Grid>
               <Grid item xs={12} sx={{maxWidth: "100%"}}>
                 {/* client display */}
