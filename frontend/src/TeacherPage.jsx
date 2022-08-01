@@ -571,9 +571,9 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
   };
 
 
-  const run = () => {
+  const run = async () => {
     console.log(code);
-    const { out, err } = runCode(code, language);
+    const { out, err } = await runCode(code, language);
     setOut(out);
     setErr(err);
     socket.emit("teacher: execution", out, err, roomId);
@@ -586,9 +586,9 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
   };
 
 
-  const runStuCode = () => {
+  const runStuCode = async () => {
     console.log(stuCode);
-    const { out, err } = runCode(stuCode, language);
+    const { out, err } = await runCode(stuCode, language);
     setStuOut(out);
     setStuErr(err);
   };
