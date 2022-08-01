@@ -86,9 +86,6 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
     }
   }, [joinedRoom])
 
-  // todo-kw: delete
-//   {"res":{"id":1659251374085,"host":"t1","hasTeacher":true,"roomName":"r5","users":[{"id":0,"username":"t1","role":"Admin","roomHost":"t1","socketId":"UZYJVIrwYqfdlFcNAABT"}]}
-// }
 
   // const onCreateNewRoom = () => {
   const onCreateNewRoom = async () => {
@@ -101,7 +98,6 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
       setUserRoom(curUser);
       console.log("conCreateNewRoom return item", JSON.stringify(res["res"]));
       setRoomId(JSON.stringify(res["res"]["id"]));
-      // setRoomId(res["res"]["id"].toString());
       if (isAdmin) navigate("/teacher", { replace: true });
       else navigate("/student", { replace: true });
     }

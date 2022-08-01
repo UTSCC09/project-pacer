@@ -264,6 +264,7 @@ app.patch(
   }
 );
 
+
 app.post(
   "/api/signin",
   [
@@ -359,6 +360,7 @@ app.post(
   }
 );
 
+
 app.post(
   "/api/signup/",
   [
@@ -452,6 +454,7 @@ app.post(
   }
 );
 
+
 app.post("/api/signout/", function (req, res) {
   console.log("hit signout endpoint");
   console.log("deleting");
@@ -462,6 +465,7 @@ app.post("/api/signout/", function (req, res) {
   res.clearCookie("pacer-session");
   return res.json(null);
 });
+
 
 app.post("/api/rooms/", isAuthenticated, function (req, res) {
   console.log("hit post room info endpoint");
@@ -492,6 +496,7 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
   }
 });
 
+
 app.get("/api/rooms/", isAuthenticated, function (req, res) {
   //TODO: adapt GET for pagination and firebase
   console.log("hit get all rooms endpoint");
@@ -500,7 +505,7 @@ app.get("/api/rooms/", isAuthenticated, function (req, res) {
   return res.json(rooms);
 });
 
-// todo-kw
+
 app.get("/api/rooms/:host/", isAuthenticated, function (req, res) {
   console.log("hit get room info endpoint");
   // console.log(`rooms ${rooms}`);
@@ -514,6 +519,7 @@ app.get("/api/rooms/:host/", isAuthenticated, function (req, res) {
       .json("Room with host " + req.params.host + " not found.");
   }
 });
+
 
 app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
   console.log("hit update room info endpoint");
@@ -572,6 +578,7 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
   }
 });
 
+
 app.delete("/api/rooms/:host/", isAuthenticated, function (req, res) {
   console.log("hit delete room info endpoint");
   rooms = rooms.map((room) => {
@@ -612,6 +619,7 @@ app.delete("/api/rooms/:host/", isAuthenticated, function (req, res) {
     );
 });
 
+
 function deleteUserFromRoom(username) {
   console.log("deleting user " + username + " from rooms");
   const idx = users.findIndex((x) => x.username === username);
@@ -644,37 +652,6 @@ function deleteUserFromRoom(username) {
   }
 }
 
-// function deleteUserFromRoom(username, roomId) {
-//   console.log("deleting user " + username + " from rooms");
-//   const idx = users.findIndex((x) => x.username === username);
-//   let host = null;
-//   let isAdmin = false;
-
-//   if (idx >= 0) {
-//     host = users[idx].roomHost;
-//     users[idx].roomHost = null;
-//     isAdmin = users[idx].role === "Admin";
-//   }
-  
-//   if (host) {
-//     const room_idx = rooms.findIndex((room) => room.host === host);
-//     if (room_idx >= 0) {
-//       console.log(room_idx);
-//       const roomUsers = rooms[room_idx].users;
-//       const roomUserIdx = roomUsers.findIndex((x) => x.username === username);
-//       if (roomUserIdx >= 0) {
-//         rooms[room_idx].users.splice(roomUserIdx, 1);
-//         if (isAdmin) {
-//           rooms[room_idx].hasTeacher = false;
-//         }
-//       }
-//       if (rooms[room_idx].users.length === 0) {
-//         rooms.splice(room_idx, 1);
-//       }
-//       console.log(rooms);
-//     }
-//   }
-// }
 
 
 // `Not Found` request handler
@@ -690,18 +667,16 @@ function deleteUserFromRoom(username) {
 //   res.json({ message: error.message || 'Internal Server Error' });
 // });
 
-// socket io
-// var prevRequest = '';
+
 io.on('connection', async (socket) => {
-  // socket.join("room1");
-  // console.log("[Server] joined room: " + socket.rooms); // Set { <socket.id>, "room1" }
+
   console.log("[Server] a user connected, socket id is :" + socket.id);
-  // const count = io.engine.clientsCount;
-  // console.log("[server count]:", count);
+
 
   socket.on("room update", () =>{
     socket.broadcast.emit("room update", "received");
   })
+
 
   socket.on("set attributes", (role, curUser, roomId) => {
     socket.role = role;
@@ -713,22 +688,21 @@ io.on('connection', async (socket) => {
       socket.pr = "";
       socket.sid = "";
     }
-    // socket.broadcast.emit("connection broadcast", socket.id, role, curUser);
     socket.to(roomId).emit("connection broadcast", socket.id, role, curUser);
   });
 
-  //new
+
   socket.on('teacher join', (roomId) => {
     socket.join('teacher: ' + roomId);
-    // socket.broadcast.emit('teacher join', socket.id);
     socket.to(roomId).emit('teacher join', socket.id);
-
   });
+
 
   socket.on("student join", (curUser, roomId) => {
     console.log("student join");
     socket.to('teacher: ' + roomId).emit("student join", socket.id, curUser);
   });
+
 
   socket.on("onChange", (value, id, roomId) => {
     console.log("onChange");
@@ -737,7 +711,6 @@ io.on('connection', async (socket) => {
 
 
   socket.on('onLecChange', (value, roomId) => {
-    // socket.broadcast.emit("onLecChange", value, socket.id);
     socket.to(roomId).emit("onLecChange", value, socket.id);
   });
 
@@ -769,11 +742,6 @@ io.on('connection', async (socket) => {
     console.log(roomIdx)
     if (roomIdx >= 0) {
       if (rooms[roomIdx].peers) {
-        // const length = users[roomIdx].peers.length;
-        // if (length === 4) {
-        //     socket.emit("room full");
-        //     return;
-        // }
         rooms[roomIdx].peers.push(socket.id);
       } else {
         rooms[roomIdx].peers = [socket.id];
@@ -787,7 +755,6 @@ io.on('connection', async (socket) => {
       socket.emit("all users", usersInThisRoom);
     }
   });
-
 
 
   socket.on("sending signal", (payload) => {
@@ -807,6 +774,7 @@ io.on('connection', async (socket) => {
       id: socket.id,
     });
   })
+
 
   socket.on("disconnect audio", (roomId) => {
     console.log("disconnect audio")
@@ -837,26 +805,13 @@ io.on('connection', async (socket) => {
 
 
   socket.on("disconnect", (reason) => {
-    // var activeUsers = new Set();
-    // var socketLeft = io.sockets.adapter.rooms;
-    // var clients = io.sockets.adapter.rooms[socket.roomId];
-    // activeUsers.add(clients);
-    // console.log("active Users", activeUsers);
-    // console.log(`disconnection socketLeft ${JSON.stringify(socketLeft)} ${JSON.stringify(clients)}`);
-    // if(!socketLeft){
-    //   console.log(`disconnection reach disconnection point`);
-    //   socket.emit("room update");
-    // }
     // if user is logging out, update room info, else ignore
     console.log("deleting");
     // TODO: investigate why socket.username is occassionally undefined
     console.log(socket.username);
     // if (socket.username) redisClient.del(socket.username)
-    if (reason === "client namespace disconnect"){
-      console.log(`disconnection event hit point`);
-      // socket.emit("room update");
+    if (reason === "client namespace disconnect") 
       deleteUserFromRoom(socket.username);
-    }
     
     socket.to(socket.roomId).emit("disconnection broadcast", socket.id, socket.role, socket.username);
     console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
@@ -867,10 +822,13 @@ io.on('connection', async (socket) => {
     io.to(data.userToCall).emit('hey', {signal: data.signalData, from: data.from});
   })
 
+
   socket.on("acceptCall", (data) => {
       io.to(data.to).emit('callAccepted', data.signal);
   })
 });
+// end of socket logic
+
 
 server.listen(PORT, function (err) {
   if (err) console.log(err);

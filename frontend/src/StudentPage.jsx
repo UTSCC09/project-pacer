@@ -109,9 +109,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   // });
 
 
-
-
-
   // for file maintenance (via fb):
   const getOldestOfTwoInUsersFileDir = () => {
     return new Promise(function (res, rej) {
@@ -155,6 +152,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     });
   };
 
+
   // for file maintenance (via fb) (deletes the oldest of the 2 files in a user's dir):
   const refreshUsersFileDir = () => {
     return new Promise(function (res, rej) {
@@ -190,11 +188,13 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     });
   };
 
+
   // for file uploading (via fb):
   const uploadFileFormHandler = (event) => {
     event.preventDefault();
     uploadFile(event.target.files[0]).then((res) => {
       res.file.text().then((code) => {
+        console.log(`[FILE] - reached 197`);
         setCode(code);
         setCodePath(res.codePath);
         setCodeFilename(res.file.name);
@@ -225,6 +225,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       });
     });
   };
+
 
   // for file uploading (via fb):
   const uploadFile = (f) => {
@@ -257,6 +258,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     });
   };
 
+
   // for file downloading (via fb):
   const makeDownloadFileRequest = (url) => {
     return new Promise(function (res, rej) {
@@ -280,6 +282,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     });
   };
 
+
   // for file downloading (via fb):
   const downloadFile = (fileLocation) => {
     const fileStorageRef = ref(storage, fileLocation);
@@ -287,6 +290,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       makeDownloadFileRequest(url)
     );
   };
+
 
   // for file maintenance (via fb):
   const usersFileDirIsEmpty = () => {
@@ -311,22 +315,19 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   };
 
 
-
-
-
   useEffect(() => {
 
     console.log(`from student: roomId ${roomId}`);
-    console.log(typeof roomId)
+    // console.log(typeof roomId)
     // if(!socket.id) socket.connect()
     socket.role = 'student';
-    console.log(socket.role)
+    // console.log(socket.role)
     socket.username = curUser;
-    console.log(socket.username)
+    // console.log(socket.username)
     socket.roomId = roomId;
-    console.log(socket.roomId)
+    // console.log(socket.roomId)
     socket.emit("set attributes", "student", curUser, roomId);
-    console.log("emit complete")
+    // console.log("emit complete")
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
       console.log(`connection broadcast: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
@@ -368,11 +369,9 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     });
 
     socket.on("onLecChange", (value, tid) => {
-      // console.log(`studentPage onLecChang triggered: ${value}`);
       if(!socket.tid) socket.tid = tid;
       setLecCode(value);
     });
-
 
     socket.on("teacher: execution", (out, err) => {
       console.log(`Teacher's execution: results ${out}; error: ${err}`);
@@ -392,6 +391,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
             })
             .then((res) => {
               res.file.text().then((code) => {
+                console.log(`[FILE] - reached 393`);
                 setCode(code);
                 setCodePath(res.codePath);
                 setCodeFilename(res.file.name);
@@ -400,6 +400,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
         } else {
           getOnlyFilesName().then((res) => {
             downloadFile(res.codePath).then((res2) => {
+              console.log(`[FILE] - reached 402`);
               setCode(res2.code);
               setCodePath(res.codePath);
               setCodeFilename(res.fileName);
