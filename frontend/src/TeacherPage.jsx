@@ -748,7 +748,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
                 />
               </Grid>
               <Grid item xs={12}>
-                <p>Client Screen (local):</p>
+                <p>Teacher Screen:</p>
               </Grid>
               <Grid item xs={12} sx={{maxWidth: "100%"}}>
                 {/* client display */}

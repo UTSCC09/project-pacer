@@ -193,6 +193,9 @@ function App() {
             />
             <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
+          <textarea className="hidden" id="python-decoder"></textarea>
+          <div className="hidden" id="python-out"></div>
+          <div className="hidden" id="python-err"></div>
         </CssBaseline>
         </SnackbarProvider>
       </BrowserRouter>

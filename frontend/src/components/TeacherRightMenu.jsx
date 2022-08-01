@@ -92,7 +92,7 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
           }
           return existing
         });
-        const msg = `Help requested from ${username} with socket id ${stuId}`
+        const msg = `Help requested from student ${username}`
         setHelpMsg(oldmsg => msg)
         setNotificationToggle(oldState => !oldState)
       });
@@ -167,24 +167,12 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
               <ListItemIcon>
                 <PersonIcon />
               </ListItemIcon>
-              <ListItemText primary={text.SktId} secondary={text.curUser}/>
+              <ListItemText primary={text.curUser}/>
             </ListItemButton>
           </CustomEntry>
         ))}
       </List>
       <Divider />
-      {/* <List>
-        {["Item5", "Item6", "Item7"].map((text, index) => (
-          <ListItem key={text} disablePadding>
-            <ListItemButton>
-              <ListItemIcon>
-                <PersonIcon />
-              </ListItemIcon>
-              <ListItemText primary={text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List> */}
     </div>
   );
 
@@ -227,7 +215,7 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
         <Drawer
           variant="permanent"
           sx={{
-            display: { xs: "none", sm: "block" },
+            display: { sm: "block" },
             "& .MuiDrawer-paper": {
               boxSizing: "border-box",
               width: drawerWidth,

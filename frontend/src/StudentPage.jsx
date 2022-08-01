@@ -607,7 +607,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
               sx={{maxWidth: "100%"}}
             >
               <Grid item xs={12}>
-                <p>Server Screen (remote):</p>
+                <p>Teacher Screen:</p>
               </Grid>
               {/* server display */}
               {/* <CodeMirror value="" height="600px" theme="dark" hint="true" /> */}
@@ -643,7 +643,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
                 />
               </Grid>
               <Grid item xs={12}>
-                <p>Client Screen (local):</p>
+                <p>Student Screen:</p>
               </Grid>
               <Grid item xs={12}>
                 {/* client display */}
