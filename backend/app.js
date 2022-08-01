@@ -103,7 +103,6 @@ const isAuthenticated = function (req, res, next) {
   next();
 };
 
-
 app.get("/api", (req, res) => res.send({ version }));
 
 const Role = {
@@ -696,7 +695,7 @@ io.on('connection', async (socket) => {
       );
       
       console.log(`all users in chat room ${usersInThisRoom}`)
-      socket.to(roomId).emit("all users", usersInThisRoom);
+      socket.emit("all users", usersInThisRoom);
     }
   });
 
