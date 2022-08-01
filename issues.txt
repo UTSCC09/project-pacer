@@ -10,7 +10,12 @@
 
 
 [ ] - Sign in as [name/role] UI feature
-    
+
+
+[x] - review mode closed but student's change is on this remote editor
+
+
+[] - load update    
     
 
     

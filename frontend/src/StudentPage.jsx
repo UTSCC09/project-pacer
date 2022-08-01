@@ -319,16 +319,8 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   useEffect(() => {
 
     console.log(`from student: roomId ${roomId}`);
-    // console.log(typeof roomId)
-    // if(!socket.id) socket.connect()
-    socket.role = 'student';
-    // console.log(socket.role)
-    socket.username = curUser;
-    // console.log(socket.username)
-    socket.roomId = roomId;
-    // console.log(socket.roomId)
+
     socket.emit("set attributes", "student", curUser, roomId);
-    // console.log("emit complete")
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
       console.log(`connection broadcast: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
