@@ -103,6 +103,7 @@ const isAuthenticated = function (req, res, next) {
   next();
 };
 
+
 app.get("/api", (req, res) => res.send({ version }));
 
 const Role = {

@@ -86,7 +86,6 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
     }
   }, [joinedRoom])
 
-
   // const onCreateNewRoom = () => {
   const onCreateNewRoom = async () => {
     console.log(roomName);
