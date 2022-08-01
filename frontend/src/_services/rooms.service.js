@@ -23,14 +23,14 @@ async function send(method, url, data) {
 export async function getAllRooms() {
   return send(
     "GET",
-    "http://localhost:8080/api/rooms/"
+    "https://api.pacer.codes/api/rooms/"
   );
 }
 
 export const createNewRoom = async (roomName, socketId) => {
     return send(
         "POST",
-        "http://localhost:8080/api/rooms/",
+        "https://api.pacer.codes/api/rooms/",
         {roomName, socketId}
     );
 }
@@ -38,7 +38,7 @@ export const createNewRoom = async (roomName, socketId) => {
 export const joinRoom = async (host, socketId) => {
     return await send(
         "PATCH",
-        "http://localhost:8080/api/rooms/" + host + "/",
+        "https://api.pacer.codes/api/rooms/" + host + "/",
         {socketId}
     )
 }
