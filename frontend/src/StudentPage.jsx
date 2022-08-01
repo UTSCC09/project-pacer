@@ -515,8 +515,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
         localAudio.current.srcObject = localStream;
         console.log("done setting local stream");
       }
-      // todo: you many wanna change this 
-      socket.emit("joined chat", roomId);
+      socket.emit("joined chat", String(roomId));
       setCallInprogress(true);
     } else {
       console.log("closing call");
@@ -528,7 +527,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       setCallInprogress(false);
       peersRef.current = []
       setPeers([])
-      socket.emit("disconnect audio", roomId)
+      socket.emit("disconnect audio", String(roomId))
     }
   };
 

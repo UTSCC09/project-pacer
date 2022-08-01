@@ -11,7 +11,7 @@
 
 [ ] - Sign in as [name/role] UI feature
     
-    
+[ ] - user refreshing does no update the list of peers locally
 
     
 
