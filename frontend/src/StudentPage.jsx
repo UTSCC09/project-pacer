@@ -493,8 +493,9 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   };
 
 
-  const run = () => {
-    const { out, err } = runCode(code, language);
+  const run = async () => {
+    const { out, err } = await runCode(code, language);
+    console.log(err)
     setOut(out);
     setErr(err);
   };
