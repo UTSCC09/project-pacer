@@ -505,22 +505,6 @@ app.get("/api/rooms/", isAuthenticated, function (req, res) {
   return res.json(rooms);
 });
 
-
-app.get("/api/rooms/:host/", isAuthenticated, function (req, res) {
-  console.log("hit get room info endpoint");
-  // console.log(`rooms ${rooms}`);
-  const room = rooms.find((room) => room.host === req.params.host);
-  if (room) {
-    /* a room with specified host already exists */
-    return res.json(room);
-  } else {
-    return res
-      .status(404)
-      .json("Room with host " + req.params.host + " not found.");
-  }
-});
-
-
 app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
   console.log("hit update room info endpoint");
   /* a room with specified host already exists */
@@ -576,47 +560,6 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
   } catch (err) {
     return res.status(500).json(err);
   }
-});
-
-
-app.delete("/api/rooms/:host/", isAuthenticated, function (req, res) {
-  console.log("hit delete room info endpoint");
-  rooms = rooms.map((room) => {
-    if (room.host === req.params.host) {
-      const roomUsers = room.users;
-      if (
-        roomUsers.filter((user) => user.username === req.session.username)
-          .length === 0
-      ) {
-        return res
-          .status(409)
-          .json(
-            "user info not found while trying to delete: " +
-              req.session.username
-          );
-      }
-      const idx = roomUsers.findIndex(
-        (user) => user.username === req.session.username
-      );
-      const userIdx = users.findIndex(
-        (x) => x.username === req.session.username
-      );
-      users[userIdx].roomHost = null;
-      if (idx >= 0) {
-        console.log("clearing");
-        roomUsers.splice(idx, 1);
-        return { ...room, users: roomUsers };
-      }
-      return res.status(500).json("this error is impossible");
-    }
-  });
-  return res
-    .status(404)
-    .json(
-      "Cannot delete user info, room with host " +
-        req.params.host +
-        " not found."
-    );
 });
 
 

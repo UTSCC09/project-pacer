@@ -108,6 +108,20 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   //   }, 1000);
   // });
 
+  // for file downloading (via fb):
+  const loadCode = () => {
+    downloadFile(codePath).then((res) => {
+      // new
+      if (flag) socket.emit("onChange", res.code, socket.tid, roomId);
+      setCode(res.code);
+    });
+  }
+
+  // for file uploading (via fb):
+  const saveCode = () => {
+    const f = new File([code], codeFilename);
+    uploadFile(f);
+  }
 
   // for file maintenance (via fb):
   const getOldestOfTwoInUsersFileDir = () => {
@@ -151,8 +165,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       });
     });
   };
-
-
+  
   // for file maintenance (via fb) (deletes the oldest of the 2 files in a user's dir):
   const refreshUsersFileDir = () => {
     return new Promise(function (res, rej) {
@@ -187,7 +200,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       });
     });
   };
-
 
   // for file uploading (via fb):
   const uploadFileFormHandler = (event) => {
@@ -227,7 +239,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     });
   };
 
-
   // for file uploading (via fb):
   const uploadFile = (f) => {
     return new Promise(function (res, rej) {
@@ -259,7 +270,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     });
   };
 
-
   // for file downloading (via fb):
   const makeDownloadFileRequest = (url) => {
     return new Promise(function (res, rej) {
@@ -283,7 +293,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     });
   };
 
-
   // for file downloading (via fb):
   const downloadFile = (fileLocation) => {
     const fileStorageRef = ref(storage, fileLocation);
@@ -291,7 +300,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       makeDownloadFileRequest(url)
     );
   };
-
 
   // for file maintenance (via fb):
   const usersFileDirIsEmpty = () => {
@@ -314,7 +322,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       });
     });
   };
-
 
   useEffect(() => {
 
@@ -384,7 +391,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
             })
             .then((res) => {
               res.file.text().then((code) => {
-                console.log(`[FILE] - reached 393 ${code}`);
                 setCode(code);
                 setCodePath(res.codePath);
                 setCodeFilename(res.file.name);
@@ -393,7 +399,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
         } else {
           getOnlyFilesName().then((res) => {
             downloadFile(res.codePath).then((res2) => {
-              console.log(`[FILE] - reached 402 ${code}`);
               setCode(res2.code);
               setCodePath(res.codePath);
               setCodeFilename(res.fileName);
@@ -507,8 +512,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
         localAudio.current.srcObject = localStream;
         console.log("done setting local stream");
       }
-      // todo: you many wanna change this 
-      socket.emit("joined chat", roomId);
+      socket.emit("joined chat", String(roomId));
       setCallInprogress(true);
     } else {
       console.log("closing call");
@@ -520,7 +524,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       setCallInprogress(false);
       peersRef.current = []
       setPeers([])
-      socket.emit("disconnect audio", roomId)
+      socket.emit("disconnect audio", String(roomId))
     }
   };
 
@@ -658,7 +662,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
                     Run
                   </Button>
                   }
-                  <Storage code={code} uploadFileFormHandler={uploadFileFormHandler}></Storage>
+                  <Storage saveCode={saveCode} loadCode={loadCode} uploadFileFormHandler={uploadFileFormHandler}></Storage>
                 </Stack>
               </Grid>
               <Grid item xs={12}>

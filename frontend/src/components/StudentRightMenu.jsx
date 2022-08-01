@@ -19,7 +19,6 @@ import Notifications from './Notifications';
 
 // function StudentRightMenu({drawerWidth}) {
 function StudentRightMenu({drawerWidth, socket, roomId, setSocketFlag}) {
-
   const [notificationToggle, setNotificationToggle] = React.useState(() => null);
 
   function requestHelp() {

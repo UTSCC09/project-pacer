@@ -111,6 +111,18 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
   //   }, 1000);
   // });
 
+  // for file downloading (via fb):
+  const loadCode = () => {
+    downloadFile(codePath).then((res) => {
+      setCode(res.code);
+    });
+  }
+
+  // for file uploading (via fb):
+  const saveCode = () => {
+    const f = new File([code], codeFilename);
+    uploadFile(f);
+  }
 
   // for file maintenance (via fb):
   const getOldestOfTwoInUsersFileDir = () => {
@@ -316,9 +328,8 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
     });
   };
 
-
   useEffect(() => {
-    
+
     console.log(`from teacherPage: roomId ${roomId}`);
     
     // socket.roomId = roomId;
@@ -764,7 +775,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
                     Run
                   </Button>
                   }
-                  <Storage code={code} uploadFileFormHandler={uploadFileFormHandler}></Storage>
+                  <Storage saveCode={saveCode} loadCode={loadCode} uploadFileFormHandler={uploadFileFormHandler}></Storage>
                 </Stack>
               </Grid>
               <Grid item xs={12}>
