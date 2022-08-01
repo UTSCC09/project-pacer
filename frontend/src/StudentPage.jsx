@@ -108,6 +108,18 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   //   }, 1000);
   // });
 
+  // for file downloading (via fb):
+  const loadCode = () => {
+    downloadFile(codePath).then((res) => {
+      setCode(res.code);
+    });
+  }
+
+  // for file uploading (via fb):
+  const saveCode = () => {
+    const f = new File([code], codeFilename);
+    uploadFile(f);
+  }
 
   // for file maintenance (via fb):
   const getOldestOfTwoInUsersFileDir = () => {
@@ -151,8 +163,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       });
     });
   };
-
-
+  
   // for file maintenance (via fb) (deletes the oldest of the 2 files in a user's dir):
   const refreshUsersFileDir = () => {
     return new Promise(function (res, rej) {
@@ -187,7 +198,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       });
     });
   };
-
 
   // for file uploading (via fb):
   const uploadFileFormHandler = (event) => {
@@ -227,7 +237,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     });
   };
 
-
   // for file uploading (via fb):
   const uploadFile = (f) => {
     return new Promise(function (res, rej) {
@@ -259,7 +268,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     });
   };
 
-
   // for file downloading (via fb):
   const makeDownloadFileRequest = (url) => {
     return new Promise(function (res, rej) {
@@ -283,7 +291,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     });
   };
 
-
   // for file downloading (via fb):
   const downloadFile = (fileLocation) => {
     const fileStorageRef = ref(storage, fileLocation);
@@ -291,7 +298,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       makeDownloadFileRequest(url)
     );
   };
-
 
   // for file maintenance (via fb):
   const usersFileDirIsEmpty = () => {
@@ -314,7 +320,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       });
     });
   };
-
 
   useEffect(() => {
 
@@ -392,7 +397,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
             })
             .then((res) => {
               res.file.text().then((code) => {
-                console.log(`[FILE] - reached 393 ${code}`);
                 setCode(code);
                 setCodePath(res.codePath);
                 setCodeFilename(res.file.name);
@@ -401,7 +405,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
         } else {
           getOnlyFilesName().then((res) => {
             downloadFile(res.codePath).then((res2) => {
-              console.log(`[FILE] - reached 402 ${code}`);
               setCode(res2.code);
               setCodePath(res.codePath);
               setCodeFilename(res.fileName);
@@ -664,8 +667,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
                   <Button onClick={run} variant="contained">
                     Run
                   </Button>
-                  }
-                  <Storage code={code} uploadFileFormHandler={uploadFileFormHandler}></Storage>
+                  <Storage saveCode={saveCode} loadCode={loadCode} uploadFileFormHandler={uploadFileFormHandler}></Storage>
                 </Stack>
               </Grid>
               <Grid item xs={12}>

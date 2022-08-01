@@ -111,6 +111,96 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
   //   }, 1000);
   // });
 
+  // for file downloading (via fb):
+  const loadCode = () => {
+    downloadFile(codePath).then((res) => {
+      setCode(res.code);
+    });
+  }
+
+  // for file uploading (via fb):
+  const saveCode = () => {
+    const f = new File([code], codeFilename);
+    uploadFile(f);
+  }
+
+  // for file maintenance (via fb):
+  const getOldestOfTwoInUsersFileDir = () => {
+    return new Promise(function (res, rej) {
+      const cp = `/files/users/${authenticationService.currentUser.source._value.username}`;
+      const fileStorageRef = ref(storage, cp);
+      listAll(fileStorageRef).then(function(files) {
+        const userFiles = [];
+        files.items.forEach(function(fileRef) {
+          userFiles.push(fileRef);
+        });
+        if (userFiles.length == 2) {
+          const cp2 = `/files/users/${authenticationService.currentUser.source._value.username}/${userFiles[0].name}`;
+          const fileStorageRef2 = ref(storage, cp2);
+          getMetadata(fileStorageRef2).then((metadata1) => {
+            const cp3 = `/files/users/${authenticationService.currentUser.source._value.username}/${userFiles[1].name}`;
+            const fileStorageRef3 = ref(storage, cp3);
+            getMetadata(fileStorageRef3).then((metadata2) => {
+              const d0 = new Date(metadata1.timeCreated);
+              const d1 = new Date(metadata2.timeCreated);
+              if (d0 <= d1) {
+                res({ fileName: userFiles[0].name });
+              } else {
+                res({ fileName: userFiles[1].name });
+              }
+            }).catch((err2) => {
+              console.log(err2);
+              rej();
+            });
+          }).catch((err1) => {
+            console.log(err1);
+            rej();
+          });
+        } else {
+          console.log("Seek adminastrive assistance."); // user has unexpected files in their folder
+          rej();
+        }
+      }).catch(function(err) {
+        console.log(err);
+        rej();
+      });
+    });
+  };
+
+  // for file maintenance (via fb) (deletes the oldest of the 2 files in a user's dir):
+  const refreshUsersFileDir = () => {
+    return new Promise(function (res, rej) {
+      const cp = `/files/users/${authenticationService.currentUser.source._value.username}`;
+      const fileStorageRef = ref(storage, cp);
+      listAll(fileStorageRef).then(function(files) {
+        const userFiles = [];
+        files.items.forEach(function(fileRef) {
+          userFiles.push(fileRef);
+        });
+        if (userFiles.length == 2) {
+          getOldestOfTwoInUsersFileDir().then((r) => {
+            const cp2 = `/files/users/${authenticationService.currentUser.source._value.username}/${r.fileName}`;
+            const fileStorageRef2 = ref(storage, cp2);
+            deleteObject(fileStorageRef2).then(() => {
+              res();
+            }).catch((err2) => {
+              console.log(err2);
+              rej();
+            });
+          }).catch((err1) => {
+            console.log(err1);
+            rej();
+          });
+        } else {
+          console.log("Seek adminastrive assistance."); // user has unexpected files in their folder
+          rej();
+        }
+      }).catch(function(err) {
+        console.log(err);
+        rej();
+      });
+    });
+  };
 
 
 
@@ -313,14 +403,11 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
     });
   };
 
-
-
-
-
   useEffect(() => {
-    
+
     console.log(`from teacherPage: roomId ${roomId}`);
-    
+
+    //
     socket.emit("set attributes", "teacher", curUser, roomId);
     socket.roomId = roomId;
 
@@ -754,8 +841,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
                   <Button onClick={run} variant="contained">
                     Run
                   </Button>
-                  }
-                  <Storage code={code} uploadFileFormHandler={uploadFileFormHandler}></Storage>
+                  <Storage saveCode={saveCode} loadCode={loadCode} uploadFileFormHandler={uploadFileFormHandler}></Storage>
                 </Stack>
               </Grid>
               <Grid item xs={12}>
