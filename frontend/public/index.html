@@ -17,8 +17,9 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
     />
-    <link rel="stylesheet" href="https://pyscript.net/alpha/pyscript.css" />
+    <link defer rel="stylesheet" href="https://pyscript.net/alpha/pyscript.css" />
     <script defer src="https://pyscript.net/alpha/pyscript.js"></script>
+    <!-- <script defer src="https://cdn.jsdelivr.net/pyodide/v0.20.0/full/pyodide.js"></script> -->
     <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.
@@ -28,6 +29,45 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
+    <py-script class="hidden">
+      import sys
+      import io
+      import time
+      from js import document, console
+      from pyodide import create_proxy
+
+      def _eventlog(e):
+        # create file-like string to capture output
+        codeOut = io.StringIO()
+        codeErr = io.StringIO()
+
+        # capture output and errors
+        sys.stdout = codeOut
+        sys.stderr = codeErr
+
+        try:
+          exec(e.target.value)
+        except Exception as e:
+          pyscript.write('python-err', type(e).__name__)
+        else:
+          s = codeErr.getvalue()
+          pyscript.write('python-err', s)
+
+          s = codeOut.getvalue()
+          pyscript.write('python-out', s)
+        finally:
+          # restore stdout and stderr
+          sys.stdout = sys.__stdout__
+          sys.stderr = sys.__stderr__
+          codeOut.close()
+          codeErr.close()
+
+      eventlog = create_proxy(_eventlog)
+      time.sleep(2.4)
+      print(document.querySelector("#python-decoder"))
+
+      document.querySelector("#python-decoder").addEventListener("input", eventlog)
+    </py-script>
     <title>React App</title>
   </head>
   <body id="body">
@@ -43,41 +83,7 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
-      <py-script defer class="hidden">
-        import sys
-        import io
-        from js import document, console
-        from pyodide import create_proxy
-  
-        def _eventlog(e):
-          # create file-like string to capture output
-          codeOut = io.StringIO()
-          codeErr = io.StringIO()
-  
-          # capture output and errors
-          sys.stdout = codeOut
-          sys.stderr = codeErr
-  
-          try:
-            exec(e.target.value)
-          except Exception as e:
-            pyscript.write('python-err', type(e).__name__)
-          else:
-            s = codeErr.getvalue()
-            pyscript.write('python-err', s)
-  
-            s = codeOut.getvalue()
-            pyscript.write('python-out', s)
-          finally:
-            # restore stdout and stderr
-            sys.stdout = sys.__stdout__
-            sys.stderr = sys.__stderr__
-            codeOut.close()
-            codeErr.close()
-  
-        eventlog = create_proxy(_eventlog)
-  
-        document.getElementById("python-decoder").addEventListener("input", eventlog)
-      </py-script>
+    <textarea class="hidden" id="python-decoder"></textarea>
+    <div class="hidden" id="python-out"></div>
+    <div class="hidden" id="python-err"></div>
   </body>
-</html>

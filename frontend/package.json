@@ -28,6 +28,7 @@
     "@emotion/styled": "^11.9.3",
     "@mui/icons-material": "^5.8.4",
     "@mui/material": "^5.8.7",
+    "@nx-js/compiler-util": "^2.0.0",
     "@uiw/react-codemirror": "^4.11.4",
     "firebase": "^9.9.0",
     "node-pre-gyp": "^0.17.0",
