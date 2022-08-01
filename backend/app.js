@@ -6,8 +6,7 @@ const session = require("express-session");
 // const Redis = require("redis")
 let RedisStore = require("connect-redis")(session);
 const { body, validationResult } = require("express-validator");
-// generate uuid
-// const uuidv4 = require("uuid/v4");
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyAtUPhMKwJxUDwQUPezFsojNPMn0gUkkoA",
@@ -497,6 +496,7 @@ app.get("/api/rooms/", isAuthenticated, function (req, res) {
   //TODO: adapt GET for pagination and firebase
   console.log("hit get all rooms endpoint");
   // console.log(`rooms ${rooms}`);
+  console.log(`from get rooms ${JSON.stringify(rooms)}`);
   return res.json(rooms);
 });
 
@@ -618,11 +618,13 @@ function deleteUserFromRoom(username) {
   let room_id = null;
   let isAdmin = false;
   if (idx >= 0) {
+    console.log(`from deleteUser - idx`);
     room_id = users[idx].roomHost;
     users[idx].roomHost = null;
     isAdmin = users[idx].role === "Admin";
   }
   if (room_id) {
+    console.log(`from deleteUser - room_id`);
     const room_idx = rooms.findIndex((room) => room.id === room_id);
     if (room_idx >= 0) {
       console.log(room_idx);
@@ -637,7 +639,7 @@ function deleteUserFromRoom(username) {
       if (rooms[room_idx].users.length === 0) {
         rooms.splice(room_idx, 1);
       }
-      console.log(rooms);
+      console.log(`deleteUserFromRoom running result: ${rooms}`);
     }
   }
 }
@@ -835,24 +837,27 @@ io.on('connection', async (socket) => {
 
 
   socket.on("disconnect", (reason) => {
-    var activeUsers = new Set();
-    var socketLeft = io.sockets.adapter.rooms;
-    var clients = io.sockets.adapter.rooms[socket.roomId];
-    activeUsers.add(clients);
-    console.log("active Users", activeUsers);
-    console.log(`disconnection socketLeft ${JSON.stringify(socketLeft)} ${JSON.stringify(clients)}`);
-    if(!socketLeft){
-      console.log(`disconnection reach disconnection point`);
-      socket.emit("room update");
-    }
+    // var activeUsers = new Set();
+    // var socketLeft = io.sockets.adapter.rooms;
+    // var clients = io.sockets.adapter.rooms[socket.roomId];
+    // activeUsers.add(clients);
+    // console.log("active Users", activeUsers);
+    // console.log(`disconnection socketLeft ${JSON.stringify(socketLeft)} ${JSON.stringify(clients)}`);
+    // if(!socketLeft){
+    //   console.log(`disconnection reach disconnection point`);
+    //   socket.emit("room update");
+    // }
     // if user is logging out, update room info, else ignore
     console.log("deleting");
     // TODO: investigate why socket.username is occassionally undefined
     console.log(socket.username);
     // if (socket.username) redisClient.del(socket.username)
-    if (reason === "client namespace disconnect")
+    if (reason === "client namespace disconnect"){
+      console.log(`disconnection event hit point`);
+      // socket.emit("room update");
       deleteUserFromRoom(socket.username);
-
+    }
+    
     socket.to(socket.roomId).emit("disconnection broadcast", socket.id, socket.role, socket.username);
     console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
   });

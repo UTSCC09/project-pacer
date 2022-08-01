@@ -51,10 +51,10 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
     if (res.err) setShowAlert(res.err);
     else {
       console.log("loading room done");
+      socket.emit("room update");
       setRoomId(String(id));
       setJoinedRoom(true);
       setUserRoom(host);
-      
     }
   }
 
@@ -64,7 +64,9 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
       const rooms = await getAllRooms();
       console.log(`from RoomPage-useEffect: ${JSON.stringify(rooms)}`);
       if (rooms.err) setShowAlert(rooms.err);
-      else setRoomInfo(rooms.res);
+      else setRoomInfo(init => {
+        return rooms.res;
+      });
       setLoadRoomsComplete(true);
     }
     fetchRoomInfo();
