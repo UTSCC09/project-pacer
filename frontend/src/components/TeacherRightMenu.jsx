@@ -99,9 +99,9 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
     // }
   }, [])
 
+
   function loadStudentSession(studentName, studentCurSocket) {
     if (!socket.sid || socket.sid !== studentCurSocket){
-      socket.on = true;
       console.log(`else right menu: ${socket.sid}`);
       setUserState((existing) => {
         Object.keys(existing).forEach(key => {
@@ -111,19 +111,24 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
         console.log(existing)
         return existing
       });
-      setDisplayStudent(true);
-      // console.log(studentName);
       setStudentName(studentName);
+
+      socket.on = true;
+      setDisplayStudent(true);
       socket.emit("fetch code", studentCurSocket, socket.id, socket.userRoom);
     } else if (socket.on) {
       socket.on = false;
+      setDisplayStudent(false);
+      // socket.emit("stop request", socket.sid);
+
       setUserState((existing) => {
         existing[studentCurSocket] = defaultState
         return existing
       });
-      setDisplayStudent(false);
     } else {
       socket.on = true;
+      setDisplayStudent(true);
+
       setUserState((existing) => {
         Object.keys(existing).forEach(key => {
           existing[key] = defaultState;
@@ -132,9 +137,9 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
         console.log(existing)
         return existing
       });
-      setDisplayStudent(true);
     }
   }
+
 
   function logoutHandler(){
 
@@ -150,18 +155,7 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
     setSocketFlag(false)
   }
 
-  // function logoutHandler(){
-  //   // socket.disconnect()
-  //   // socket.emit("disconnection broadcast");
-  //   authenticationService.logout();
-  //   socket.disconnect()
-  // }
 
-  // useEffect(() => {
-  //   console.log("current Socket Id:", socket.id)
-  //   }, []
-  // )
-    
   const drawer = (
     <div>
       <Toolbar />

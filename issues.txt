@@ -10,6 +10,14 @@
 
 
 [ ] - Sign in as [name/role] UI feature
+
+
+[x] - review mode closed but student's changes are still sync up with all students'
+      remote editor
+
+
+[] - load update    
+    
     
 [ ] - user refreshing does no update the list of peers locally
 
