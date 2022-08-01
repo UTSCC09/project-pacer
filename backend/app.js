@@ -52,7 +52,7 @@ dotenv.config();
 const app = express();
 
 const http = require("http");
-const PORT = 3000;
+const PORT = 8080;
 const version = "1.0.0";
 
 // const redisClient = Redis.createClient()
@@ -84,7 +84,7 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server, {
   cors: {
-    origin: "https://pacer.codes",
+    origin: "http://localhost:3000",
     credentials: true,
   },
 });
@@ -93,7 +93,7 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.json());
 app.use(
   cors({
-    origin: "https://pacer.codes",
+    origin: "http://localhost:3000",
     credentials: true,
   })
 );
@@ -102,6 +102,7 @@ const isAuthenticated = function (req, res, next) {
   if (!req.session.username) return res.status(401).json("access denied");
   next();
 };
+
 
 app.get("/api", (req, res) => res.send({ version }));
 
@@ -695,7 +696,7 @@ io.on('connection', async (socket) => {
       );
       
       console.log(`all users in chat room ${usersInThisRoom}`)
-      socket.emit("all users", usersInThisRoom);
+      socket.to(roomId).emit("all users", usersInThisRoom);
     }
   });
 
