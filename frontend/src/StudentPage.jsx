@@ -667,6 +667,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
                   <Button onClick={run} variant="contained">
                     Run
                   </Button>
+                  }
                   <Storage saveCode={saveCode} loadCode={loadCode} uploadFileFormHandler={uploadFileFormHandler}></Storage>
                 </Stack>
               </Grid>
