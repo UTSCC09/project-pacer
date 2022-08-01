@@ -60,6 +60,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
   }
 
   React.useEffect(() => {
+    // if(!socket.connected) socket.connect()
     async function fetchRoomInfo() {
       const rooms = await getAllRooms();
       console.log(`from RoomPage-useEffect: ${JSON.stringify(rooms)}`);

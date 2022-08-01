@@ -816,10 +816,10 @@ io.on('connection', async (socket) => {
         if (peers) {
             peers = peers.filter(id => id !== socket.id);
             rooms[roomIdx].peers = peers;
+            peers.forEach((peer) => {
+              socket.to(peer).emit("user disconnected audio", socket.id)
+            })
         }
-        peers.forEach((peer) => {
-          socket.to(peer).emit("user disconnected audio", socket.id)
-        })
     } 
   })
     
