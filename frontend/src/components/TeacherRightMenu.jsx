@@ -137,12 +137,13 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
   }
 
   function logoutHandler(){
-    socket.emit("room update");
+    // socket.emit("room update");
     authenticationService.logout();
     setConnectedUsers([]);
   
     socket.removeAllListeners();
     socket.disconnect();
+    socket.emit("room update");
     setSocketFlag(false)
   }
 

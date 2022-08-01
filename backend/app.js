@@ -496,6 +496,7 @@ app.get("/api/rooms/", isAuthenticated, function (req, res) {
   //TODO: adapt GET for pagination and firebase
   console.log("hit get all rooms endpoint");
   // console.log(`rooms ${rooms}`);
+  console.log(`from get rooms ${JSON.stringify(rooms)}`);
   return res.json(rooms);
 });
 
@@ -617,11 +618,13 @@ function deleteUserFromRoom(username) {
   let room_id = null;
   let isAdmin = false;
   if (idx >= 0) {
+    console.log(`from deleteUser - idx`);
     room_id = users[idx].roomHost;
     users[idx].roomHost = null;
     isAdmin = users[idx].role === "Admin";
   }
   if (room_id) {
+    console.log(`from deleteUser - room_id`);
     const room_idx = rooms.findIndex((room) => room.id === room_id);
     if (room_idx >= 0) {
       console.log(room_idx);
@@ -636,7 +639,7 @@ function deleteUserFromRoom(username) {
       if (rooms[room_idx].users.length === 0) {
         rooms.splice(room_idx, 1);
       }
-      console.log(rooms);
+      console.log(`deleteUserFromRoom running result: ${rooms}`);
     }
   }
 }

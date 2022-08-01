@@ -86,6 +86,13 @@ function App() {
   //   console.log("[form App]socket.id: " ,socket.connected, socket.id);
   // }, []);
 
+  // if(!socket.connected){
+  //   socket.connect()
+  //   console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
+  // } else {
+  //   console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
+  // }
+
   // student sync
   // console.log("[form App]socket.id: " ,socket.connected, socket.id);
   useEffect(() => {
