@@ -51,6 +51,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
     if (res.err) setShowAlert(res.err);
     else {
       console.log("loading room done");
+      socket.emit("room update");
       setRoomId(String(id));
       setJoinedRoom(true);
       setUserRoom(host);

@@ -30,6 +30,7 @@ function StudentRightMenu({drawerWidth, socket, roomId}) {
   }
 
   function logoutHandler(){
+    socket.emit("room update");
     socket.emit("disconnect audio", roomId)
     authenticationService.logout();
     socket.removeAllListeners();

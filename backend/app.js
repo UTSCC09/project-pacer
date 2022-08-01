@@ -835,24 +835,27 @@ io.on('connection', async (socket) => {
 
 
   socket.on("disconnect", (reason) => {
-    var activeUsers = new Set();
-    var socketLeft = io.sockets.adapter.rooms;
-    var clients = io.sockets.adapter.rooms[socket.roomId];
-    activeUsers.add(clients);
-    console.log("active Users", activeUsers);
-    console.log(`disconnection socketLeft ${JSON.stringify(socketLeft)} ${JSON.stringify(clients)}`);
-    if(!socketLeft){
-      console.log(`disconnection reach disconnection point`);
-      socket.emit("room update");
-    }
+    // var activeUsers = new Set();
+    // var socketLeft = io.sockets.adapter.rooms;
+    // var clients = io.sockets.adapter.rooms[socket.roomId];
+    // activeUsers.add(clients);
+    // console.log("active Users", activeUsers);
+    // console.log(`disconnection socketLeft ${JSON.stringify(socketLeft)} ${JSON.stringify(clients)}`);
+    // if(!socketLeft){
+    //   console.log(`disconnection reach disconnection point`);
+    //   socket.emit("room update");
+    // }
     // if user is logging out, update room info, else ignore
     console.log("deleting");
     // TODO: investigate why socket.username is occassionally undefined
     console.log(socket.username);
     // if (socket.username) redisClient.del(socket.username)
-    if (reason === "client namespace disconnect")
+    if (reason === "client namespace disconnect"){
+      console.log(`disconnection event hit point`);
+      // socket.emit("room update");
       deleteUserFromRoom(socket.username);
-
+    }
+    
     socket.to(socket.roomId).emit("disconnection broadcast", socket.id, socket.role, socket.username);
     console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
   });
