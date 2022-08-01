@@ -54,6 +54,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
   const [err, setErr] = useState(() => null);
   const [stuOut, setStuOut] = useState(() => null);
   const [stuErr, setStuErr] = useState(() => null);
+  const [loadPageComplete, setLoadPageComplete] = useState(() => false);
   // save and load
   const [codePath, setCodePath] = useState("");
   const [codeFilename, setCodeFilename] = useState("");
@@ -245,6 +246,17 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         return userCopy
       });
 
+      const itemIdx = peersRef.current.findIndex((p) => p.peerID === SktId);
+      if (itemIdx >= 0) {
+        peersRef.current[itemIdx].peer.removeAllListeners();
+        peersRef.current[itemIdx].peer.destroy();
+        peersRef.current.splice(itemIdx, 1)
+        setPeers((users) => {
+          const peerIdx = users.findIndex((p) => p === SktId);
+          return users.splice(peerIdx, 1)
+        });
+      } 
+
       setSid(init => {
         if(SktId === init) {
           setDisplayStudent(false);
@@ -319,6 +331,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
     } // for when code + codePath correspond to session, so an uploaded file can take over code slide
 
     console.log("load teacher page complete");
+    setLoadPageComplete((val) => true);
   }, []);
 
   useEffect(() => {
@@ -453,6 +466,8 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         console.log("done resetting local stream");
       }
       setCallInprogress(false);
+      peersRef.current = []
+      setPeers([])
       socket.emit("disconnect audio", String(roomId))
     }
   };
@@ -626,7 +641,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
           </Grid>
         </Grid>
       </Box>
-      <TeacherRightMenu
+      {loadPageComplete ? <TeacherRightMenu
         drawerWidth={drawerWidth}
         setDisplayStudent={setDisplayStudent}
         setStudentName={setStudentName}
@@ -634,7 +649,8 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         setConnectedUsers={setConnectedUsers}
         socket={socket}
         roomId={roomId}
-      />
+      /> : null}
+      
       <Stack direction="row">
         {LocalAudio}
         {peers.map((peer, index) => {

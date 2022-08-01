@@ -46,6 +46,7 @@ const defaultState = {
 
 
 function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, connectedUsers, setConnectedUsers, socket, roomId }) {
+  console.log(connectedUsers)
   const [notificationToggle, setNotificationToggle] = React.useState(() => null);
   const [helpMsg, setHelpMsg] = React.useState(() => "default msg");
   const [userState, setUserState] = React.useState(() => {

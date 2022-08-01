@@ -187,6 +187,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
   useEffect(() => {
 
     console.log(`from student: roomId ${roomId}`);
+    console.log(typeof roomId)
     // if(!socket.id) socket.connect()
     socket.role = 'student';
     socket.username = curUser;
@@ -199,6 +200,16 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
 
     socket.on("disconnection broadcast", (SktId, role, curUser, curSid) => {
       if (role === 'teacher') socket.tid = "";
+      const itemIdx = peersRef.current.findIndex((p) => p.peerID === SktId);
+        if (itemIdx >= 0) {
+          peersRef.current[itemIdx].peer.removeAllListeners();
+          peersRef.current[itemIdx].peer.destroy();
+          peersRef.current.splice(itemIdx, 1)
+          setPeers((users) => {
+            const peerIdx = users.findIndex((p) => p === SktId);
+            return users.splice(peerIdx, 1)
+          });
+        } 
       console.log(`disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`);
     });
 
@@ -362,6 +373,8 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
         console.log("done resetting local stream");
       }
       setCallInprogress(false);
+      peersRef.current = []
+      setPeers([])
       socket.emit("disconnect audio", roomId)
     }
   };

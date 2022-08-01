@@ -102,6 +102,7 @@ function App() {
         console.log(x)
         setCurUser(x ? x.username : null);
         setUserRoom(x ? x.roomHost : null);
+        setRoomId(x ? x.roomHost : "");
         setIsAdmin(x && x.role === Role.Admin);
         setLoadingComplete(true)
       });
@@ -125,7 +126,7 @@ function App() {
                   <StudentPage socket={socket}
                                curUser={curUser}
                                userRoom={userRoom}
-                               roomId={roomId}
+                               roomId={String(roomId)}
                   />
                 </PrivateRoute>
               }
@@ -138,7 +139,7 @@ function App() {
                   <TeacherPage  socket={socket} 
                                 curUser={curUser}
                                 userRoom={userRoom}
-                                roomId={roomId}
+                                roomId={String(roomId)}
                   />
                 </PrivateRoute>
               }
