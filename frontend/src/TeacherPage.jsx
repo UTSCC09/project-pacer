@@ -108,6 +108,13 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
   //   }, 1000);
   // });
 
+  // for file downloading (via fb):
+  const loadCode = () => {
+    downloadFile(codePath).then((res) => {
+      setCode(res.code);
+    });
+  }
+
   // for file uploading (via fb):
   const saveCode = () => {
     const f = new File([code], codeFilename);
@@ -733,11 +740,8 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
                   <Button onClick={run} variant="contained">
                     Run
                   </Button>
-                  <Storage value={code}></Storage>
+                  <Storage saveCode={saveCode} loadCode={loadCode} uploadFileFormHandler={uploadFileFormHandler}></Storage>
                 </Stack>
-              </Grid>
-              <Grid item xs={12} alignItems="center">
-                <input type="file" onChange={uploadFileFormHandler} />
               </Grid>
               <Grid item xs={12}>
                 <CodeExecutionResWidgit
