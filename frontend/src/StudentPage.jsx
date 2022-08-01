@@ -17,7 +17,7 @@ import CallIcon from "@mui/icons-material/Call";
 
 // for file up/downloading (via fb):
 import { storage } from "./_components/FireBase";
-import { ref, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL, listAll, deleteObject, getMetadata } from "@firebase/storage";
 import { upperPythonKeys, lowerPythonKeys, javaKeys } from "./_helpers";
 
 import { EditorState, Compartment } from "@codemirror/state";
@@ -42,7 +42,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
   const [language, setLanguage] = useState(() => "javascript");
   // code display and transmission
   // like a cache: keeping this since downloading & uploading the file on each update is very inefficient
-  const [code, setCode] = useState(() => ""); 
+  const [code, setCode] = useState(() => "");
   const [lecCode, setLecCode] = useState(() => "console.log('hello students!');");
   const [flag, setFlag] = useState(() => false);
   // execution
@@ -62,7 +62,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
   const localAudio = useRef();
   const peersRef = useRef([]);
 
-  
+
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
     extensions[0] = javascript({ jsx: true });
@@ -76,7 +76,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
 
   const Audio = ({peer}) => {
     const ref = useRef();
-  
+
     useEffect(() => {
         peer.on("stream", stream => {
             console.log("this is streaming")
@@ -84,7 +84,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
             ref.current.srcObject = stream;
         })
     }, []);
-  
+
     return (
         <audio playsInline autoPlay ref={ref} />
     );
@@ -104,18 +104,132 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
   //   }, 1000);
   // });
 
+  // for file downloading (via fb):
+  const loadCode = () => {
+    downloadFile(codePath).then((res) => {
+      setCode(res.code);
+    });
+  }
+
   // for file uploading (via fb):
-  const uploadFileFormHandler = (event) => {
-    event.preventDefault();
-    uploadFile(event.target[0].files[0]).then((res) => {
-      res.file.text().then((code) => {
-        setCode(code);
-        setCodePath(res.codePath);
-        setCodeFilename(res.file.name);
+  const saveCode = () => {
+    const f = new File([code], codeFilename);
+    uploadFile(f);
+  }
+
+  // for file maintenance (via fb):
+  const getOldestOfTwoInUsersFileDir = () => {
+    return new Promise(function (res, rej) {
+      const cp = `/files/users/${authenticationService.currentUser.source._value.username}`;
+      const fileStorageRef = ref(storage, cp);
+      listAll(fileStorageRef).then(function(files) {
+        const userFiles = [];
+        files.items.forEach(function(fileRef) {
+          userFiles.push(fileRef);
+        });
+        if (userFiles.length == 2) {
+          const cp2 = `/files/users/${authenticationService.currentUser.source._value.username}/${userFiles[0].name}`;
+          const fileStorageRef2 = ref(storage, cp2);
+          getMetadata(fileStorageRef2).then((metadata1) => {
+            const cp3 = `/files/users/${authenticationService.currentUser.source._value.username}/${userFiles[1].name}`;
+            const fileStorageRef3 = ref(storage, cp3);
+            getMetadata(fileStorageRef3).then((metadata2) => {
+              const d0 = new Date(metadata1.timeCreated);
+              const d1 = new Date(metadata2.timeCreated);
+              if (d0 <= d1) {
+                res({ fileName: userFiles[0].name });
+              } else {
+                res({ fileName: userFiles[1].name });
+              }
+            }).catch((err2) => {
+              console.log(err2);
+              rej();
+            });
+          }).catch((err1) => {
+            console.log(err1);
+            rej();
+          });
+        } else {
+          console.log("Seek adminastrive assistance."); // user has unexpected files in their folder
+          rej();
+        }
+      }).catch(function(err) {
+        console.log(err);
+        rej();
       });
     });
   };
 
+  // for file maintenance (via fb) (deletes the oldest of the 2 files in a user's dir):
+  const refreshUsersFileDir = () => {
+    return new Promise(function (res, rej) {
+      const cp = `/files/users/${authenticationService.currentUser.source._value.username}`;
+      const fileStorageRef = ref(storage, cp);
+      listAll(fileStorageRef).then(function(files) {
+        const userFiles = [];
+        files.items.forEach(function(fileRef) {
+          userFiles.push(fileRef);
+        });
+        if (userFiles.length == 2) {
+          getOldestOfTwoInUsersFileDir().then((r) => {
+            const cp2 = `/files/users/${authenticationService.currentUser.source._value.username}/${r.fileName}`;
+            const fileStorageRef2 = ref(storage, cp2);
+            deleteObject(fileStorageRef2).then(() => {
+              res();
+            }).catch((err2) => {
+              console.log(err2);
+              rej();
+            });
+          }).catch((err1) => {
+            console.log(err1);
+            rej();
+          });
+        } else {
+          console.log("Seek adminastrive assistance."); // user has unexpected files in their folder
+          rej();
+        }
+      }).catch(function(err) {
+        console.log(err);
+        rej();
+      });
+    });
+  };
+
+  // for file uploading (via fb):
+  const uploadFileFormHandler = (event) => {
+    event.preventDefault();
+    uploadFile(event.target.files[0]).then((res) => {
+      res.file.text().then((code) => {
+        setCode(code);
+        setCodePath(res.codePath);
+        setCodeFilename(res.file.name);
+        refreshUsersFileDir();
+      });
+    });
+  };
+
+  // for file maintenance (via fb):
+  const getOnlyFilesName = () => {
+    return new Promise(function (res, rej) {
+      const cp = `/files/users/${authenticationService.currentUser.source._value.username}`;
+      const fileStorageRef = ref(storage, cp);
+      listAll(fileStorageRef).then(function(files) {
+        const userFiles = [];
+        files.items.forEach(function(fileRef) {
+          userFiles.push(fileRef);
+        });
+        if (userFiles.length == 1) {
+          res({ fileName: userFiles[0].name, codePath: userFiles[0]._location.path });
+        } else {
+          console.log("Seek adminastrive assistance."); // user has unexpected files in their folder
+          rej();
+        }
+      }).catch(function(err) {
+        console.log(err);
+        rej();
+      });
+    });
+  };
 
   // for file uploading (via fb):
   const uploadFile = (f) => {
@@ -148,7 +262,6 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
     });
   };
 
-
   // for file downloading (via fb):
   const makeDownloadFileRequest = (url) => {
     return new Promise(function (res, rej) {
@@ -172,7 +285,6 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
     });
   };
 
-
   // for file downloading (via fb):
   const downloadFile = (fileLocation) => {
     const fileStorageRef = ref(storage, fileLocation);
@@ -181,7 +293,28 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
     );
   };
 
-  
+  // for file maintenance (via fb):
+  const usersFileDirIsEmpty = () => {
+    return new Promise(function (res, rej) {
+      const cp = `/files/users/${authenticationService.currentUser.source._value.username}`;
+      const fileStorageRef = ref(storage, cp);
+      listAll(fileStorageRef).then(function(files) {
+        const userFiles = [];
+        files.items.forEach(function(fileRef) {
+          userFiles.push(fileRef);
+        });
+        if (userFiles.length == 0) {
+          res(true);
+        } else {
+          res(false);
+        }
+      }).catch(function(err) {
+        console.log(err);
+        rej();
+      });
+    });
+  };
+
   useEffect(() => {
 
     console.log(`from student: roomId ${roomId}`);
@@ -201,7 +334,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
     });
 
     socket.on("teacher join", (tid) => {
-      socket.tid = tid; 
+      socket.tid = tid;
       socket.emit('student join', curUser, roomId);
     });
 
@@ -228,21 +361,32 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
 
     // for file downloading (via fb):
     if (code === "" && codePath === "" && codeFilename === "") {
-      let cp = "/files/defaults/ystudent.txt";
-      downloadFile(cp)
-        .then((res) => {
-          const f = new File([res.code], "whateveryouwant.txt");
-          return uploadFile(f);
-        })
-        .then((res) => {
-          res.file.text().then((code) => {
-            setCode(code);
-            setCodePath(res.codePath);
-            setCodeFilename(res.file.name);
-          });
-        });
+      usersFileDirIsEmpty().then((res) => {
+        if (res) {
+          let cp = "/files/defaults/ystudent.txt";
+          downloadFile(cp)
+            .then((res) => {
+              const f = new File([res.code], "whateveryouwant.txt");
+              return uploadFile(f);
+            })
+            .then((res) => {
+              res.file.text().then((code) => {
+                setCode(code);
+                setCodePath(res.codePath);
+                setCodeFilename(res.file.name);
+              });
+            });
+        } else {
+          getOnlyFilesName().then((res) => {
+            downloadFile(res.codePath).then((res2) => {
+              setCode(res2.code);
+              setCodePath(res.codePath);
+              setCodeFilename(res.fileName);
+            });
+          })
+        }
+      });
     }
-    // for when code + codePath correspond to session, so an uploaded file can take over code slide
 
     console.log("load student page complete");
   }, []);
@@ -252,7 +396,7 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
     if(flag)
       socket.emit("fetch init", code, roomId);
   }, [flag])
-  
+
 
   useEffect(() => {
     if (callSystemInited) {
@@ -447,14 +591,8 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
                   <Button onClick={run} variant="contained">
                     Run
                   </Button>
-                  <Storage value={code}></Storage>
+                  <Storage saveCode={saveCode} loadCode={loadCode} uploadFileFormHandler={uploadFileFormHandler}></Storage>
                 </Stack>
-              </Grid>
-              <Grid item xs={12}>
-                <form className="submit-file" onSubmit={uploadFileFormHandler}>
-                  <input type="file" className="input" />
-                  <button type="submit">Upload</button>
-                </form>
               </Grid>
               <Grid item xs={12}>
                 <CodeExecutionResWidgit

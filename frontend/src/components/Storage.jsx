@@ -1,23 +1,17 @@
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import Input from '@mui/material/Input';
 // [kw]
 import React from 'react';
 
-
-function Storage(code) {
-    function saveCode(e) {
-        console.log(e.target.value)
-        console.log("saved")
-    }
-    
-    function loadCode() {
-        console.log("loaded")
-    }
-    
+function Storage({saveCode, loadCode, uploadFileFormHandler}) {
     return (
         <>
-        <Button value={code.value} onClick={(e) => saveCode(e)} variant="contained">Save</Button>
+        <Button onClick={saveCode} variant="contained">Save</Button>
         <Button onClick={loadCode} variant="contained">Load</Button>
+        <Button onChange={uploadFileFormHandler} variant="contained" component="label">
+          Upload<input type="file" hidden/>
+        </Button>
         </>
     );
   }
