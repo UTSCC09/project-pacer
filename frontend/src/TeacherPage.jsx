@@ -11,6 +11,8 @@ import Grid from "@mui/material/Grid";
 import EditorOptionsBar from "./components/EditorOptions";
 import Toolbar from "@mui/material/Toolbar";
 import Stack from "@mui/material/Stack";
+import CallIcon from '@mui/icons-material/Call';
+import CloseIcon from '@mui/icons-material/Close';
 import Storage from "./components/Storage";
 
 import { upperPythonKeys, lowerPythonKeys, javaKeys } from "./_helpers";
@@ -39,7 +41,7 @@ const drawerWidth = 200;
 let t = 0; //ns
 
 
-function TeacherPage({ socket, curUser, userRoom, roomId}) {
+function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
   // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
   const [displayStudent, setDisplayStudent] = useState(() => false);
@@ -52,6 +54,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
   const [err, setErr] = useState(() => null);
   const [stuOut, setStuOut] = useState(() => null);
   const [stuErr, setStuErr] = useState(() => null);
+  const [loadPageComplete, setLoadPageComplete] = useState(() => false);
   // save and load
   const [codePath, setCodePath] = useState("");
   const [codeFilename, setCodeFilename] = useState("");
@@ -120,6 +123,87 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
     const f = new File([code], codeFilename);
     uploadFile(f);
   }
+
+  // for file maintenance (via fb):
+  const getOldestOfTwoInUsersFileDir = () => {
+    return new Promise(function (res, rej) {
+      const cp = `/files/users/${authenticationService.currentUser.source._value.username}`;
+      const fileStorageRef = ref(storage, cp);
+      listAll(fileStorageRef).then(function(files) {
+        const userFiles = [];
+        files.items.forEach(function(fileRef) {
+          userFiles.push(fileRef);
+        });
+        if (userFiles.length == 2) {
+          const cp2 = `/files/users/${authenticationService.currentUser.source._value.username}/${userFiles[0].name}`;
+          const fileStorageRef2 = ref(storage, cp2);
+          getMetadata(fileStorageRef2).then((metadata1) => {
+            const cp3 = `/files/users/${authenticationService.currentUser.source._value.username}/${userFiles[1].name}`;
+            const fileStorageRef3 = ref(storage, cp3);
+            getMetadata(fileStorageRef3).then((metadata2) => {
+              const d0 = new Date(metadata1.timeCreated);
+              const d1 = new Date(metadata2.timeCreated);
+              if (d0 <= d1) {
+                res({ fileName: userFiles[0].name });
+              } else {
+                res({ fileName: userFiles[1].name });
+              }
+            }).catch((err2) => {
+              console.log(err2);
+              rej();
+            });
+          }).catch((err1) => {
+            console.log(err1);
+            rej();
+          });
+        } else {
+          console.log("Seek adminastrive assistance."); // user has unexpected files in their folder
+          rej();
+        }
+      }).catch(function(err) {
+        console.log(err);
+        rej();
+      });
+    });
+  };
+
+  // for file maintenance (via fb) (deletes the oldest of the 2 files in a user's dir):
+  const refreshUsersFileDir = () => {
+    return new Promise(function (res, rej) {
+      const cp = `/files/users/${authenticationService.currentUser.source._value.username}`;
+      const fileStorageRef = ref(storage, cp);
+      listAll(fileStorageRef).then(function(files) {
+        const userFiles = [];
+        files.items.forEach(function(fileRef) {
+          userFiles.push(fileRef);
+        });
+        if (userFiles.length == 2) {
+          getOldestOfTwoInUsersFileDir().then((r) => {
+            const cp2 = `/files/users/${authenticationService.currentUser.source._value.username}/${r.fileName}`;
+            const fileStorageRef2 = ref(storage, cp2);
+            deleteObject(fileStorageRef2).then(() => {
+              res();
+            }).catch((err2) => {
+              console.log(err2);
+              rej();
+            });
+          }).catch((err1) => {
+            console.log(err1);
+            rej();
+          });
+        } else {
+          console.log("Seek adminastrive assistance."); // user has unexpected files in their folder
+          rej();
+        }
+      }).catch(function(err) {
+        console.log(err);
+        rej();
+      });
+    });
+  };
+
+
+
 
   // for file maintenance (via fb):
   const getOldestOfTwoInUsersFileDir = () => {
@@ -319,7 +403,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
     });
   };
 
-  useEffect(async () => {
+  useEffect(() => {
 
     console.log(`from teacherPage: roomId ${roomId}`);
 
@@ -327,9 +411,6 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
     socket.emit("set attributes", "teacher", curUser, roomId);
     socket.roomId = roomId;
 
-    // socket.emit("onLecChange", code);
-
-    //new
     socket.emit("teacher join", roomId);
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
@@ -361,7 +442,6 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         }
         return display;
       });
-
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
@@ -374,6 +454,17 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         }
         return userCopy
       });
+
+      const itemIdx = peersRef.current.findIndex((p) => p.peerID === SktId);
+      if (itemIdx >= 0) {
+        peersRef.current[itemIdx].peer.removeAllListeners();
+        peersRef.current[itemIdx].peer.destroy();
+        peersRef.current.splice(itemIdx, 1)
+        setPeers((users) => {
+          const peerIdx = users.findIndex((p) => p === SktId);
+          return users.splice(peerIdx, 1)
+        });
+      } 
 
       setSid(init => {
         if(SktId === init) {
@@ -428,7 +519,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
       socket.sid = "";
       setSid("");
       socket.on = true;
-      setStuCode(msg);
+      setStuCode("");
     });
 
     // for file downloading (via fb):
@@ -461,6 +552,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
     }
 
     console.log("load teacher page complete");
+    setLoadPageComplete((val) => true);
   }, []);
 
   useEffect(() => {
@@ -503,24 +595,24 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         console.log(item)
         item.peer.signal(payload.signal);
       });
-    }
 
-    socket.on("user disconnected audio", (socketId) => {
-      console.log("user disconnected audio")
-      console.log(peersRef.current)
-      console.log(socketId)
-      const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
-      if (itemIdx >= 0) {
-        peersRef.current[itemIdx].peer.removeAllListeners();
-        peersRef.current[itemIdx].peer.destroy();
-        peersRef.current.splice(itemIdx, 1)
-        setPeers((users) => {
-          const peerIdx = users.findIndex((p) => p === socketId);
-          return users.splice(peerIdx, 1)
-        });
-      }
-      console.log(peersRef.current)
-    })
+      socket.on("user disconnected audio", (socketId) => {
+        console.log("user disconnected audio")
+        console.log(peersRef.current)
+        console.log(socketId)
+        const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
+        if (itemIdx >= 0) {
+          peersRef.current[itemIdx].peer.removeAllListeners();
+          peersRef.current[itemIdx].peer.destroy();
+          peersRef.current.splice(itemIdx, 1)
+          setPeers((users) => {
+            const peerIdx = users.findIndex((p) => p === socketId);
+            return users.splice(peerIdx, 1)
+          }); 
+        }
+        console.log(peersRef.current)
+      })
+    }
   }, [callSystemInited])
 
 
@@ -554,6 +646,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
     const { out, err } = runCode(code, language);
     setOut(out);
     setErr(err);
+    socket.emit("teacher: execution", out, err, roomId);
   };
 
 
@@ -584,8 +677,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         localAudio.current.srcObject = localStream;
         console.log("done setting local stream");
       }
-      // todo: you many wanna change this
-      socket.emit("joined chat", userRoom);
+      socket.emit("joined chat", String(roomId));
       setCallInprogress(true);
     } else {
       console.log("closing call");
@@ -595,7 +687,9 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         console.log("done resetting local stream");
       }
       setCallInprogress(false);
-      socket.emit("disconnect audio", userRoom)
+      peersRef.current = []
+      setPeers([])
+      socket.emit("disconnect audio", String(roomId))
     }
   };
 
@@ -639,6 +733,11 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
     peer.signal(incomingSignal);
 
     return peer;
+  }
+
+  let LocalAudio;
+  if (callStream) {
+    LocalAudio = <audio playsInline muted ref={localAudio} autoPlay />;
   }
 
 
@@ -685,9 +784,10 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
                 </Grid>
                 <Grid item xs={12}>
                   <Stack spacing={2} direction="row">
-                    <Button onClick={runStuCode} variant="contained">
-                      Run
-                    </Button>
+                  {language==="java" ? null : 
+                  <Button onClick={runStuCode} variant="contained">
+                    Run
+                  </Button>}
                   </Stack>
                 </Grid>
                 <Grid item xs={12}>
@@ -737,6 +837,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
                   justifyContent="center"
                   alignItems="space-evenly"
                 >
+                  {language==="java" ? null : 
                   <Button onClick={run} variant="contained">
                     Run
                   </Button>
@@ -754,22 +855,25 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
           </Grid>
         </Grid>
       </Box>
-      <TeacherRightMenu
+      {loadPageComplete ? <TeacherRightMenu
         drawerWidth={drawerWidth}
         setDisplayStudent={setDisplayStudent}
         setStudentName={setStudentName}
         connectedUsers={connectedUsers.filter((user) => user.curUser !== curUser)}
         setConnectedUsers={setConnectedUsers}
         socket={socket}
-      />
+        roomId={roomId}
+        setSocketFlag={setSocketFlag}
+      /> : null}
+      
       <Stack direction="row">
-      <audio playsInline muted ref={localAudio} autoPlay />
+        {LocalAudio}
         {peers.map((peer, index) => {
           return <Audio key={index} peer={peer} />;
         })}
       </Stack>
       <button className="call-button" onClick={() => setupCall()} >
-        {callInprogress ? "Disconnect" : "Call"}
+        {callInprogress ? <CloseIcon fontSize="large"/> : <CallIcon fontSize="large"/>}
       </button>
     </>
   );

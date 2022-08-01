@@ -45,7 +45,8 @@ const defaultState = {
 };
 
 
-function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, connectedUsers, setConnectedUsers, socket }) {
+function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, connectedUsers, setConnectedUsers, socket, roomId, setSocketFlag }) {
+  console.log(connectedUsers)
   const [notificationToggle, setNotificationToggle] = React.useState(() => null);
   const [helpMsg, setHelpMsg] = React.useState(() => "default msg");
   const [userState, setUserState] = React.useState(() => {
@@ -78,9 +79,8 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
 
   React.useEffect(() => {
     // todo-kw: revisit
-    if (socket){
+    // if (socket){
       socket.on("help request", (stuId, username) => {
-        // todo: data for help request implementation
         console.log(
           `[TeacherPage - help request] student [${username}] need help; student socket id: ${stuId} `
         );
@@ -96,7 +96,7 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
         setHelpMsg(oldmsg => msg)
         setNotificationToggle(oldState => !oldState)
       });
-    }
+    // }
   }, [])
 
   function loadStudentSession(studentName, studentCurSocket) {
@@ -137,10 +137,17 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
   }
 
   function logoutHandler(){
+
+    socket.emit("disconnect audio", roomId)
+
     authenticationService.logout();
     setConnectedUsers([]);
+  
     socket.removeAllListeners();
     socket.disconnect();
+
+    socket.emit("room update");
+    setSocketFlag(false)
   }
 
   // function logoutHandler(){

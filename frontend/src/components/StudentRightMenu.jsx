@@ -18,21 +18,25 @@ import React from 'react';
 import Notifications from './Notifications';
 
 // function StudentRightMenu({drawerWidth}) {
-function StudentRightMenu({drawerWidth, socket}) {
-
+function StudentRightMenu({drawerWidth, socket, roomId, setSocketFlag}) {
   const [notificationToggle, setNotificationToggle] = React.useState(() => null);
 
   function requestHelp() {
     console.log("help requested")
     // new
-    socket.emit("help request", socket.userRoom);
+    socket.emit("help request", roomId);
     setNotificationToggle(!notificationToggle)
   }
 
   function logoutHandler(){
+    // socket.emit("room update");
+    socket.emit("disconnect audio", roomId)
     authenticationService.logout();
     socket.removeAllListeners();
-    socket.disconnect()
+    socket.disconnect();
+    socket.emit("room update");
+
+    setSocketFlag(false)
   }
 
   const drawer = (

@@ -6,8 +6,7 @@ const session = require("express-session");
 // const Redis = require("redis")
 let RedisStore = require("connect-redis")(session);
 const { body, validationResult } = require("express-validator");
-// generate uuid
-// const uuidv4 = require("uuid/v4");
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyAtUPhMKwJxUDwQUPezFsojNPMn0gUkkoA",
@@ -146,18 +145,19 @@ let rooms = [
 ];
 
 const NewRoom = (function () {
-  return function item(roomName, host, user) {
+  return function item(roomName, host, hasTeacher) {
     // todo-kw
     this.id = Date.now();
     this.host = host;
-    this.hasTeacher = user.role === Role.Admin;
+    this.hasTeacher = hasTeacher
     this.roomName = roomName;
-    this.users = [user];
+    this.users = [];
   };
 })();
 
 const webhookRoutes = require("./routes/webhookRoutes");
 const { SocketClosedUnexpectedlyError } = require("redis");
+const { json } = require("body-parser");
 app.use("/api", webhookRoutes);
 
 const saltRounds = 10;
@@ -168,6 +168,7 @@ app.get("/api/whoami", function (req, res) {
   if (!userName) return res.json(null);
   // BEFORE FB:
   const user = users.find((x) => x.username === userName);
+  console.log(user)
   return res.json({
     id: user.id,
     username: user.username,
@@ -262,6 +263,7 @@ app.patch(
       });
   }
 );
+
 
 app.post(
   "/api/signin",
@@ -358,6 +360,7 @@ app.post(
   }
 );
 
+
 app.post(
   "/api/signup/",
   [
@@ -451,6 +454,7 @@ app.post(
   }
 );
 
+
 app.post("/api/signout/", function (req, res) {
   console.log("hit signout endpoint");
   console.log("deleting");
@@ -461,6 +465,7 @@ app.post("/api/signout/", function (req, res) {
   res.clearCookie("pacer-session");
   return res.json(null);
 });
+
 
 app.post("/api/rooms/", isAuthenticated, function (req, res) {
   console.log("hit post room info endpoint");
@@ -476,7 +481,7 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
     console.log(req.body.socketId);
     const socketId = req.body.socketId;
     // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
-    users[idx].roomHost = user.username;
+    const room = new NewRoom(req.body.roomName, req.session.username, user.role === Role.Admin);
     const userInfo = {
       id: user.id,
       username: user.username,
@@ -484,20 +489,23 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
       roomHost: user.roomHost,
       socketId,
     };
-    const room = new NewRoom(req.body.roomName, req.session.username, userInfo);
+    room.users.push(userInfo)
+    users[idx].roomHost = room.id;
     rooms.push(room);
     return res.json(room);
   }
 });
 
+
 app.get("/api/rooms/", isAuthenticated, function (req, res) {
   //TODO: adapt GET for pagination and firebase
   console.log("hit get all rooms endpoint");
   // console.log(`rooms ${rooms}`);
+  console.log(`from get rooms ${JSON.stringify(rooms)}`);
   return res.json(rooms);
 });
 
-// todo-kw
+
 app.get("/api/rooms/:host/", isAuthenticated, function (req, res) {
   console.log("hit get room info endpoint");
   // console.log(`rooms ${rooms}`);
@@ -512,6 +520,7 @@ app.get("/api/rooms/:host/", isAuthenticated, function (req, res) {
   }
 });
 
+
 app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
   console.log("hit update room info endpoint");
   /* a room with specified host already exists */
@@ -525,15 +534,15 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
           req.params.host +
           " not found."
       );
-  const roomUsers = rooms[room_idx].users;
-  if (
-    roomUsers.filter((user) => user.username === req.session.username).length > 0
-  ) {
-    console.log("conflicted");
-    return res
-      .status(409)
-      .json("room " + req.params.host + " already has user " + req.session.username);
-  }
+  // const roomUsers = rooms[room_idx].users;
+  // if (
+  //   roomUsers.filter((user) => user.username === req.session.username).length > 0
+  // ) {
+  //   console.log("conflicted");
+  //   return res
+  //     .status(409)
+  //     .json("room " + req.params.host + " already has user " + req.session.username);
+  // }
   if (
     rooms[room_idx].hasTeacher && req.session.role === "Admin"
   ) {
@@ -553,12 +562,12 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
     // console.log(socketId)
     // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
     // }
-    users[idx].roomHost = rooms[room_idx].host;
+    users[idx].roomHost = rooms[room_idx].id;
     const userInfo = {
       id: user.id,
       username: user.username,
       role: user.role,
-      roomHost: user.roomHost,
+      roomHost: rooms[room_idx].host,
       socketId,
     };
     rooms[room_idx].users.push(userInfo);
@@ -568,6 +577,7 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
     return res.status(500).json(err);
   }
 });
+
 
 app.delete("/api/rooms/:host/", isAuthenticated, function (req, res) {
   console.log("hit delete room info endpoint");
@@ -609,18 +619,21 @@ app.delete("/api/rooms/:host/", isAuthenticated, function (req, res) {
     );
 });
 
+
 function deleteUserFromRoom(username) {
   console.log("deleting user " + username + " from rooms");
   const idx = users.findIndex((x) => x.username === username);
-  let host = null;
+  let room_id = null;
   let isAdmin = false;
   if (idx >= 0) {
-    host = users[idx].roomHost;
+    console.log(`from deleteUser - idx`);
+    room_id = users[idx].roomHost;
     users[idx].roomHost = null;
     isAdmin = users[idx].role === "Admin";
   }
-  if (host) {
-    const room_idx = rooms.findIndex((room) => room.host === host);
+  if (room_id) {
+    console.log(`from deleteUser - room_id`);
+    const room_idx = rooms.findIndex((room) => room.id === room_id);
     if (room_idx >= 0) {
       console.log(room_idx);
       const roomUsers = rooms[room_idx].users;
@@ -634,10 +647,12 @@ function deleteUserFromRoom(username) {
       if (rooms[room_idx].users.length === 0) {
         rooms.splice(room_idx, 1);
       }
-      console.log(rooms);
+      console.log(`deleteUserFromRoom running result: ${rooms}`);
     }
   }
 }
+
+
 
 // `Not Found` request handler
 // app.use((req, res, next) => {
@@ -652,70 +667,54 @@ function deleteUserFromRoom(username) {
 //   res.json({ message: error.message || 'Internal Server Error' });
 // });
 
-// socket io
-// var prevRequest = '';
+
 io.on('connection', async (socket) => {
-  // socket.join("room1");
-  // console.log("[Server] joined room: " + socket.rooms); // Set { <socket.id>, "room1" }
+
   console.log("[Server] a user connected, socket id is :" + socket.id);
-  // const count = io.engine.clientsCount;
-  // console.log("[server count]:", count);
+
 
   socket.on("room update", () =>{
     socket.broadcast.emit("room update", "received");
   })
 
-  socket.on("set attributes", (role, curUser, userRoom) => {
+
+  socket.on("set attributes", (role, curUser, roomId) => {
     socket.role = role;
     socket.username = curUser;
-    socket.userRoom = userRoom;
-    socket.join(userRoom);
+    socket.roomId = roomId;
+    socket.join(roomId);
     console.log("rooms", socket.rooms);
     if (role === 'teacher') {
       socket.pr = "";
       socket.sid = "";
     }
-    // socket.broadcast.emit("connection broadcast", socket.id, role, curUser);
-    socket.to(userRoom).emit("connection broadcast", socket.id, role, curUser);
+    socket.to(roomId).emit("connection broadcast", socket.id, role, curUser);
   });
 
-  //new
-  socket.on('teacher join', (userRoom) => {
-    socket.join('teacher: ' + userRoom);
-    // socket.broadcast.emit('teacher join', socket.id);
-    socket.to(userRoom).emit('teacher join', socket.id);
 
+  socket.on('teacher join', (roomId) => {
+    socket.join('teacher: ' + roomId);
+    socket.to(roomId).emit('teacher join', socket.id);
   });
 
-  socket.on("student join", (curUser, userRoom) => {
+
+  socket.on("student join", (curUser, roomId) => {
     console.log("student join");
-    socket.to('teacher: ' + userRoom).emit("student join", socket.id, curUser);
+    socket.to('teacher: ' + roomId).emit("student join", socket.id, curUser);
   });
 
-  socket.on("onChange", (value, id, userRoom) => {
+
+  socket.on("onChange", (value, id, roomId) => {
     console.log("onChange");
     socket.to(id).emit("onChange", value, socket.id);
   });
 
 
-  socket.on('onLecChange', (value, userRoom) => {
-    // socket.broadcast.emit("onLecChange", value, socket.id);
-    socket.to(userRoom).emit("onLecChange", value, socket.id);
+  socket.on('onLecChange', (value, roomId) => {
+    socket.to(roomId).emit("onLecChange", value, socket.id);
   });
 
-
-  socket.on("callUser", (data) => {
-    console.log(`calling user ${data.userToCall}`);
-    socket
-      .to(data.userToCall)
-      .emit("hey", {
-        signal: data.signalData,
-        from: data.from,
-        stream: data.stream,
-      });
-  });
-
-  socket.on('fetch code', async (studentId, adminId, userRoom) => {
+  socket.on('fetch code', async (studentId, adminId, roomId) => {
     const sockets = await io.fetchSockets()
       .catch((err) => { console.error(err); });
 
@@ -732,25 +731,29 @@ io.on('connection', async (socket) => {
   });
 
 
-  socket.on("joined chat", (roomHost) => {
-    const roomID = rooms.findIndex(room => room.host === roomHost)
-    console.log(`joining room with peers ${rooms[roomID].peers}`)
-    if (rooms[roomID].peers) {
-      // const length = users[roomID].peers.length;
-      // if (length === 4) {
-      //     socket.emit("room full");
-      //     return;
-      // }
-      rooms[roomID].peers.push(socket.id);
-    } else {
-      rooms[roomID].peers = [socket.id];
+  socket.on("teacher: execution", (out, err, roomId) => {
+    socket.to(roomId).emit("teacher: execution", out, err);
+  });
+
+  socket.on("joined chat", (roomId) => {
+    const roomIdx = rooms.findIndex(room => String(room.id) === roomId)
+    console.log(rooms)
+    console.log(roomId)
+    console.log(roomIdx)
+    if (roomIdx >= 0) {
+      if (rooms[roomIdx].peers) {
+        rooms[roomIdx].peers.push(socket.id);
+      } else {
+        rooms[roomIdx].peers = [socket.id];
+      }
+      console.log(`joining room with peers ${rooms[roomIdx].peers}`)
+      const usersInThisRoom = rooms[roomIdx].peers.filter(
+        (id) => id !== socket.id
+      );
+      
+      console.log(`all users in chat room ${usersInThisRoom}`)
+      socket.emit("all users", usersInThisRoom);
     }
-    const usersInThisRoom = rooms[roomID].peers.filter(
-      (id) => id !== socket.id
-    );
-    
-    console.log(`all users in chat room ${usersInThisRoom}`)
-    socket.emit("all users", usersInThisRoom);
   });
 
 
@@ -772,55 +775,51 @@ io.on('connection', async (socket) => {
     });
   })
 
-  socket.on("disconnect audio", (roomHost) => {
+
+  socket.on("disconnect audio", (roomId) => {
     console.log("disconnect audio")
-    const roomID = rooms.findIndex(room => room.host === roomHost)
-        let peers = rooms[roomID].peers;
+    console.log(roomId)
+    const roomIdx = rooms.findIndex(room => String(room.id) === roomId)
+    if (roomIdx >= 0) {
+      let peers = rooms[roomIdx].peers;
         console.log(`peers: ${peers}`)
         if (peers) {
             peers = peers.filter(id => id !== socket.id);
-            rooms[roomID].peers = peers;
+            rooms[roomIdx].peers = peers;
+            peers.forEach((peer) => {
+              socket.to(peer).emit("user disconnected audio", socket.id)
+            })
         }
-        peers.forEach((peer) => {
-          socket.to(peer).emit("user disconnected audio", socket.id)
-        })
+    } 
   })
     
 
-  socket.on("fetch init", (code, userRoom) => {
-    socket.to('teacher: ' + userRoom).emit("fetch init", code, socket.id);
+  socket.on("fetch init", (code, roomId) => {
+    socket.to('teacher: ' + roomId).emit("fetch init", code, socket.id);
   });
 
 
-  socket.on("help request", (userRoom) => {
-    socket.to('teacher: ' + userRoom).emit("help request", socket.id, socket.username);
+  socket.on("help request", (roomId) => {
+    socket.to('teacher: ' + roomId).emit("help request", socket.id, socket.username);
   });
 
 
-  socket.on("disconnect", (reason, msg) => {
-    const count = io.of("/").sockets.size;
+  socket.on("disconnect", (reason) => {
     // if user is logging out, update room info, else ignore
     console.log("deleting");
     // TODO: investigate why socket.username is occassionally undefined
     console.log(socket.username);
     // if (socket.username) redisClient.del(socket.username)
-    if (reason === "client namespace disconnect")
+    if (reason === "client namespace disconnect") 
       deleteUserFromRoom(socket.username);
-    // socket.broadcast.emit("disconnection broadcast", socket.id, socket.role, socket.username, socket.sid);
-    console.log(`from disconnect: ${socket.id} ${socket.sid}`);
-    socket.to(socket.userRoom).emit("disconnection broadcast", socket.id, socket.role, socket.username);
+    
+    socket.to(socket.roomId).emit("disconnection broadcast", socket.id, socket.role, socket.username);
     console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
   });
 
-
-  socket.on("callUser", (data) => {
-    io.to(data.userToCall).emit('hey', {signal: data.signalData, from: data.from});
-  })
-
-  socket.on("acceptCall", (data) => {
-      io.to(data.to).emit('callAccepted', data.signal);
-  })
 });
+// end of socket logic
+
 
 server.listen(PORT, function (err) {
   if (err) console.log(err);

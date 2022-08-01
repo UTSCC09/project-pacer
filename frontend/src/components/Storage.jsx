@@ -16,4 +16,16 @@ function Storage({saveCode, loadCode, uploadFileFormHandler}) {
     );
   }
 
+  const handleFileUpload = (event) => {
+    console.log("handleFileUpload");
+  };
+
+  return (
+    <Stack>
+    <Button value={code.value} onClick={(e) => saveCode(e)} variant="contained">Save</Button>
+    <input type="file" onChange={uploadFileFormHandler} />
+    </Stack>
+  );
+}
+
 export default Storage

@@ -79,22 +79,38 @@ function App() {
   const [userRoom, setUserRoom] = useState(() => null)
   const [isAdmin, setIsAdmin] = useState(() => "");
   const [loadingComplete, setLoadingComplete] = useState(() => false);
+  const [socketFlag, setSocketFlag] = useState(false)
 
-  if(!socket.connected){
-    socket.connect()
-    console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
-  } else {
-    console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
-  }
   // socket.on("connect", () => {
   //   // if(!socket.id) socket.connect()
   //   console.log("[form App]socket.id: " ,socket.connected, socket.id);
   // }, []);
 
+  // if(!socket.connected){
+  //   socket.connect()
+  //   console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
+  // } else {
+  //   console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
+  // }
+
   // student sync
   // console.log("[form App]socket.id: " ,socket.connected, socket.id);
+  useEffect(() => {
+    if (!socketFlag) {
+      console.log("once?")
+      if(!socket.connected){
+        socket.connect()
+        console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
+      } else {
+        console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
+      }
+      setSocketFlag(true)
+    }
+  }, [socketFlag])
 
   useEffect(() => {
+    
+
     async function fetchUserInfo() {
       const user = await getCurrentUser()
       console.log(user)
@@ -102,8 +118,9 @@ function App() {
         console.log(x)
         setCurUser(x ? x.username : null);
         setUserRoom(x ? x.roomHost : null);
+        setRoomId(x ? x.roomHost : "");
         setIsAdmin(x && x.role === Role.Admin);
-        setLoadingComplete(true)
+        setLoadingComplete(true);
       });
     }
     fetchUserInfo()
@@ -125,7 +142,8 @@ function App() {
                   <StudentPage socket={socket}
                                curUser={curUser}
                                userRoom={userRoom}
-                               roomId={roomId}
+                               roomId={String(roomId)}
+                               setSocketFlag={(e) => setSocketFlag(e)}
                   />
                 </PrivateRoute>
               }
@@ -135,10 +153,11 @@ function App() {
               element={
                 <PrivateRoute isAllowed={!!curUser && isAdmin && !!userRoom}>
                   {/* <TeacherPage fileUploadHandler={uploadFileFormHandler}/> */}
-                  <TeacherPage  socket={socket} 
+                  <TeacherPage  socket={socket}
                                 curUser={curUser}
                                 userRoom={userRoom}
-                                roomId={roomId}
+                                roomId={String(roomId)}
+                                setSocketFlag={(e) => setSocketFlag(e)}
                   />
                 </PrivateRoute>
               }
