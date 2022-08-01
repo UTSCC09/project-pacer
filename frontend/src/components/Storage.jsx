@@ -18,10 +18,10 @@ function Storage({code, uploadFileFormHandler}) {
   };
 
   return (
-    <>
+    <Stack>
     <Button value={code.value} onClick={(e) => saveCode(e)} variant="contained">Save</Button>
     <input type="file" onChange={uploadFileFormHandler} />
-    </>
+    </Stack>
   );
 }
 

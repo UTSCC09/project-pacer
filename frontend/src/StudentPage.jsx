@@ -49,6 +49,8 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   // execution
   const [out, setOut] = useState(() => null);
   const [err, setErr] = useState(() => null);
+  const [teaOut, setTeaOut] = useState(() => null);
+  const [teaErr, setTeaErr] = useState(() => null);
   // save and load
   const [codePath, setCodePath] = useState(""); // set init val to ""
   const [codeFilename, setCodeFilename] = useState("");
@@ -374,6 +376,8 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
 
     socket.on("teacher: execution", (out, err) => {
       console.log(`Teacher's execution: results ${out}; error: ${err}`);
+      setTeaOut(out);
+      setTeaErr(err);
     });
 
     // for file downloading (via fb):
@@ -495,7 +499,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     setErr(null);
   };
 
-
   const setupCall = async () => {
     if (!callInprogress) {
       console.log("seting up call");
@@ -576,6 +579,10 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     LocalAudio = <audio playsInline muted ref={localAudio} autoPlay />;
   }
 
+  const clearTeaExecutionRes = () => {
+    setTeaOut(null);
+    setTeaErr(null);
+  };
 
   return (
     <>
@@ -608,6 +615,13 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
                   hint="true"
                   readOnly="true"
                 />
+              </Grid>
+              <Grid item xs={12}>
+                  <CodeExecutionResWidgit
+                    out={teaOut}
+                    err={teaErr}
+                    clear={clearTeaExecutionRes}
+                  />
               </Grid>
             </Stack>
           </Grid>
@@ -643,11 +657,13 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
                   direction="row"
                   justifyContent="center"
                   alignItems="space-evenly"
+                  sx={{maxWidth: "100%"}}
                 >
                   {language==="java" ? null : 
                   <Button onClick={run} variant="contained">
                     Run
                   </Button>
+                  }
                   <Storage code={code} uploadFileFormHandler={uploadFileFormHandler}></Storage>
                 </Stack>
               </Grid>

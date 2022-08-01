@@ -759,6 +759,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
                   <Button onClick={run} variant="contained">
                     Run
                   </Button>
+                  }
                   <Storage code={code} uploadFileFormHandler={uploadFileFormHandler}></Storage>
                 </Stack>
               </Grid>
