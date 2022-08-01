@@ -104,6 +104,10 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
   //   }, 1000);
   // });
 
+
+
+
+
   // for file maintenance (via fb):
   const getOldestOfTwoInUsersFileDir = () => {
     return new Promise(function (res, rej) {
@@ -302,6 +306,10 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
     });
   };
 
+
+
+
+
   useEffect(() => {
 
     console.log(`from student: roomId ${roomId}`);
@@ -374,7 +382,6 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
         }
       });
     }
-    // for when code + codePath correspond to session, so an uploaded file can take over code slide
 
     console.log("load student page complete");
   }, []);
