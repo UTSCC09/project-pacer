@@ -45,7 +45,7 @@ const defaultState = {
 };
 
 
-function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, connectedUsers, setConnectedUsers, socket, roomId }) {
+function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, connectedUsers, setConnectedUsers, socket, roomId, setSocketFlag }) {
   console.log(connectedUsers)
   const [notificationToggle, setNotificationToggle] = React.useState(() => null);
   const [helpMsg, setHelpMsg] = React.useState(() => "default msg");
@@ -141,6 +141,7 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
     setConnectedUsers([]);
     socket.removeAllListeners();
     socket.disconnect();
+    setSocketFlag(false)
   }
 
   // function logoutHandler(){

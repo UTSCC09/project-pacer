@@ -59,6 +59,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
   }
 
   React.useEffect(() => {
+    // if(!socket.connected) socket.connect()
     async function fetchRoomInfo() {
       const rooms = await getAllRooms();
       if (rooms.err) setShowAlert(rooms.err);

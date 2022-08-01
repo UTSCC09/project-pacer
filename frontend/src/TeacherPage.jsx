@@ -41,7 +41,7 @@ const drawerWidth = 200;
 let t = 0; //ns
 
 
-function TeacherPage({ socket, curUser, userRoom, roomId}) {
+function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
   // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
   const [displayStudent, setDisplayStudent] = useState(() => false);
@@ -190,11 +190,11 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
   };
   
 
-  useEffect(async () => {
+  useEffect(() => {
     
     console.log(`from teacherPage: roomId ${roomId}`);
     
-    //
+    // if(!socket.id) socket.connect()
     socket.emit("set attributes", "teacher", curUser, roomId);
     socket.roomId = roomId;
 
@@ -649,6 +649,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         setConnectedUsers={setConnectedUsers}
         socket={socket}
         roomId={roomId}
+        setSocketFlag={setSocketFlag}
       /> : null}
       
       <Stack direction="row">

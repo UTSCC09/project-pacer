@@ -38,7 +38,7 @@ const drawerWidth = 200;
 // for cloud sync (via fb) [experimental - TODO]:
 let t = 0; // ns
 
-function StudentPage({ socket, curUser, userRoom, roomId }) {
+function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
   // code display and transmission
@@ -190,9 +190,13 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
     console.log(typeof roomId)
     // if(!socket.id) socket.connect()
     socket.role = 'student';
+    console.log(socket.role)
     socket.username = curUser;
+    console.log(socket.username)
     socket.roomId = roomId;
+    console.log(socket.roomId)
     socket.emit("set attributes", "student", curUser, roomId);
+    console.log("emit complete")
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
       console.log(`connection broadcast: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
@@ -522,7 +526,8 @@ function StudentPage({ socket, curUser, userRoom, roomId }) {
       </Box>
       <StudentRightMenu drawerWidth={drawerWidth} 
                         socket={socket}
-                        roomId={roomId} />
+                        roomId={roomId}
+                        setSocketFlag={setSocketFlag} />
       <Stack direction="row">
         {LocalAudio}
         {peers.map((peer, index) => {
