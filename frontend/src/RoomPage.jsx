@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import DataSaverOffIcon from "@mui/icons-material/DataSaverOff";
 import DataSaverOnIcon from "@mui/icons-material/DataSaverOn";
+import PeopleIcon from '@mui/icons-material/People';
 import { useNavigate } from "react-router-dom";
 
 function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }) {
@@ -38,6 +39,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
 
   function logoutHandler() {
     authenticationService.logout();
+    socket.removeAllListeners();
     socket.disconnect();
   }
 
@@ -57,8 +59,10 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
   }
 
   React.useEffect(() => {
+    // if(!socket.connected) socket.connect()
     async function fetchRoomInfo() {
       const rooms = await getAllRooms();
+      console.log(`from RoomPage-useEffect: ${JSON.stringify(rooms)}`);
       if (rooms.err) setShowAlert(rooms.err);
       else setRoomInfo(rooms.res);
       setLoadRoomsComplete(true);
@@ -66,6 +70,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
     fetchRoomInfo();
 
     socket.on("room update", () => {
+      console.log(`[RoomPage] room update point`);
       fetchRoomInfo();
     });
   }, []);
@@ -92,7 +97,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
       // update room list to all other online users
       socket.emit("room update");
       setUserRoom(curUser);
-      console.log("conCreateNewRoom return item", JSON.stringify(res["res"]["id"]));
+      console.log("conCreateNewRoom return item", JSON.stringify(res["res"]));
       setRoomId(JSON.stringify(res["res"]["id"]));
       // setRoomId(res["res"]["id"].toString());
       if (isAdmin) navigate("/teacher", { replace: true });
@@ -128,7 +133,7 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
                         display: "flex",
                         flexDirection: "column",
                         justifyContent: "center",
-                        width: "100px"
+                        width: "80px"
                       }}
                       className="room-item"
                     >
@@ -147,7 +152,24 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
                         {room.hasTeacher ? "class in progress" : "waiting"}
                       </p>
                     </Box>
-                    <ListItemText primary={room.roomName} secondary={room.host} sx={{mr: "10px", flexGrow: 2}}/>
+                    <ListItemText primary={"Name: " + room.roomName} secondary={"Host: " + room.host} sx={{mr: "10px", flexGrow: 1}}/>
+                    <Box sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        width: "70px"
+                      }}
+                      className="room-item">
+                      <ListItemIcon
+                        fontSize="large"
+                        sx={{ justifyContent: "center" }}
+                      >
+                        <PeopleIcon />
+                      </ListItemIcon>
+                      <p className="room-occupancy-text">
+                        {room.users.length}
+                      </p>
+                    </Box>
                     <ListItemButton
                       className="room-btn"
                       value={room.host}

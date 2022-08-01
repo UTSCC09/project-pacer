@@ -11,6 +11,8 @@ import Grid from "@mui/material/Grid";
 import EditorOptionsBar from "./components/EditorOptions";
 import Toolbar from "@mui/material/Toolbar";
 import Stack from "@mui/material/Stack";
+import CallIcon from '@mui/icons-material/Call';
+import CloseIcon from '@mui/icons-material/Close';
 import Storage from "./components/Storage";
 
 import { upperPythonKeys, lowerPythonKeys, javaKeys } from "./_helpers";
@@ -39,7 +41,7 @@ const drawerWidth = 200;
 let t = 0; //ns
 
 
-function TeacherPage({ socket, curUser, userRoom, roomId}) {
+function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
   // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
   const [displayStudent, setDisplayStudent] = useState(() => false);
@@ -52,6 +54,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
   const [err, setErr] = useState(() => null);
   const [stuOut, setStuOut] = useState(() => null);
   const [stuErr, setStuErr] = useState(() => null);
+  const [loadPageComplete, setLoadPageComplete] = useState(() => false);
   // save and load
   const [codePath, setCodePath] = useState("");
   const [codeFilename, setCodeFilename] = useState("");
@@ -314,11 +317,11 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
 
 
 
-  useEffect(async () => {
-
+  useEffect(() => {
+    
     console.log(`from teacherPage: roomId ${roomId}`);
-
-    //
+    
+    // if(!socket.id) socket.connect()
     socket.emit("set attributes", "teacher", curUser, roomId);
     socket.roomId = roomId;
 
@@ -369,6 +372,17 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         }
         return userCopy
       });
+
+      const itemIdx = peersRef.current.findIndex((p) => p.peerID === SktId);
+      if (itemIdx >= 0) {
+        peersRef.current[itemIdx].peer.removeAllListeners();
+        peersRef.current[itemIdx].peer.destroy();
+        peersRef.current.splice(itemIdx, 1)
+        setPeers((users) => {
+          const peerIdx = users.findIndex((p) => p === SktId);
+          return users.splice(peerIdx, 1)
+        });
+      } 
 
       setSid(init => {
         if(SktId === init) {
@@ -456,6 +470,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
     }
 
     console.log("load teacher page complete");
+    setLoadPageComplete((val) => true);
   }, []);
 
   useEffect(() => {
@@ -498,24 +513,24 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         console.log(item)
         item.peer.signal(payload.signal);
       });
-    }
 
-    socket.on("user disconnected audio", (socketId) => {
-      console.log("user disconnected audio")
-      console.log(peersRef.current)
-      console.log(socketId)
-      const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
-      if (itemIdx >= 0) {
-        peersRef.current[itemIdx].peer.removeAllListeners();
-        peersRef.current[itemIdx].peer.destroy();
-        peersRef.current.splice(itemIdx, 1)
-        setPeers((users) => {
-          const peerIdx = users.findIndex((p) => p === socketId);
-          return users.splice(peerIdx, 1)
-        });
-      }
-      console.log(peersRef.current)
-    })
+      socket.on("user disconnected audio", (socketId) => {
+        console.log("user disconnected audio")
+        console.log(peersRef.current)
+        console.log(socketId)
+        const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
+        if (itemIdx >= 0) {
+          peersRef.current[itemIdx].peer.removeAllListeners();
+          peersRef.current[itemIdx].peer.destroy();
+          peersRef.current.splice(itemIdx, 1)
+          setPeers((users) => {
+            const peerIdx = users.findIndex((p) => p === socketId);
+            return users.splice(peerIdx, 1)
+          }); 
+        }
+        console.log(peersRef.current)
+      })
+    }
   }, [callSystemInited])
 
 
@@ -549,6 +564,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
     const { out, err } = runCode(code, language);
     setOut(out);
     setErr(err);
+    socket.emit("teacher: execution", out, err, roomId);
   };
 
 
@@ -579,8 +595,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         localAudio.current.srcObject = localStream;
         console.log("done setting local stream");
       }
-      // todo: you many wanna change this
-      socket.emit("joined chat", userRoom);
+      socket.emit("joined chat", String(roomId));
       setCallInprogress(true);
     } else {
       console.log("closing call");
@@ -590,7 +605,9 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
         console.log("done resetting local stream");
       }
       setCallInprogress(false);
-      socket.emit("disconnect audio", userRoom)
+      peersRef.current = []
+      setPeers([])
+      socket.emit("disconnect audio", String(roomId))
     }
   };
 
@@ -634,6 +651,11 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
     peer.signal(incomingSignal);
 
     return peer;
+  }
+
+  let LocalAudio;
+  if (callStream) {
+    LocalAudio = <audio playsInline muted ref={localAudio} autoPlay />;
   }
 
 
@@ -680,9 +702,10 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
                 </Grid>
                 <Grid item xs={12}>
                   <Stack spacing={2} direction="row">
-                    <Button onClick={runStuCode} variant="contained">
-                      Run
-                    </Button>
+                  {language==="java" ? null : 
+                  <Button onClick={runStuCode} variant="contained">
+                    Run
+                  </Button>}
                   </Stack>
                 </Grid>
                 <Grid item xs={12}>
@@ -732,6 +755,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
                   justifyContent="center"
                   alignItems="space-evenly"
                 >
+                  {language==="java" ? null : 
                   <Button onClick={run} variant="contained">
                     Run
                   </Button>
@@ -749,22 +773,25 @@ function TeacherPage({ socket, curUser, userRoom, roomId}) {
           </Grid>
         </Grid>
       </Box>
-      <TeacherRightMenu
+      {loadPageComplete ? <TeacherRightMenu
         drawerWidth={drawerWidth}
         setDisplayStudent={setDisplayStudent}
         setStudentName={setStudentName}
         connectedUsers={connectedUsers.filter((user) => user.curUser !== curUser)}
         setConnectedUsers={setConnectedUsers}
         socket={socket}
-      />
+        roomId={roomId}
+        setSocketFlag={setSocketFlag}
+      /> : null}
+      
       <Stack direction="row">
-      <audio playsInline muted ref={localAudio} autoPlay />
+        {LocalAudio}
         {peers.map((peer, index) => {
           return <Audio key={index} peer={peer} />;
         })}
       </Stack>
       <button className="call-button" onClick={() => setupCall()} >
-        {callInprogress ? "Disconnect" : "Call"}
+        {callInprogress ? <CloseIcon fontSize="large"/> : <CallIcon fontSize="large"/>}
       </button>
     </>
   );
