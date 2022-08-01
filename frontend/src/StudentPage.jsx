@@ -194,7 +194,8 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     event.preventDefault();
     uploadFile(event.target.files[0]).then((res) => {
       res.file.text().then((code) => {
-        console.log(`[FILE] - reached 197`);
+        console.log(`[FILE] - reached 197 ${code}`);
+        if (flag) socket.emit("onChange", code, socket.tid, roomId);
         setCode(code);
         setCodePath(res.codePath);
         setCodeFilename(res.file.name);
@@ -391,7 +392,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
             })
             .then((res) => {
               res.file.text().then((code) => {
-                console.log(`[FILE] - reached 393`);
+                console.log(`[FILE] - reached 393 ${code}`);
                 setCode(code);
                 setCodePath(res.codePath);
                 setCodeFilename(res.file.name);
@@ -400,7 +401,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
         } else {
           getOnlyFilesName().then((res) => {
             downloadFile(res.codePath).then((res2) => {
-              console.log(`[FILE] - reached 402`);
+              console.log(`[FILE] - reached 402 ${code}`);
               setCode(res2.code);
               setCodePath(res.codePath);
               setCodeFilename(res.fileName);

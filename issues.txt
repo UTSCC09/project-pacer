@@ -1,5 +1,5 @@
 [] -  unsolved      [x] - resolved
 
-[] - code review window does not sync up with student's upload file unless 
+[x] - code review window does not sync up with student's upload file unless 
      the student makes a change on his console under review mode.
 
