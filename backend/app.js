@@ -6,8 +6,7 @@ const session = require("express-session");
 // const Redis = require("redis")
 let RedisStore = require("connect-redis")(session);
 const { body, validationResult } = require("express-validator");
-// generate uuid
-// const uuidv4 = require("uuid/v4");
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyAtUPhMKwJxUDwQUPezFsojNPMn0gUkkoA",
