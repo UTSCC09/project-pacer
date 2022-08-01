@@ -528,15 +528,15 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
           req.params.host +
           " not found."
       );
-  const roomUsers = rooms[room_idx].users;
-  if (
-    roomUsers.filter((user) => user.username === req.session.username).length > 0
-  ) {
-    console.log("conflicted");
-    return res
-      .status(409)
-      .json("room " + req.params.host + " already has user " + req.session.username);
-  }
+  // const roomUsers = rooms[room_idx].users;
+  // if (
+  //   roomUsers.filter((user) => user.username === req.session.username).length > 0
+  // ) {
+  //   console.log("conflicted");
+  //   return res
+  //     .status(409)
+  //     .json("room " + req.params.host + " already has user " + req.session.username);
+  // }
   if (
     rooms[room_idx].hasTeacher && req.session.role === "Admin"
   ) {

@@ -120,7 +120,7 @@ function App() {
         setUserRoom(x ? x.roomHost : null);
         setRoomId(x ? x.roomHost : "");
         setIsAdmin(x && x.role === Role.Admin);
-        setLoadingComplete(true)
+        setLoadingComplete(true);
       });
     }
     fetchUserInfo()
@@ -153,7 +153,7 @@ function App() {
               element={
                 <PrivateRoute isAllowed={!!curUser && isAdmin && !!userRoom}>
                   {/* <TeacherPage fileUploadHandler={uploadFileFormHandler}/> */}
-                  <TeacherPage  socket={socket} 
+                  <TeacherPage  socket={socket}
                                 curUser={curUser}
                                 userRoom={userRoom}
                                 roomId={String(roomId)}
