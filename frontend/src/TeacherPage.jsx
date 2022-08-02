@@ -490,6 +490,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
     if (callSystemInited) {
       console.log("initing call system")
       console.log(socket.id)
+
       socket.on("all users", (users) => {
         console.log(users)
         const peers = [];
@@ -519,6 +520,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
         setPeers((users) => [...users, peer]);
       });
 
+      
       socket.on("receiving returned signal", (payload) => {
         console.log("receiving returned signal")
         console.log(peersRef.current)

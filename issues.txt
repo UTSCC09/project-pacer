@@ -21,6 +21,10 @@
     
 [ ] - user refreshing does no update the list of peers locally
 
+[] - teacher refresh, click student-> no student here bug
+
+
+
     
 
 
