@@ -66,6 +66,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
   const [callSystemInited, setCallSystemInited] = useState(() => false);
   const [callInprogress, setCallInprogress] = useState(() => false);
   const [peers, setPeers] = useState(() => []);
+  const [codeSaved, setCodeSaved] = useState(() => false);
 
   const localAudio = useRef();
   const peersRef = useRef([]);
@@ -99,30 +100,29 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
   }
   // for cloud sync (via fb) [experimental - TODO]:
   // todo-kw: uncomment this
-  // useEffect(() => {
-  //   setTimeout(() => {
-  //     if (t == 1) {
-  //       t = 0;
-  //       const f = new File([code], codeFilename);
-  //       uploadFile(f);
-  //     } else {
-  //       t++;
-  //     }
-  //   }, 1000);
-  // });
+  useEffect(() => {
+    if (!codeSaved) {
+      const f = new File([code], codeFilename);
+      uploadFile(f);
+      setCodeSaved(true)
+      setTimeout(() => {
+        setCodeSaved(false)
+      }, 2000);
+    }
+  }, [code]);
 
   // for file downloading (via fb):
-  const loadCode = () => {
-    downloadFile(codePath).then((res) => {
-      setCode(res.code);
-    });
-  }
+  // const loadCode = () => {
+  //   downloadFile(codePath).then((res) => {
+  //     setCode(res.code);
+  //   });
+  // }
 
   // for file uploading (via fb):
-  const saveCode = () => {
-    const f = new File([code], codeFilename);
-    uploadFile(f);
-  }
+  // const saveCode = () => {
+  //   const f = new File([code], codeFilename);
+  //   uploadFile(f);
+  // }
 
   // for file maintenance (via fb):
   const getOldestOfTwoInUsersFileDir = () => {
@@ -776,7 +776,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
                     Run
                   </Button>
                   }
-                  <Storage saveCode={saveCode} loadCode={loadCode} uploadFileFormHandler={uploadFileFormHandler}></Storage>
+                  <Storage uploadFileFormHandler={uploadFileFormHandler}></Storage>
                 </Stack>
               </Grid>
               <Grid item xs={12}>
