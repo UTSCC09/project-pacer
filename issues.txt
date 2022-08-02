@@ -21,6 +21,8 @@
     
 [ ] - user refreshing does no update the list of peers locally
 
-    
+[] - descrease call button size
+
+[] - display user name after inside room page
 
 
