@@ -3,10 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const session = require("express-session");
-// const Redis = require("redis")
-let RedisStore = require("connect-redis")(session);
 const { body, validationResult } = require("express-validator");
-
 
 const firebaseConfig = {
   apiKey: "AIzaSyAtUPhMKwJxUDwQUPezFsojNPMn0gUkkoA",
@@ -27,12 +24,6 @@ const {
   doc,
 } = require("firebase/firestore");
 const fbfsdb = getFirestore(firebaseApp);
-
-// const { createClient } = require("redis")
-// let redisClient = createClient({ legacyMode: true })
-// redisClient.connect().catch(console.error)
-
-// const sessionStore = require("nedb-session-store")(session);
 
 // const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
 // io.use(wrap(sessionMiddleware));
@@ -55,22 +46,19 @@ const http = require("http");
 const PORT = 8080;
 const version = "1.0.0";
 
-// const redisClient = Redis.createClient()
-// redisClient.connect();
-
 const DEFAULT_EXPIRATION = 7200;
 
 const sessionMiddleware = session({
   secret: process.env.SECRET,
   saveUninitialized: false,
-  resave: false,
+  resave: true,
   name: "pacer-session",
   cookie: {
     maxAge: 1000 * 60 * 60 * 2, // Two Hours
     sameSite: true,
+    httpOnly: true,
+    secure: true,
   },
-  sameSite: true,
-  httpOnly: true,
   // store: new RedisStore({ client: redisClient }),
   // store: new sessionStore({
   //   filename: "db/sessions.db",
@@ -156,19 +144,16 @@ const NewRoom = (function () {
 })();
 
 const webhookRoutes = require("./routes/webhookRoutes");
-const { SocketClosedUnexpectedlyError } = require("redis");
 const { json } = require("body-parser");
 app.use("/api", webhookRoutes);
 
 const saltRounds = 10;
 
 app.get("/api/whoami", function (req, res) {
-  console.log(`load user session is : ${req.session.username}`);
   const userName = req.session.username;
   if (!userName) return res.json(null);
   // BEFORE FB:
   const user = users.find((x) => x.username === userName);
-  console.log(user)
   return res.json({
     id: user.id,
     username: user.username,
@@ -277,7 +262,6 @@ app.post(
     body("password").not().isEmpty().withMessage("must be non-empty"),
   ],
   function (req, res) {
-    console.log("hit login endpoint");
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -301,7 +285,6 @@ app.post(
       }
       req.session.username = username;
       req.session.role = role;
-      console.log(`session is : ${req.session.username}`);
       return res.json({
         id: user.id,
         username: user.username,
@@ -405,7 +388,6 @@ app.post(
       users.push(newUser);
       req.session.username = username;
       req.session.role = role;
-      console.log(`session is : ${req.session.username}`);
       return res.json({
         id: 0,
         username: username,
@@ -456,9 +438,6 @@ app.post(
 
 
 app.post("/api/signout/", function (req, res) {
-  console.log("hit signout endpoint");
-  console.log("deleting");
-  // redisClient.del(req.session.username)
   req.session.destroy(function (err) {
     if (err) return res.status(500).json(err);
   });
@@ -477,10 +456,7 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
   } else {
     const idx = users.findIndex((x) => x.username === req.session.username);
     const user = users[idx];
-    console.log("setting");
-    console.log(req.body.socketId);
     const socketId = req.body.socketId;
-    // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
     const room = new NewRoom(req.body.roomName, req.session.username, user.role === Role.Admin);
     const userInfo = {
       id: user.id,
@@ -499,16 +475,12 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
 
 app.get("/api/rooms/", isAuthenticated, function (req, res) {
   //TODO: adapt GET for pagination and firebase
-  console.log("hit get all rooms endpoint");
-  // console.log(`rooms ${rooms}`);
   console.log(`from get rooms ${JSON.stringify(rooms)}`);
   return res.json(rooms);
 });
 
 app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
-  console.log("hit update room info endpoint");
   /* a room with specified host already exists */
-  console.log(rooms);
   const room_idx = rooms.findIndex((room) => room.host === req.params.host);
   if (room_idx < 0)
     return res
@@ -518,15 +490,14 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
           req.params.host +
           " not found."
       );
-  // const roomUsers = rooms[room_idx].users;
-  // if (
-  //   roomUsers.filter((user) => user.username === req.session.username).length > 0
-  // ) {
-  //   console.log("conflicted");
-  //   return res
-  //     .status(409)
-  //     .json("room " + req.params.host + " already has user " + req.session.username);
-  // }
+  const roomUsers = rooms[room_idx].users;
+  if (
+    roomUsers.filter((user) => user.username === req.session.username).length > 0
+  ) {
+    return res
+      .status(409)
+      .json("room " + req.params.host + " already has user " + req.session.username);
+  }
   if (
     rooms[room_idx].hasTeacher && req.session.role === "Admin"
   ) {
@@ -537,15 +508,8 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
   }
   const idx = users.findIndex((x) => x.username === req.session.username);
   const user = users[idx];
-  console.log("getting");
   try {
-    // let socketId = await redisClient.get(user.username)
-    // if (!socketId) {
-    //   console.log("failed")
     const socketId = req.body.socketId;
-    // console.log(socketId)
-    // redisClient.setEx(user.username, DEFAULT_EXPIRATION, socketId)
-    // }
     users[idx].roomHost = rooms[room_idx].id;
     const userInfo = {
       id: user.id,
@@ -555,7 +519,6 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
       socketId,
     };
     rooms[room_idx].users.push(userInfo);
-    console.log(rooms);
     return res.json(rooms[room_idx]);
   } catch (err) {
     return res.status(500).json(err);
@@ -564,21 +527,17 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
 
 
 function deleteUserFromRoom(username) {
-  console.log("deleting user " + username + " from rooms");
   const idx = users.findIndex((x) => x.username === username);
   let room_id = null;
   let isAdmin = false;
   if (idx >= 0) {
-    console.log(`from deleteUser - idx`);
     room_id = users[idx].roomHost;
     users[idx].roomHost = null;
     isAdmin = users[idx].role === "Admin";
   }
   if (room_id) {
-    console.log(`from deleteUser - room_id`);
     const room_idx = rooms.findIndex((room) => room.id === room_id);
     if (room_idx >= 0) {
-      console.log(room_idx);
       const roomUsers = rooms[room_idx].users;
       const roomUserIdx = roomUsers.findIndex((x) => x.username === username);
       if (roomUserIdx >= 0) {
@@ -590,7 +549,6 @@ function deleteUserFromRoom(username) {
       if (rooms[room_idx].users.length === 0) {
         rooms.splice(room_idx, 1);
       }
-      console.log(`deleteUserFromRoom running result: ${rooms}`);
     }
   }
 }
@@ -625,7 +583,6 @@ io.on('connection', async (socket) => {
       socket.sid = "";
     }
     socket.to(roomId).emit("connection broadcast", socket.id, role, curUser);
-    // console.log("[socket - set attributes] rooms", socket.rooms);
   });
 
 
@@ -696,9 +653,6 @@ io.on('connection', async (socket) => {
 
   socket.on("joined chat", (roomId) => {
     const roomIdx = rooms.findIndex(room => String(room.id) === roomId)
-    console.log(rooms)
-    console.log(roomId)
-    console.log(roomIdx)
     if (roomIdx >= 0) {
       if (rooms[roomIdx].peers) {
         rooms[roomIdx].peers.push(socket.id);
@@ -711,7 +665,6 @@ io.on('connection', async (socket) => {
       );
       
       console.log(`all users in chat room ${usersInThisRoom}`)
-      console.log(usersInThisRoom)
       // usersInThisRoom.forEach((userSocket) => socket.to(userSocket).emit("all users", usersInThisRoom))
       io.to(roomId).emit("all users", usersInThisRoom)
     }
@@ -719,7 +672,6 @@ io.on('connection', async (socket) => {
 
 
   socket.on("sending signal", (payload) => {
-    console.log("sending signal")
     console.log(`target is ${payload.userTarget}, caller is ${payload.callerID}`)
     socket.to(payload.userTarget).emit("user joined", {
       signal: payload.signal,
@@ -748,12 +700,9 @@ io.on('connection', async (socket) => {
 
 
   socket.on("disconnect audio", (roomId) => {
-    console.log("disconnect audio")
-    console.log(roomId)
     const roomIdx = rooms.findIndex(room => String(room.id) === roomId)
     if (roomIdx >= 0) {
       let peers = rooms[roomIdx].peers;
-        console.log(`peers: ${peers}`)
         if (peers) {
             peers = peers.filter(id => id !== socket.id);
             rooms[roomIdx].peers = peers;
@@ -766,15 +715,12 @@ io.on('connection', async (socket) => {
 
 
   socket.on("disconnect", (reason) => {
-    console.log("deleting");
     // TODO: investigate why socket.username is occassionally undefined
-    console.log(socket.username);
     // if user is logging out, update room info, else ignore
     if (reason === "client namespace disconnect") 
       deleteUserFromRoom(socket.username);
     // broadcast disconnection to all other users in the room
     socket.to(socket.roomId).emit("disconnection broadcast", socket.id, socket.role, socket.username);
-    console.log(`[disconnected] user: ${socket.id} reason: ${reason}`);
   });
 
 });
