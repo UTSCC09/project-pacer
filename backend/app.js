@@ -51,7 +51,7 @@ const DEFAULT_EXPIRATION = 7200;
 const sessionMiddleware = session({
   secret: process.env.SECRET,
   saveUninitialized: false,
-  resave: true,
+  resave: false,
   name: "pacer-session",
   cookie: {
     maxAge: 1000 * 60 * 60 * 2, // Two Hours
@@ -150,6 +150,7 @@ const saltRounds = 10;
 
 app.get("/api/whoami", function (req, res) {
   const userName = req.session.username;
+  // socket.request.session.username = userName
   if (!userName) return res.json(null);
   // BEFORE FB:
   const user = users.find((x) => x.username === userName);
@@ -284,6 +285,7 @@ app.post(
       }
       req.session.username = username;
       req.session.role = role;
+      // socket.request.session.username = username
       return res.json({
         id: user.id,
         username: user.username,
@@ -386,6 +388,7 @@ app.post(
       };
       users.push(newUser);
       req.session.username = username;
+      // socket.request.session.username = username
       req.session.role = role;
       return res.json({
         id: 0,
@@ -434,15 +437,6 @@ app.post(
     });
   }
 );
-
-
-app.post("/api/signout/", function (req, res) {
-  req.session.destroy(function (err) {
-    if (err) return res.status(500).json(err);
-  });
-  res.clearCookie("pacer-session");
-  return res.json(null);
-});
 
 
 app.post("/api/rooms/", isAuthenticated, function (req, res) {
@@ -575,7 +569,22 @@ function deleteUserFromRoom(username) {
 //   next();
 // });
 
+// convert a connect middleware to a Socket.IO middleware
+const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
 
+io.use(wrap(sessionMiddleware));
+
+io.use((socket, next) => {
+  const session = socket.request.session;
+  console.log(session)
+  if (session && session.username) {
+    console.log("session valid")
+    next();
+  } else {
+    console.log("waiting inpatiently")
+    next(new Error("unauthorized"));
+  }
+});
 
 io.on('connection', async (socket) => {
 
@@ -676,7 +685,7 @@ io.on('connection', async (socket) => {
       
       console.log(`all users in chat room ${usersInThisRoom}`)
       // usersInThisRoom.forEach((userSocket) => socket.to(userSocket).emit("all users", usersInThisRoom))
-      io.to(roomId).emit("all users", usersInThisRoom)
+      socket.emit("all users", usersInThisRoom)
     }
   });
 
@@ -727,12 +736,35 @@ io.on('connection', async (socket) => {
   socket.on("disconnect", (reason) => {
     // TODO: investigate why socket.username is occassionally undefined
     // if user is logging out, update room info, else ignore
-    if (reason === "client namespace disconnect") 
+    console.log("there")
+    console.log(reason)
+    if (reason === "client namespace disconnect") {
+      console.log("deleting")
       deleteUserFromRoom(socket.username);
+    }
     // broadcast disconnection to all other users in the room
+    const roomIdx = rooms.findIndex(room => String(room.id) === socket.roomId)
+    if (roomIdx >= 0) {
+      let peers = rooms[roomIdx].peers;
+        if (peers) {
+            peers = peers.filter(id => id !== socket.id);
+            rooms[roomIdx].peers = peers;
+            peers.forEach((peer) => {
+              socket.to(peer).emit("user disconnected audio", socket.id)
+            })
+        }
+    } 
     socket.to(socket.roomId).emit("disconnection broadcast", socket.id, socket.role, socket.username);
   });
 
+});
+
+app.post("/api/signout/", function (req, res) {
+  const sessionId = req.session.id;
+  req.session.destroy(() => {
+  });
+  res.clearCookie("pacer-session");
+  return res.json(null);
 });
 // end of socket logic
 

@@ -24,7 +24,7 @@ import DataSaverOnIcon from "@mui/icons-material/DataSaverOn";
 import PeopleIcon from '@mui/icons-material/People';
 import { useNavigate } from "react-router-dom";
 
-function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }) {
+function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket, sessionActiveFlag, setSessionActiveFlag, setSocketFlag }) {
   const [roomInfo, setRoomInfo] = React.useState(() => null);
   const [loadRoomsComplete, setLoadRoomsComplete] = React.useState(() => false);
   const [roomName, setRoomName] = React.useState(() => "");
@@ -38,9 +38,10 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
   }
 
   function logoutHandler() {
-    authenticationService.logout();
     socket.removeAllListeners();
     socket.disconnect();
+    setSocketFlag(false)
+    authenticationService.logout();
   }
 
   // async function selectRoom(host) {
@@ -57,25 +58,39 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
       setUserRoom(host);
     }
   }
+  async function fetchRoomInfo() {
+    const rooms = await getAllRooms();
+    console.log(`from RoomPage-useEffect: ${JSON.stringify(rooms)}`);
+    if (rooms.err) setShowAlert(rooms.err);
+    else setRoomInfo(init => {
+      return rooms.res;
+    });
+    setLoadRoomsComplete(true);
+  }
 
   React.useEffect(() => {
     // if(!socket.connected) socket.connect()
-    async function fetchRoomInfo() {
-      const rooms = await getAllRooms();
-      console.log(`from RoomPage-useEffect: ${JSON.stringify(rooms)}`);
-      if (rooms.err) setShowAlert(rooms.err);
-      else setRoomInfo(init => {
-        return rooms.res;
-      });
-      setLoadRoomsComplete(true);
-    }
     fetchRoomInfo();
 
-    socket.on("room update", () => {
-      console.log(`[RoomPage] room update point`);
-      fetchRoomInfo();
-    });
+    try{
+      socket.on("room update", () => {
+        console.log(`[RoomPage] room update point`);
+        fetchRoomInfo();
+      });
+    } catch (error) {
+      window.location.reload();
+    }
   }, []);
+
+  // React.useEffect(() => {
+  //   if (!socketFlag) {
+
+
+      
+  //     setSocketFlag(true)
+  //   }
+  // }, [socketFlag])
+
 
   React.useEffect(() => {
     if (joinedRoom) {

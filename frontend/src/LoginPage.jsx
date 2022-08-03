@@ -25,7 +25,7 @@ function LoginPage({curUser, isAdmin, userRoom, setIsAdmin, socket}) {
   // todo: pass socket id as a student attribute
   // suggest: store socket id as a list for the case that multiple windows/devices
   // logins with the same user
-  const [socketid, setSocketid] = useState(socket.id);
+  // const [socketid, setSocketid] = useState(socket.id);
   const [showAlert, setShowAlert] = useState("");
   const navigate = useNavigate();
 
@@ -63,6 +63,10 @@ function LoginPage({curUser, isAdmin, userRoom, setIsAdmin, socket}) {
       authenticationService.signin(username, password, "Admin", function(err, res) {
         // authenticationService.signin(username, password, "Admin", socketid, function(err, res) {
         if (err) return setShowAlert(String(err))
+        if (!socket.connected) {
+          socket.connect()
+          console.log(`APP - login socket id: ${socket.id}, ${socket.connected}`)
+        }
         navigate("/rooms", { replace: true });
       })
     } else {
@@ -70,6 +74,10 @@ function LoginPage({curUser, isAdmin, userRoom, setIsAdmin, socket}) {
       authenticationService.signin(username, password, "User", function(err,res) {
         // authenticationService.signin(username, password, "User", socketid, function(err,res) {
         if (err) return setShowAlert(String(err))
+        if (!socket.connected) {
+          socket.connect()
+          console.log(`APP - login socket id: ${socket.id}, ${socket.connected}`)
+        }
         navigate("/rooms", { replace: true });
       })
     }
@@ -85,12 +93,20 @@ function LoginPage({curUser, isAdmin, userRoom, setIsAdmin, socket}) {
       console.log("signing up as admin")
       authenticationService.signup(username, password, "Admin", function(err, res) {
         if (err) return setShowAlert(String(err))
+        if (!socket.connected) {
+          socket.connect()
+          console.log(`APP - login socket id: ${socket.id}, ${socket.connected}`)
+        }
         navigate("/rooms", { replace: true });
       })
     } else {
       console.log("signing up as student")
       authenticationService.signup(username, password, "User", function(err,res) {
         if (err) return setShowAlert(String(err))
+        if (!socket.connected) {
+          socket.connect()
+          console.log(`APP - login socket id: ${socket.id}, ${socket.connected}`)
+        }
         navigate("/rooms", { replace: true });
       })
     }

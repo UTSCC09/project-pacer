@@ -31,9 +31,25 @@ import React from "react";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
 import "./CodePage.css";
 
-const drawerWidth = 200;
+const drawerWidth = 160;
 // for cloud sync (via fb) [experimental - TODO]:
 let t = 0; // ns
+
+const Audio = ({peer}) => {
+  const ref = useRef();
+
+  useEffect(() => {
+      console.log("hi lksdfhlewafjlknsd kjsdfsfeds")
+      peer.on("stream", stream => {
+          console.log("this is streaming")
+          ref.current.srcObject = stream;
+      })
+  }, []);
+
+  return (
+      <audio playsInline autoPlay ref={ref} />
+  );
+}
 
 function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   console.log(socket.id)
@@ -63,6 +79,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
 
   const localAudio = useRef();
   const peersRef = useRef([]);
+  const audioTrack = useRef();
 
 
   let extensions = [javascript({ jsx: true })];
@@ -74,22 +91,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   } else {
     extensions[0] = java();
     extensions[1] = globalJavaScriptCompletions;
-  }
-
-  const Audio = ({peer}) => {
-    const ref = useRef();
-
-    useEffect(() => {
-        peer.on("stream", stream => {
-            console.log("this is streaming")
-            console.log(`stream is ${stream}`)
-            ref.current.srcObject = stream;
-        })
-    }, []);
-
-    return (
-        <audio playsInline autoPlay ref={ref} />
-    );
   }
 
   // for cloud sync (via fb) [experimental - TODO]:
@@ -336,13 +337,17 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       const itemIdx = peersRef.current.findIndex((p) => p.peerID === SktId);
       console.log(itemIdx)
         if (itemIdx >= 0) {
+          console.log(itemIdx)
+          setPeers((users) => {
+            const peerIdx = users.findIndex((p) => peersRef.current[itemIdx].peer === p);
+            console.log(peerIdx)
+            console.log(users)
+            users.splice(peerIdx, 1)
+            return users
+          });
           peersRef.current[itemIdx].peer.removeAllListeners();
           peersRef.current[itemIdx].peer.destroy();
           peersRef.current.splice(itemIdx, 1)
-          setPeers((users) => {
-            const peerIdx = users.findIndex((p) => p === SktId);
-            return users.splice(peerIdx, 1)
-          });
         } 
       console.log(peersRef.current)
       console.log(`disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`);
@@ -378,6 +383,69 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       setTeaOut(out);
       setTeaErr(err);
     });
+
+    console.log("initing call system")
+    console.log(socket.id)
+    socket.on("all users", (users) => {
+      console.log(users)
+      console.log(audioTrack.current)
+      const peers = [];
+      users.forEach((userId) => {
+        if (userId !== socket.id) {
+          const peer = createPeer(userId, socket.id, audioTrack.current);
+          peersRef.current.push({
+            peerID: userId,
+            peer,
+          });
+        peers.push(peer);
+        }
+          
+      });
+      console.log(`peers are ${peers}`)
+      console.log(`peer ref is ${peersRef.current}`)
+      setPeers(peers);
+    });
+
+    socket.on("user joined", (payload) => {
+      console.log("user joined")
+      const peer = addPeer(payload.signal, payload.callerID, audioTrack.current);
+      peersRef.current.push({
+        peerID: payload.callerID,
+        peer,
+      });
+
+      setPeers((users) => [...users, peer]);
+    });
+
+    socket.on("receiving returned signal", (payload) => {
+      console.log("receiving returned signal")
+      console.log(peersRef.current)
+      console.log(payload.id)
+      const item = peersRef.current.find((p) => p.peerID === payload.id);
+      console.log(item)
+      item.peer.signal(payload.signal);
+    });
+
+    socket.on("user disconnected audio", (socketId) => {
+      console.log("user disconnected audio")
+      console.log(peersRef.current)
+      console.log(socketId)
+      const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
+      if (itemIdx >= 0) {
+        console.log(itemIdx)
+        setPeers((users) => {
+          const peerIdx = users.findIndex((p) => peersRef.current[itemIdx].peer === p);
+          console.log(peerIdx)
+          console.log(users)
+          users.splice(peerIdx, 1)
+          return users
+        });
+        peersRef.current[itemIdx].peer.removeAllListeners();
+        peersRef.current[itemIdx].peer.destroy();
+        peersRef.current.splice(itemIdx, 1)
+      }
+      console.log(peersRef.current)
+    })
 
     // for file downloading (via fb):
     if (code === "" && codePath === "" && codeFilename === "") {
@@ -420,64 +488,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
 
   useEffect(() => {
     if (callSystemInited) {
-      console.log("initing call system")
-      console.log(socket.id)
-      socket.on("all users", (users) => {
-        const peers = [];
-        users.forEach((userId) => {
-          console.log(`stream is ${callStream}`)
-          if (userId !== socket.id) {
-            const peer = createPeer(userId, socket.id, callStream);
-            peersRef.current.push({
-              peerID: userId,
-              peer,
-            });
-          peers.push(peer);
-          console.log(userId)
-          }
-            
-        });
-        console.log(`peers are ${peers}`)
-        setPeers(peers);
-      });
-
-      socket.on("user joined", (payload) => {
-        console.log("user joined")
-        console.log(`stream is ${callStream}`)
-        const peer = addPeer(payload.signal, payload.callerID, callStream);
-        peersRef.current.push({
-          peerID: payload.callerID,
-          peer,
-        });
-
-        setPeers((users) => [...users, peer]);
-      });
-
-      socket.on("receiving returned signal", (payload) => {
-        console.log("receiving returned signal")
-        console.log(peersRef.current)
-        console.log(payload.id)
-        const item = peersRef.current.find((p) => p.peerID === payload.id);
-        console.log(item)
-        item.peer.signal(payload.signal);
-      });
-
-      socket.on("user disconnected audio", (socketId) => {
-        console.log("user disconnected audio")
-        console.log(peersRef.current)
-        console.log(socketId)
-        const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
-        if (itemIdx >= 0) {
-          peersRef.current[itemIdx].peer.removeAllListeners();
-          peersRef.current[itemIdx].peer.destroy();
-          peersRef.current.splice(itemIdx, 1)
-          setPeers((users) => {
-            const peerIdx = users.findIndex((p) => p === socketId);
-            return users.splice(peerIdx, 1)
-          }); 
-        }
-        console.log(peersRef.current)
-      })
+    
     }
   }, [callSystemInited])
 
@@ -510,6 +521,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
         video: false,
         audio: true,
       });
+      audioTrack.current = localStream
       console.log("hardware setup complete");
       setCallStream(localStream);
       setCallSystemInited(true);
@@ -522,6 +534,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     } else {
       console.log("closing call");
       setCallStream(null);
+      audioTrack.current = null
       if (localAudio.current) {
         localAudio.current.srcObject = null;
         console.log("done resetting local stream");
@@ -535,7 +548,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
 
 
   function createPeer(userTarget, callerID, stream) {
-    console.log(`stream is ${stream}`)
     const peer = new Peer({
       initiator: true,
       trickle: false,
@@ -557,7 +569,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   }
 
   function addPeer(incomingSignal, callerID, stream) {
-    console.log(`stream is ${stream}`)
     const peer = new Peer({
       initiator: false,
       trickle: false,

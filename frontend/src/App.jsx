@@ -54,11 +54,6 @@ const uploadFile = (f) => {
   );
 };
 
-function logout() {
-  authenticationService.logout();
-  history.push("/login");
-}
-
 // let subscriber = null
 // let endpoint = null
 // webhookService.subscribe("classtest", (err, res) => {
@@ -79,7 +74,8 @@ function App() {
   const [userRoom, setUserRoom] = useState(() => null)
   const [isAdmin, setIsAdmin] = useState(() => "");
   const [loadingComplete, setLoadingComplete] = useState(() => false);
-  const [socketFlag, setSocketFlag] = useState(false)
+  const [socketFlag, setSocketFlag] = useState(() => false)
+  const [sessionActiveFlag, setSessionActiveFlag] = useState(() => false);
 
   // socket.on("connect", () => {
   //   // if(!socket.id) socket.connect()
@@ -90,21 +86,26 @@ function App() {
   //   socket.connect()
   //   console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
   // } else {
-  //   console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
+  //   console.log(`APP - existing socket id: ${socket.id}, ${socket.connected}`)
   // }
 
   // student sync
   // console.log("[form App]socket.id: " ,socket.connected, socket.id);
-  useEffect(() => {
+  useEffect(async () => {
     if (!socketFlag) {
-
+      console.log(socket)
       console.log("once?")
       if(!socket.connected){
-        
-        socket.connect()
+        await socket.connect()
         console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
       } else {
-        console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
+        console.log(`APP - existing socket id: ${socket.id}, ${socket.connected}`)
+      }
+      if (socket.connected) {
+        console.log("session is active")
+        setSessionActiveFlag(true)
+      } else {
+        setSessionActiveFlag(false)
       }
       setSocketFlag(true)
     }
@@ -175,6 +176,9 @@ function App() {
                     setUserRoom={(e) => setUserRoom(e)}
                     setRoomId={(e) => setRoomId(e)}
                     socket={socket}
+                    sessionActiveFlag={sessionActiveFlag}
+                    setSessionActiveFlag={(e) => setSessionActiveFlag(e)}
+                    setSocketFlag={(e) => setSocketFlag(e)}
                   />
                 </PrivateRoute>
               }
