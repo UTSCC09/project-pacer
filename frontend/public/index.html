@@ -30,44 +30,6 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-    <!-- <py-script class="hidden">
-      import sys
-      import io
-      import time
-      from js import document, console
-      from pyodide import create_proxy
-
-      def _eventlog(e):
-        # create file-like string to capture output
-        codeOut = io.StringIO()
-        codeErr = io.StringIO()
-
-        # capture output and errors
-        sys.stdout = codeOut
-        sys.stderr = codeErr
-
-        try:
-          exec(e.target.value)
-        except Exception as e:
-          pyscript.write('python-err', type(e).__name__)
-        else:
-          s = codeErr.getvalue()
-          pyscript.write('python-err', s)
-
-          s = codeOut.getvalue()
-          pyscript.write('python-out', s)
-        finally:
-          # restore stdout and stderr
-          sys.stdout = sys.__stdout__
-          sys.stderr = sys.__stderr__
-          codeOut.close()
-          codeErr.close()
-
-      eventlog = create_proxy(_eventlog)
-      time.sleep(2.4)
-
-      document.querySelector("#python-decoder").addEventListener("input", eventlog)
-    </py-script> -->
     <title>React App</title>
   </head>
   <body id="body">
@@ -96,7 +58,7 @@
           from js import document, console
           from pyodide import create_proxy
 
-          def _eventlog(e):
+          def pythonHandler(e):
             # create file-like string to capture output
             codeOut = io.StringIO()
             codeErr = io.StringIO()
@@ -122,9 +84,9 @@
               codeOut.close()
               codeErr.close()
 
-          eventlog = create_proxy(_eventlog)
+          pythonHandlerProxy = create_proxy(pythonHandler)
 
-          document.querySelector("#python-decoder").addEventListener("input", eventlog)
+          document.querySelector("#python-decoder").addEventListener("input", pythonHandlerProxy)
         `);
       }
       main();

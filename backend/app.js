@@ -56,7 +56,7 @@ const sessionMiddleware = session({
   cookie: {
     maxAge: 1000 * 60 * 60 * 2, // Two Hours
     sameSite: true,
-    httpOnly: true,
+    secure: true,
   },
   // store: new RedisStore({ client: redisClient }),
   // store: new sessionStore({
@@ -89,9 +89,6 @@ const isAuthenticated = function (req, res, next) {
   if (!req.session.username) return res.status(401).json("access denied");
   next();
 };
-
-
-app.get("/api", (req, res) => res.send({ version }));
 
 const Role = {
   Admin: "Admin",
