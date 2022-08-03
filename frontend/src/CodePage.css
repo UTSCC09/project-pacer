@@ -3,16 +3,16 @@
   color: white;
   border: none;
   padding: 5px;
-  height: 80px;
-  width: 80px;
+  height: 70px;
+  width: 70px;
   box-shadow: 0 2px 4px darkslategray;
   cursor: pointer;
   transition: all 0.2s ease;
   top: auto;
   margin: 0px 0px 20px 20px;
-  right: 20;
+  right: 20px;
   bottom: 0;
-  left: atuo;
+  left: 30;
   position: fixed;
   border-radius: 100%;
 }

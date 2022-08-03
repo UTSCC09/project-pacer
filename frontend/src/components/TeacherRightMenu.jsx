@@ -11,7 +11,9 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import { Button, styled } from "@mui/material";
+import CallIcon from '@mui/icons-material/Call';
+import CloseIcon from '@mui/icons-material/Close';
+import { Button, Stack, styled } from "@mui/material";
 import { authenticationService, socket } from "../_services";
 // [kw]
 import React, { useEffect } from 'react';
@@ -45,8 +47,7 @@ const defaultState = {
 };
 
 
-function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, connectedUsers, setConnectedUsers, socket, roomId, setSocketFlag }) {
-  console.log(connectedUsers)
+function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, connectedUsers, setConnectedUsers, socket, roomId, setSocketFlag, setupCall, callInprogress }) {
   const [notificationToggle, setNotificationToggle] = React.useState(() => null);
   const [helpMsg, setHelpMsg] = React.useState(() => "default msg");
   const [userState, setUserState] = React.useState(() => {
@@ -173,6 +174,9 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
         ))}
       </List>
       <Divider />
+      <button className="call-button" onClick={() => setupCall()} >
+        {callInprogress ? <CloseIcon fontSize="large"/> : <CallIcon fontSize="large"/>}
+      </button>
     </div>
   );
 
@@ -190,6 +194,8 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
           <Typography variant="h6" noWrap component="div">
             Pacer
           </Typography>
+          <Stack direction="row">
+            <p className="romm-user-info">{`roomId: ${roomId}`}</p>
           <Button
             position="fixed"
             component="div"
@@ -205,6 +211,7 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
           >
             Logout
           </Button>
+          </Stack>
         </Toolbar>
       </AppBar>
       <Box

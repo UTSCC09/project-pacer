@@ -11,14 +11,18 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import { Button } from '@mui/material';
+import { Button, Stack } from '@mui/material';
+
+import CallIcon from "@mui/icons-material/Call";
+import CloseIcon from '@mui/icons-material/Close';
+
 import { authenticationService } from '../_services';
 // [kw]
 import React from 'react';
 import Notifications from './Notifications';
 
 // function StudentRightMenu({drawerWidth}) {
-function StudentRightMenu({drawerWidth, socket, roomId, setSocketFlag}) {
+function StudentRightMenu({drawerWidth, socket, roomId, setSocketFlag, setupCall, callInprogress}) {
   const [notificationToggle, setNotificationToggle] = React.useState(() => null);
 
   function requestHelp() {
@@ -53,6 +57,9 @@ function StudentRightMenu({drawerWidth, socket, roomId, setSocketFlag}) {
           </ListItemButton>
         </ListItem>
       </List>
+      <button className="call-button" onClick={setupCall}>
+        {callInprogress ? <CloseIcon fontSize="large"/> : <CallIcon fontSize="large"/>}
+      </button>
     </div>
   );
 
@@ -70,6 +77,8 @@ function StudentRightMenu({drawerWidth, socket, roomId, setSocketFlag}) {
           <Typography variant="h6" noWrap component="div">
             Pacer
           </Typography>
+          <Stack direction="row">
+            <p className="romm-user-info">{`roomId: ${roomId}`}</p>
           <Button position="fixed" component="div" className="logoutButton"
           variant="contained"
           color="error"
@@ -82,6 +91,7 @@ function StudentRightMenu({drawerWidth, socket, roomId, setSocketFlag}) {
         >
           Logout
         </Button>
+        </Stack>
         </Toolbar>
       </AppBar>
       <Box

@@ -57,7 +57,6 @@ const sessionMiddleware = session({
     maxAge: 1000 * 60 * 60 * 2, // Two Hours
     sameSite: true,
     httpOnly: true,
-    secure: true,
   },
   // store: new RedisStore({ client: redisClient }),
   // store: new sessionStore({

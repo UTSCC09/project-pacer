@@ -2,6 +2,12 @@
   margin-top: 10px;
 }
 
+.romm-user-info {
+  text-align: center;
+  margin: auto;
+  margin-right: 20px;
+}
+
 .hidden{
   display: none
 }

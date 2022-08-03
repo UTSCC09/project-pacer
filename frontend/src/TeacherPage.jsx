@@ -11,8 +11,6 @@ import Grid from "@mui/material/Grid";
 import EditorOptionsBar from "./components/EditorOptions";
 import Toolbar from "@mui/material/Toolbar";
 import Stack from "@mui/material/Stack";
-import CallIcon from '@mui/icons-material/Call';
-import CloseIcon from '@mui/icons-material/Close';
 import Storage from "./components/Storage";
 
 import { upperPythonKeys, lowerPythonKeys, javaKeys } from "./_helpers";
@@ -655,6 +653,7 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
 
 
   const setupCall = async () => {
+    console.log("there")
     if (!callInprogress) {
       console.log("seting up call");
       const localStream = await navigator.mediaDevices.getUserMedia({
@@ -859,6 +858,8 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
         socket={socket}
         roomId={roomId}
         setSocketFlag={setSocketFlag}
+        setupCall={() => setupCall()}
+        callInprogress={callInprogress}
       /> : null}
       
       <Stack direction="row">
@@ -867,9 +868,6 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
           return <Audio key={index} peer={peer} />;
         })}
       </Stack>
-      <button className="call-button" onClick={() => setupCall()} >
-        {callInprogress ? <CloseIcon fontSize="large"/> : <CallIcon fontSize="large"/>}
-      </button>
     </>
   );
 }

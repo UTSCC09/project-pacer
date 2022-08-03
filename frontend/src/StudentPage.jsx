@@ -13,9 +13,6 @@ import EditorOptionsBar from "./components/EditorOptions";
 import Toolbar from "@mui/material/Toolbar";
 import StudentRightMenu from "./components/StudentRightMenu";
 import Storage from "./components/Storage";
-import CallIcon from "@mui/icons-material/Call";
-import CloseIcon from '@mui/icons-material/Close';
-
 // for file up/downloading (via fb):
 import { storage } from "./_components/FireBase";
 import { ref, uploadBytesResumable, getDownloadURL, listAll, deleteObject, getMetadata } from "@firebase/storage";
@@ -506,6 +503,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   };
 
   const setupCall = async () => {
+    console.log("there")
     if (!callInprogress) {
       console.log("seting up call");
       const localStream = await navigator.mediaDevices.getUserMedia({
@@ -686,16 +684,15 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       <StudentRightMenu drawerWidth={drawerWidth} 
                         socket={socket}
                         roomId={roomId}
-                        setSocketFlag={setSocketFlag} />
+                        setSocketFlag={setSocketFlag}
+                        setupCall={() => setupCall()}
+                        callInprogress={callInprogress} />
       <Stack direction="row">
         {LocalAudio}
         {peers.map((peer, index) => {
           return <Audio key={index} peer={peer} />;
         })}
       </Stack>
-      <button className="call-button" onClick={() => setupCall()}>
-        {callInprogress ? <CloseIcon fontSize="large"/> : <CallIcon fontSize="large"/>}
-      </button>
     </>
   );
 }
