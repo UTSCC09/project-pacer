@@ -1,15 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
-import { BrowserRouter, Routes, Route, Link, Navigate } from "react-router-dom";
-import { SnackbarProvider } from 'notistack';
-// [kw]
-import React from 'react';
+import { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { SnackbarProvider } from "notistack";
+import React from "react";
 import { socket } from "./_services";
 
 import "./App.css";
-import {
-  history,
-  Role,
-} from "./_helpers";
+import { history, Role } from "./_helpers";
 import { authenticationService, getCurrentUser } from "./_services";
 import { PrivateRoute } from "./_components";
 
@@ -20,91 +16,28 @@ import { CssBaseline } from "@mui/material";
 import TeacherPage from "./TeacherPage";
 
 import { storage } from "./_components/FireBase";
-import { ref } from "@firebase/storage"
-import { ref as fileStorageRef, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
+import { ref } from "@firebase/storage";
+import { ref as uploadBytesResumable, getDownloadURL } from "@firebase/storage";
 import RoomPage from "./RoomPage";
-
-const uploadFileFormHandler = (event) => {
-  event.preventDefault();
-  const file = event.target[0].files[0];
-  uploadFile(file);
-};
-
-const uploadFile = (f) => {
-  if (!f) {
-    console.log('Upload failed. Try a different file.');
-  }
-  const fileStorageRef = ref(storage, `/files/${f.name}`);
-  const uploadFileTaskStatus = uploadBytesResumable(fileStorageRef, f);
-  uploadFileTaskStatus.on(
-    "state_changed",
-    (u) => {
-      let p = 100;
-      if (u.totalBytes > 0) {
-        p = Math.round((u.bytesTransferred / u.totalBytes) * 100);
-      }
-    },
-    (err) => console.log(err),
-    () => {
-      // when the file is uploaded successfully:
-      getDownloadURL(uploadFileTaskStatus.snapshot.ref)
-        .then((url) => console.log(url));
-      f.text().then((text) => console.log(text));
-    }
-  );
-};
-
 
 function App() {
   const [curUser, setCurUser] = useState(() => "");
   const [roomId, setRoomId] = useState(() => "");
-  const [userRoom, setUserRoom] = useState(() => null)
+  const [userRoom, setUserRoom] = useState(() => null);
   const [isAdmin, setIsAdmin] = useState(() => "");
   const [loadingComplete, setLoadingComplete] = useState(() => false);
-  const [socketFlag, setSocketFlag] = useState(() => false)
-  const [sessionActiveFlag, setSessionActiveFlag] = useState(() => false);
+  const [socketFlag, setSocketFlag] = useState(() => false);
 
-  // socket.on("connect", () => {
-  //   // if(!socket.id) socket.connect()
-  //   console.log("[form App]socket.id: " ,socket.connected, socket.id);
-  // }, []);
-
-  // if(!socket.connected){
-  //   socket.connect()
-  //   console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
-  // } else {
-  //   console.log(`APP - existing socket id: ${socket.id}, ${socket.connected}`)
-  // }
-
-  // student sync
-  // console.log("[form App]socket.id: " ,socket.connected, socket.id);
   useEffect(async () => {
     if (!socketFlag) {
-      console.log(socket)
-      console.log("once?")
-      if(!socket.connected){
-        await socket.connect()
-        console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
-      } else {
-        console.log(`APP - existing socket id: ${socket.id}, ${socket.connected}`)
-      }
-      if (socket.connected) {
-        console.log("session is active")
-        setSessionActiveFlag(true)
-      } else {
-        setSessionActiveFlag(false)
-      }
-      setSocketFlag(true)
+      if (!socket.connected) await socket.connect();
+      setSocketFlag(true);
     }
-  }, [socketFlag])
+  }, [socketFlag]);
 
   useEffect(() => {
-
     async function fetchUserInfo() {
-      const user = await getCurrentUser()
-      console.log(user)
       await authenticationService.currentUser.subscribe((x) => {
-        console.log(x)
         setCurUser(x ? x.username : null);
         setUserRoom(x ? x.roomHost : null);
         setRoomId(x ? x.roomHost : "");
@@ -112,88 +45,84 @@ function App() {
         setLoadingComplete(true);
       });
     }
-    fetchUserInfo()
+    fetchUserInfo();
   }, []);
 
   if (loadingComplete) {
-    console.log(curUser)
-    console.log(isAdmin)
-    console.log(userRoom)
     return (
       <BrowserRouter history={history}>
         <SnackbarProvider maxSnack={3}>
-        <CssBaseline>
-          <Routes>
-            <Route
-              path="/student"
-              element={
-                <PrivateRoute isAllowed={!!curUser && !isAdmin && !!userRoom}>
-                  <StudentPage socket={socket}
-                               curUser={curUser}
-                               userRoom={userRoom}
-                               roomId={String(roomId)}
-                               setSocketFlag={(e) => setSocketFlag(e)}
-                  />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/teacher"
-              element={
-                <PrivateRoute isAllowed={!!curUser && isAdmin && !!userRoom}>
-                  {/* <TeacherPage fileUploadHandler={uploadFileFormHandler}/> */}
-                  <TeacherPage  socket={socket}
-                                curUser={curUser}
-                                userRoom={userRoom}
-                                roomId={String(roomId)}
-                                setSocketFlag={(e) => setSocketFlag(e)}
-                  />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              exact
-              path="/rooms"
-              element={
-                <PrivateRoute isAllowed={!!curUser && !userRoom}>
-                  <RoomPage
+          <CssBaseline>
+            <Routes>
+              <Route
+                path="/student"
+                element={
+                  <PrivateRoute isAllowed={!!curUser && !isAdmin && !!userRoom}>
+                    <StudentPage
+                      socket={socket}
+                      curUser={curUser}
+                      userRoom={userRoom}
+                      roomId={String(roomId)}
+                      setSocketFlag={(e) => setSocketFlag(e)}
+                    />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/teacher"
+                element={
+                  <PrivateRoute isAllowed={!!curUser && isAdmin && !!userRoom}>
+                    <TeacherPage
+                      socket={socket}
+                      curUser={curUser}
+                      userRoom={userRoom}
+                      roomId={String(roomId)}
+                      setSocketFlag={(e) => setSocketFlag(e)}
+                    />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                exact
+                path="/rooms"
+                element={
+                  <PrivateRoute isAllowed={!!curUser && !userRoom}>
+                    <RoomPage
+                      curUser={curUser}
+                      isAdmin={isAdmin}
+                      userRoom={userRoom}
+                      setUserRoom={(e) => setUserRoom(e)}
+                      setRoomId={(e) => setRoomId(e)}
+                      socket={socket}
+                      setSocketFlag={(e) => setSocketFlag(e)}
+                    />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                exact
+                path="/login"
+                element={
+                  <LoginPage
                     curUser={curUser}
                     isAdmin={isAdmin}
                     userRoom={userRoom}
-                    setUserRoom={(e) => setUserRoom(e)}
-                    setRoomId={(e) => setRoomId(e)}
+                    setIsAdmin={(e) => setIsAdmin(e)}
                     socket={socket}
-                    sessionActiveFlag={sessionActiveFlag}
-                    setSessionActiveFlag={(e) => setSessionActiveFlag(e)}
-                    setSocketFlag={(e) => setSocketFlag(e)}
                   />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              exact
-              path="/login"
-              element={
-                <LoginPage
-                  curUser={curUser}
-                  isAdmin={isAdmin}
-                  userRoom={userRoom}
-                  setIsAdmin={(e) => setIsAdmin(e)}
-                  socket={socket}
-                />
-              }
-            />
-            <Route path="*" element={<Navigate to="/login" />} />
-          </Routes>
-          <textarea className="hidden" id="python-decoder"></textarea>
-          <div className="hidden" id="python-out"></div>
-          <div className="hidden" id="python-err"></div>
-        </CssBaseline>
+                }
+              />
+              <Route path="*" element={<Navigate to="/login" />} />
+            </Routes>
+            <textarea className="hidden" id="python-decoder"></textarea>
+            <div className="hidden" id="python-out"></div>
+            <div className="hidden" id="python-err"></div>
+          </CssBaseline>
         </SnackbarProvider>
       </BrowserRouter>
     );
   } else {
-    return (<p>fetching user data</p>)
+    return <p>fetching user data</p>;
   }
 }
 

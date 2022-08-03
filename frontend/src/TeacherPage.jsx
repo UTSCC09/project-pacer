@@ -1,10 +1,6 @@
-import { useCallback, useState, useEffect, cloneElement, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import Peer from "simple-peer";
 import CodeMirror from "@uiw/react-codemirror";
-import InputLabel from "@mui/material/InputLabel";
-import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
-import Select, { SelectChangeEvent } from "@mui/material/Select";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
@@ -15,37 +11,28 @@ import Storage from "./components/Storage";
 
 import { upperPythonKeys, lowerPythonKeys, javaKeys } from "./_helpers";
 
-import { EditorState, Compartment } from "@codemirror/state";
 import { python, pythonLanguage } from "@codemirror/lang-python";
 import { CompletionContext } from "@codemirror/autocomplete";
 import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
 import { java, javaLanguage } from "@codemirror/lang-java";
-import { authenticationService, getAllRooms } from "./_services";
+import { authenticationService } from "./_services";
 import TeacherRightMenu from "./components/TeacherRightMenu";
 import runCode from "./_helpers/codeRunner";
-// [kw]
 import React from "react";
-// import { socket } from "./_services";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
 import "./CodePage.css";
 
-
-// for file up/downloading (via fb):
 import { storage } from "./_components/FireBase";
 import { ref, uploadBytesResumable, getDownloadURL, listAll, deleteObject, getMetadata } from "@firebase/storage";
 
 const drawerWidth = 160;
-// for cloud sync (via fb) [experimental - TODO]:
 let t = 0; //ns
 
 const Audio = ({peer}) => {
   const ref = useRef();
 
   useEffect(() => {
-    console.log("hi lksdfhlewafjlknsd kjsdfsfeds")
       peer.on("stream", stream => {
-          console.log("this is streaming")
-          console.log(`stream is ${stream}`)
           ref.current.srcObject = stream;
       })
   }, []);
@@ -55,7 +42,7 @@ const Audio = ({peer}) => {
     );
 }
 
-function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
+function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
   // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
   const [displayStudent, setDisplayStudent] = useState(() => false);
@@ -73,7 +60,6 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
   const [codePath, setCodePath] = useState("");
   const [codeFilename, setCodeFilename] = useState("");
   // audio call
-  // const [stuJoin, setStuJoin] = useState(() => {});
   const [studentName, setStudentName] = useState(() => "");
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [callStream, setCallStream] = useState(() => null);
