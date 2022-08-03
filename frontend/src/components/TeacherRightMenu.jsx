@@ -145,12 +145,12 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
   function logoutHandler(){
 
     socket.emit("disconnect audio", roomId)
+    socket.emit("room update");
     setConnectedUsers([]);
   
     socket.removeAllListeners();
     socket.disconnect();
 
-    socket.emit("room update");
     setSocketFlag(false)
     authenticationService.logout();
   }
