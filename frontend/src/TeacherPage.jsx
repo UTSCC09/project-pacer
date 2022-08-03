@@ -1,44 +1,46 @@
-import { useCallback, useState, useEffect, cloneElement, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import Peer from "simple-peer";
 import CodeMirror from "@uiw/react-codemirror";
-import InputLabel from "@mui/material/InputLabel";
-import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
-import Select, { SelectChangeEvent } from "@mui/material/Select";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
 import EditorOptionsBar from "./components/EditorOptions";
 import Toolbar from "@mui/material/Toolbar";
 import Stack from "@mui/material/Stack";
-import CallIcon from '@mui/icons-material/Call';
-import CloseIcon from '@mui/icons-material/Close';
 import Storage from "./components/Storage";
 
 import { upperPythonKeys, lowerPythonKeys, javaKeys } from "./_helpers";
 
-import { EditorState, Compartment } from "@codemirror/state";
 import { python, pythonLanguage } from "@codemirror/lang-python";
 import { CompletionContext } from "@codemirror/autocomplete";
 import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
 import { java, javaLanguage } from "@codemirror/lang-java";
-import { authenticationService, getAllRooms } from "./_services";
+import { authenticationService } from "./_services";
 import TeacherRightMenu from "./components/TeacherRightMenu";
 import runCode from "./_helpers/codeRunner";
-// [kw]
 import React from "react";
-// import { socket } from "./_services";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
 import "./CodePage.css";
 
-
-// for file up/downloading (via fb):
 import { storage } from "./_components/FireBase";
 import { ref, uploadBytesResumable, getDownloadURL, listAll, deleteObject, getMetadata } from "@firebase/storage";
 
-const drawerWidth = 200;
-// for cloud sync (via fb) [experimental - TODO]:
+const drawerWidth = 160;
 let t = 0; //ns
+
+const Audio = ({peer}) => {
+  const ref = useRef();
+
+  useEffect(() => {
+      peer.on("stream", stream => {
+          ref.current.srcObject = stream;
+      })
+  }, []);
+
+  return (
+      <audio playsInline autoPlay ref={ref} />
+    );
+}
 
 
 function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
@@ -59,7 +61,6 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
   const [codePath, setCodePath] = useState("");
   const [codeFilename, setCodeFilename] = useState("");
   // audio call
-  // const [stuJoin, setStuJoin] = useState(() => {});
   const [studentName, setStudentName] = useState(() => "");
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [callStream, setCallStream] = useState(() => null);
@@ -70,6 +71,7 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
 
   const localAudio = useRef();
   const peersRef = useRef([]);
+  const audioTrack = useRef();
 
 
   let extensions = [javascript({ jsx: true })];
@@ -83,19 +85,6 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
     extensions[1] = globalJavaScriptCompletions;
   }
 
-  const Audio = ({peer}) => {
-    const ref = useRef();
-
-    useEffect(() => {
-        peer.on("stream", stream => {
-            ref.current.srcObject = stream;
-        })
-    }, []);
-
-    return (
-        <audio playsInline autoPlay ref={ref} />
-      );
-  }
   // for cloud sync (via fb) [experimental - TODO]:
   // todo-kw: uncomment this
   useEffect(() => {
@@ -334,18 +323,87 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
 
     socket.emit("teacher join", roomId);
 
-    socket.on("connection broadcast", (SktId, role, curUser) => {
+    // socket.on("connection broadcast", (SktId, role, curUser) => {
+    //   // add newly connected student
+    //   if (connectedUsers.includes({ curUser, SktId })) {
+    //     console.log(
+    //       `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
+    //     );
+    //   } else {
+    //     setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser, SktId }]);
+    //     console.log(
+    //       `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
+    //     );
+    //   }
+    //   // init remote window on student's end
+    //   setDisplayStudent(display => {
+    //     // emit teacher's code if not on review mode
+    //     if (!display){
+    //       setCode(currentCode => {
+    //         socket.emit("onLecChange", currentCode, roomId);
+    //         return currentCode;
+    //       });
+    //     } else { // emit student's code if on review mode
+    //       setStuCode(curStuCode => {
+    //         socket.emit("onLecChange", curStuCode, roomId);
+    //         return curStuCode;
+    //       })
+    //     }
+    //     return display;
+    //   });
+    // });
+
+    socket.on("disconnection broadcast", (SktId, role, curUser) => {
       // add newly connected student
-      if (connectedUsers.includes({ curUser, SktId })) {
-        console.log(
-          `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
-        );
-      } else {
-        setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser, SktId }]);
-        console.log(
-          `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
-        );
-      }
+      setConnectedUsers(eixstingUsers => {
+        const userCopy = [...eixstingUsers];
+        const idx = userCopy.findIndex((user) => user.SktId === SktId);
+        if (idx >= 0) {
+          userCopy.splice(idx, 1);
+        }
+        return userCopy
+      });
+      // audio
+      const itemIdx = peersRef.current.findIndex((p) => p.peerID === SktId);
+      if (itemIdx >= 0) {
+        setPeers((users) => {
+          const peerIdx = users.findIndex((p) => peersRef.current[itemIdx].peer === p);
+          users.splice(peerIdx, 1)
+          return users
+        });
+        peersRef.current[itemIdx].peer.removeAllListeners();
+        peersRef.current[itemIdx].peer.destroy();
+        peersRef.current.splice(itemIdx, 1)
+      } 
+      // sid and display window update
+      setSid(init => {
+        if(SktId === init) {
+          setDisplayStudent(false);
+          socket.sid = "";
+          return "";
+        }
+        return init;
+      });
+    });
+
+    socket.on("connection broadcast", (SktId, role, curUser) => {
+      setConnectedUsers(eixstingUsers => {
+          const idx = eixstingUsers.findIndex(u => 
+            u.curUser === curUser
+          )
+          if(idx >= 0){
+            console.log(
+              `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
+            );
+            return eixstingUsers;
+          } else {
+            console.log(
+              `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
+            );
+            return [...eixstingUsers, { curUser, SktId }];
+          }
+      });
+
       // init remote window on student's end
       setDisplayStudent(display => {
         // emit teacher's code if not on review mode
@@ -365,47 +423,37 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
     });
 
 
-    socket.on("disconnection broadcast", (SktId, role, curUser) => {
-      // add newly connected student
-      setConnectedUsers(eixstingUsers => {
-        const userCopy = [...eixstingUsers];
-        const idx = userCopy.findIndex((user) => user.SktId === SktId);
-        if (idx >= 0) {
-          userCopy.splice(idx, 1);
-        }
-        return userCopy
-      });
-      // audio
-      const itemIdx = peersRef.current.findIndex((p) => p.peerID === SktId);
-      if (itemIdx >= 0) {
-        peersRef.current[itemIdx].peer.removeAllListeners();
-        peersRef.current[itemIdx].peer.destroy();
-        peersRef.current.splice(itemIdx, 1)
-        setPeers((users) => {
-          const peerIdx = users.findIndex((p) => p === SktId);
-          return users.splice(peerIdx, 1)
-        });
-      } 
-      // sid and display window update
-      setSid(init => {
-        if(SktId === init) {
-          setDisplayStudent(false);
-          socket.sid = "";
-          return "";
-        }
-        return init;
-      });
-    });
-
-
+    // socket.on("student join", (sSktId, username) => {
+    //   console.log(
+    //     "[TeacherPage - student join] joining student socket id: ", sSktId,
+    //     " and student name: ", username
+    //   );
+    //   // add connected student
+    //   if (!connectedUsers.includes({ curUser: username, sSktId }))
+    //     setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser: username, SktId: sSktId }]);
+    //   // init teacher code on student's window
+    //   socket.emit("onLecChange", code, roomId)
+    // });
     socket.on("student join", (sSktId, username) => {
-      // add connected student
-      if (!connectedUsers.includes({ curUser: username, sSktId }))
-        setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser: username, SktId: sSktId }]);
-      // init teacher code on student's window
-      socket.emit("onLecChange", code, roomId)
-    });
+      console.log(
+        "[TeacherPage - student join] joining student socket id: ", sSktId,
+        " and student name: ", username
+      );
 
+      setConnectedUsers(eixstingUsers => {
+        socket.emit("onLecChange", code, roomId);
+
+          const idx = eixstingUsers.findIndex(u => 
+            u.curUser === username
+          )
+          console.log("from connection broadcast idx ", idx);
+          if(idx < 0){
+            return [...eixstingUsers, { curUser: username, SktId: sSktId }];
+          }
+          return eixstingUsers
+      })
+    });
+    
 
     socket.on("fetch init", (code, sid) => {
       // revisit
@@ -440,6 +488,69 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
       socket.on = true;
       setStuCode("");
     });
+
+    console.log("initing call system")
+      console.log(socket.id)
+
+    socket.on("all users", (users) => {
+      console.log(users)
+      const peers = [];
+      users.forEach((userId) => {
+        const peer = createPeer(userId, socket.id, audioTrack.current);
+        console.log(peer)
+        peersRef.current.push({
+          peerID: userId,
+          peer,
+        });
+        peers.push(peer);
+      });
+      console.log(peersRef.current)
+      console.log(`peers length is ${peers.length}`)
+      setPeers(peers);
+    });
+
+
+  socket.on("user joined", (payload) => {
+    console.log("user joined")
+    const peer = addPeer(payload.signal, payload.callerID, audioTrack.current);
+    peersRef.current.push({
+      peerID: payload.callerID,
+      peer,
+    });
+
+    setPeers((users) => [...users, peer]);
+  });
+
+  
+  socket.on("receiving returned signal", (payload) => {
+    console.log("receiving returned signal")
+    console.log(peersRef.current)
+    console.log(payload.id)
+    const item = peersRef.current.find((p) => p.peerID === payload.id);
+    console.log(item)
+    item.peer.signal(payload.signal);
+  });
+
+  socket.on("user disconnected audio", (socketId) => {
+    console.log("user disconnected audio")
+    console.log(peersRef.current)
+    console.log(socketId)
+    const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
+    if (itemIdx >= 0) {
+      console.log(itemIdx)
+      setPeers((users) => {
+        const peerIdx = users.findIndex((p) => peersRef.current[itemIdx].peer === p);
+        console.log(peerIdx)
+        console.log(users)
+        users.splice(peerIdx, 1)
+        return users
+      });
+      peersRef.current[itemIdx].peer.removeAllListeners();
+      peersRef.current[itemIdx].peer.destroy();
+      peersRef.current.splice(itemIdx, 1)
+    }
+    console.log(peersRef.current)
+  })
 
 
     // for file downloading (via fb):
@@ -477,46 +588,6 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
 
   useEffect(() => {
     if (callSystemInited) {
-      socket.on("all users", (users) => {
-        const peers = [];
-        users.forEach((userId) => {
-          const peer = createPeer(userId, socket.id, callStream);
-          peersRef.current.push({
-            peerID: userId,
-            peer,
-          });
-          peers.push(peer);
-        });
-        setPeers(peers);
-      });
-
-      socket.on("user joined", (payload) => {
-        const peer = addPeer(payload.signal, payload.callerID, callStream);
-        peersRef.current.push({
-          peerID: payload.callerID,
-          peer,
-        });
-
-        setPeers((users) => [...users, peer]);
-      });
-
-      socket.on("receiving returned signal", (payload) => {
-        const item = peersRef.current.find((p) => p.peerID === payload.id);
-        item.peer.signal(payload.signal);
-      });
-
-      socket.on("user disconnected audio", (socketId) => {
-        const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
-        if (itemIdx >= 0) {
-          peersRef.current[itemIdx].peer.removeAllListeners();
-          peersRef.current[itemIdx].peer.destroy();
-          peersRef.current.splice(itemIdx, 1)
-          setPeers((users) => {
-            const peerIdx = users.findIndex((p) => p === socketId);
-            return users.splice(peerIdx, 1)
-          }); 
-        }
-      })
     }
   }, [callSystemInited])
 
@@ -567,11 +638,14 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
 
 
   const setupCall = async () => {
+    console.log("there")
     if (!callInprogress) {
       const localStream = await navigator.mediaDevices.getUserMedia({
         video: false,
         audio: true,
       });
+      audioTrack.current = localStream
+      console.log("hardware setup complete");
       setCallStream(localStream);
       setCallSystemInited(true);
       if (localAudio.current) {
@@ -581,6 +655,7 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
       setCallInprogress(true);
     } else {
       setCallStream(null);
+      audioTrack.current = null
       if (localAudio.current) {
         localAudio.current.srcObject = null;
       }
@@ -761,6 +836,8 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
         socket={socket}
         roomId={roomId}
         setSocketFlag={setSocketFlag}
+        setupCall={() => setupCall()}
+        callInprogress={callInprogress}
       /> : null}
       
       <Stack direction="row">
@@ -769,9 +846,6 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
           return <Audio key={index} peer={peer} />;
         })}
       </Stack>
-      <button className="call-button" onClick={() => setupCall()} >
-        {callInprogress ? <CloseIcon fontSize="large"/> : <CallIcon fontSize="large"/>}
-      </button>
     </>
   );
 }

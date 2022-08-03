@@ -1,15 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
-import { BrowserRouter, Routes, Route, Link, Navigate } from "react-router-dom";
-import { SnackbarProvider } from 'notistack';
-// [kw]
-import React from 'react';
+import { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { SnackbarProvider } from "notistack";
+import React from "react";
 import { socket } from "./_services";
 
 import "./App.css";
-import {
-  history,
-  Role,
-} from "./_helpers";
+import { history, Role } from "./_helpers";
 import { authenticationService, getCurrentUser } from "./_services";
 import { PrivateRoute } from "./_components";
 
@@ -20,113 +16,37 @@ import { CssBaseline } from "@mui/material";
 import TeacherPage from "./TeacherPage";
 
 import { storage } from "./_components/FireBase";
-import { ref } from "@firebase/storage"
-import { ref as fileStorageRef, uploadBytesResumable, getDownloadURL } from "@firebase/storage";
+import { ref } from "@firebase/storage";
+import { ref as uploadBytesResumable, getDownloadURL } from "@firebase/storage";
 import RoomPage from "./RoomPage";
-
-const uploadFileFormHandler = (event) => {
-  event.preventDefault();
-  const file = event.target[0].files[0];
-  uploadFile(file);
-};
-
-const uploadFile = (f) => {
-  if (!f) {
-    console.log('Upload failed. Try a different file.');
-  }
-  const fileStorageRef = ref(storage, `/files/${f.name}`);
-  const uploadFileTaskStatus = uploadBytesResumable(fileStorageRef, f);
-  uploadFileTaskStatus.on(
-    "state_changed",
-    (u) => {
-      let p = 100;
-      if (u.totalBytes > 0) {
-        p = Math.round((u.bytesTransferred / u.totalBytes) * 100);
-      }
-    },
-    (err) => console.log(err),
-    () => {
-      // when the file is uploaded successfully:
-      getDownloadURL(uploadFileTaskStatus.snapshot.ref)
-        .then((url) => console.log(url));
-      f.text().then((text) => console.log(text));
-    }
-  );
-};
-
-function logout() {
-  authenticationService.logout();
-  history.push("/login");
-}
-
-// let subscriber = null
-// let endpoint = null
-// webhookService.subscribe("classtest", (err, res) => {
-//   if (err) console.log(err);
-//   console.log(res)
-//   subscriber = res.id
-//   webhookService.addEndpoint(subscriber, "http://localhost:8080/webhook/helprequesttest", ["help.requested"], (err, res) => {
-//     if (err) console.log(err);
-//     console.log(res)
-//     endpoint = res.id
-//   })
-// })
-
 
 function App() {
   const [curUser, setCurUser] = useState(() => "");
   const [roomId, setRoomId] = useState(() => "");
   const [isAdmin, setIsAdmin] = useState(() => "");
   const [loadingComplete, setLoadingComplete] = useState(() => false);
-  const [socketFlag, setSocketFlag] = useState(false)
+  const [socketFlag, setSocketFlag] = useState(() => false);
 
-  // socket.on("connect", () => {
-  //   // if(!socket.id) socket.connect()
-  //   console.log("[form App]socket.id: " ,socket.connected, socket.id);
-  // }, []);
-
-  // if(!socket.connected){
-  //   socket.connect()
-  //   console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
-  // } else {
-  //   console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
-  // }
-
-  // student sync
-  // console.log("[form App]socket.id: " ,socket.connected, socket.id);
-  useEffect(() => {
+  useEffect(async () => {
     if (!socketFlag) {
-      console.log("once?")
-      if(!socket.connected){
-        socket.connect()
-        console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
-      } else {
-        console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
-      }
-      setSocketFlag(true)
+      if (!socket.connected) await socket.connect();
+      setSocketFlag(true);
     }
-  }, [socketFlag])
+  }, [socketFlag]);
 
   useEffect(() => {
-    
-
     async function fetchUserInfo() {
-      const user = await getCurrentUser()
-      console.log(user)
       await authenticationService.currentUser.subscribe((x) => {
-        console.log(x)
         setCurUser(x ? x.username : null);
         setRoomId(x ? x.roomHost : "");
         setIsAdmin(x && x.role === Role.Admin);
         setLoadingComplete(true);
       });
     }
-    fetchUserInfo()
+    fetchUserInfo();
   }, []);
 
   if (loadingComplete) {
-    console.log(curUser)
-    console.log(isAdmin)
     return (
       <BrowserRouter history={history}>
         <SnackbarProvider maxSnack={3}>
@@ -162,12 +82,13 @@ function App() {
               path="/rooms"
               element={
                 <PrivateRoute isAllowed={!!curUser && !roomId}>
-                  <RoomPage
-                    curUser={curUser}
-                    isAdmin={isAdmin}
-                    setRoomId={(e) => setRoomId(e)}
-                    socket={socket}
-                  />
+                   <RoomPage
+                      curUser={curUser}
+                      isAdmin={isAdmin}
+                      setRoomId={(e) => setRoomId(e)}
+                      socket={socket}
+                      setSocketFlag={(e) => setSocketFlag(e)}
+                    />
                 </PrivateRoute>
               }
             />
@@ -191,7 +112,7 @@ function App() {
       </BrowserRouter>
     );
   } else {
-    return (<p>fetching user data</p>)
+    return <p>fetching user data</p>;
   }
 }
 

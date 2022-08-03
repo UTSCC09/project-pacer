@@ -13,9 +13,6 @@ import EditorOptionsBar from "./components/EditorOptions";
 import Toolbar from "@mui/material/Toolbar";
 import StudentRightMenu from "./components/StudentRightMenu";
 import Storage from "./components/Storage";
-import CallIcon from "@mui/icons-material/Call";
-import CloseIcon from '@mui/icons-material/Close';
-
 // for file up/downloading (via fb):
 import { storage } from "./_components/FireBase";
 import { ref, uploadBytesResumable, getDownloadURL, listAll, deleteObject, getMetadata } from "@firebase/storage";
@@ -34,9 +31,25 @@ import React from "react";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
 import "./CodePage.css";
 
-const drawerWidth = 200;
+const drawerWidth = 160;
 // for cloud sync (via fb) [experimental - TODO]:
 let t = 0; // ns
+
+const Audio = ({peer}) => {
+  const ref = useRef();
+
+  useEffect(() => {
+      console.log("hi lksdfhlewafjlknsd kjsdfsfeds")
+      peer.on("stream", stream => {
+          console.log("this is streaming")
+          ref.current.srcObject = stream;
+      })
+  }, []);
+
+  return (
+      <audio playsInline autoPlay ref={ref} />
+  );
+}
 
 function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
   // code mirror config
@@ -64,6 +77,7 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
 
   const localAudio = useRef();
   const peersRef = useRef([]);
+  const audioTrack = useRef();
 
 
   let extensions = [javascript({ jsx: true })];
@@ -75,20 +89,6 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
   } else {
     extensions[0] = java();
     extensions[1] = globalJavaScriptCompletions;
-  }
-
-  const Audio = ({peer}) => {
-    const ref = useRef();
-
-    useEffect(() => {
-        peer.on("stream", stream => {
-            ref.current.srcObject = stream;
-        })
-    }, []);
-
-    return (
-        <audio playsInline autoPlay ref={ref} />
-    );
   }
 
   // for cloud sync (via fb) [experimental - TODO]:
@@ -329,13 +329,17 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
       if (role === 'teacher') socket.tid = "";
       const itemIdx = peersRef.current.findIndex((p) => p.peerID === SktId);
         if (itemIdx >= 0) {
+          console.log(itemIdx)
+          setPeers((users) => {
+            const peerIdx = users.findIndex((p) => peersRef.current[itemIdx].peer === p);
+            console.log(peerIdx)
+            console.log(users)
+            users.splice(peerIdx, 1)
+            return users
+          });
           peersRef.current[itemIdx].peer.removeAllListeners();
           peersRef.current[itemIdx].peer.destroy();
           peersRef.current.splice(itemIdx, 1)
-          setPeers((users) => {
-            const peerIdx = users.findIndex((p) => p === SktId);
-            return users.splice(peerIdx, 1)
-          });
         } 
       console.log(`disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`);
     });
@@ -369,6 +373,69 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
       setTeaOut(out);
       setTeaErr(err);
     });
+
+    console.log("initing call system")
+    console.log(socket.id)
+    socket.on("all users", (users) => {
+      console.log(users)
+      console.log(audioTrack.current)
+      const peers = [];
+      users.forEach((userId) => {
+        if (userId !== socket.id) {
+          const peer = createPeer(userId, socket.id, audioTrack.current);
+          peersRef.current.push({
+            peerID: userId,
+            peer,
+          });
+        peers.push(peer);
+        }
+          
+      });
+      console.log(`peers are ${peers}`)
+      console.log(`peer ref is ${peersRef.current}`)
+      setPeers(peers);
+    });
+
+    socket.on("user joined", (payload) => {
+      console.log("user joined")
+      const peer = addPeer(payload.signal, payload.callerID, audioTrack.current);
+      peersRef.current.push({
+        peerID: payload.callerID,
+        peer,
+      });
+
+      setPeers((users) => [...users, peer]);
+    });
+
+    socket.on("receiving returned signal", (payload) => {
+      console.log("receiving returned signal")
+      console.log(peersRef.current)
+      console.log(payload.id)
+      const item = peersRef.current.find((p) => p.peerID === payload.id);
+      console.log(item)
+      item.peer.signal(payload.signal);
+    });
+
+    socket.on("user disconnected audio", (socketId) => {
+      console.log("user disconnected audio")
+      console.log(peersRef.current)
+      console.log(socketId)
+      const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
+      if (itemIdx >= 0) {
+        console.log(itemIdx)
+        setPeers((users) => {
+          const peerIdx = users.findIndex((p) => peersRef.current[itemIdx].peer === p);
+          console.log(peerIdx)
+          console.log(users)
+          users.splice(peerIdx, 1)
+          return users
+        });
+        peersRef.current[itemIdx].peer.removeAllListeners();
+        peersRef.current[itemIdx].peer.destroy();
+        peersRef.current.splice(itemIdx, 1)
+      }
+      console.log(peersRef.current)
+    })
 
     // for file downloading (via fb):
     if (code === "" && codePath === "" && codeFilename === "") {
@@ -410,51 +477,6 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
 
   useEffect(() => {
     if (callSystemInited) {
-      console.log("initing call system")
-      socket.on("all users", (users) => {
-        const peers = [];
-        users.forEach((userId) => {
-          if (userId !== socket.id) {
-            const peer = createPeer(userId, socket.id, callStream);
-            peersRef.current.push({
-              peerID: userId,
-              peer,
-            });
-          peers.push(peer);
-          }
-            
-        });
-        console.log(`peers are ${peers}`)
-        setPeers(peers);
-      });
-
-      socket.on("user joined", (payload) => {
-        const peer = addPeer(payload.signal, payload.callerID, callStream);
-        peersRef.current.push({
-          peerID: payload.callerID,
-          peer,
-        });
-
-        setPeers((users) => [...users, peer]);
-      });
-
-      socket.on("receiving returned signal", (payload) => {
-        const item = peersRef.current.find((p) => p.peerID === payload.id);
-        item.peer.signal(payload.signal);
-      });
-
-      socket.on("user disconnected audio", (socketId) => {
-        const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
-        if (itemIdx >= 0) {
-          peersRef.current[itemIdx].peer.removeAllListeners();
-          peersRef.current[itemIdx].peer.destroy();
-          peersRef.current.splice(itemIdx, 1)
-          setPeers((users) => {
-            const peerIdx = users.findIndex((p) => p === socketId);
-            return users.splice(peerIdx, 1)
-          }); 
-        }
-      })
     }
   }, [callSystemInited])
 
@@ -480,11 +502,14 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
   };
 
   const setupCall = async () => {
+    console.log("there")
     if (!callInprogress) {
       const localStream = await navigator.mediaDevices.getUserMedia({
         video: false,
         audio: true,
       });
+      audioTrack.current = localStream
+      console.log("hardware setup complete");
       setCallStream(localStream);
       setCallSystemInited(true);
       if (localAudio.current) {
@@ -494,6 +519,7 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
       setCallInprogress(true);
     } else {
       setCallStream(null);
+      audioTrack.current = null
       if (localAudio.current) {
         localAudio.current.srcObject = null;
       }
@@ -650,16 +676,15 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
       <StudentRightMenu drawerWidth={drawerWidth} 
                         socket={socket}
                         roomId={roomId}
-                        setSocketFlag={setSocketFlag} />
+                        setSocketFlag={setSocketFlag}
+                        setupCall={() => setupCall()}
+                        callInprogress={callInprogress} />
       <Stack direction="row">
         {LocalAudio}
         {peers.map((peer, index) => {
           return <Audio key={index} peer={peer} />;
         })}
       </Stack>
-      <button className="call-button" onClick={() => setupCall()}>
-        {callInprogress ? <CloseIcon fontSize="large"/> : <CallIcon fontSize="large"/>}
-      </button>
     </>
   );
 }

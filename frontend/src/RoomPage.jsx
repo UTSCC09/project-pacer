@@ -21,10 +21,16 @@ import {
 } from "@mui/material";
 import DataSaverOffIcon from "@mui/icons-material/DataSaverOff";
 import DataSaverOnIcon from "@mui/icons-material/DataSaverOn";
-import PeopleIcon from '@mui/icons-material/People';
+import PeopleIcon from "@mui/icons-material/People";
 import { useNavigate } from "react-router-dom";
 
-function RoomPage({ curUser, isAdmin, setRoomId, socket }) {
+function RoomPage({
+  curUser,
+  isAdmin,
+  setRoomId,
+  socket,
+  setSocketFlag,
+}) {
   const [roomInfo, setRoomInfo] = React.useState(() => null);
   const [loadRoomsComplete, setLoadRoomsComplete] = React.useState(() => false);
   const [roomName, setRoomName] = React.useState(() => "");
@@ -38,62 +44,58 @@ function RoomPage({ curUser, isAdmin, setRoomId, socket }) {
   }
 
   function logoutHandler() {
-    authenticationService.logout();
     socket.removeAllListeners();
     socket.disconnect();
+    setSocketFlag(false);
+    authenticationService.logout();
   }
 
-  // async function selectRoom(host) {
   async function selectRoom(host, id) {
-    console.log(`joining ${host}`);
-    console.log(`selectRoom id ${id}`);
     const res = await joinRoom(host, socket.id);
     if (res.err) setShowAlert(res.err);
     else {
-      console.log("loading room done");
       socket.emit("room update");
       setRoomId(String(id));
       setJoinedRoom(true);
     }
   }
-
-  React.useEffect(() => {
-    // if(!socket.connected) socket.connect()
-    async function fetchRoomInfo() {
-      const rooms = await getAllRooms();
-      console.log(`from RoomPage-useEffect: ${JSON.stringify(rooms)}`);
-      if (rooms.err) setShowAlert(rooms.err);
-      else setRoomInfo(init => {
+  
+  async function fetchRoomInfo() {
+    const rooms = await getAllRooms();
+    if (rooms.err) setShowAlert(rooms.err);
+    else
+      setRoomInfo((init) => {
         return rooms.res.data;
       });
-      setLoadRoomsComplete(true);
-    }
+    setLoadRoomsComplete(true);
+  }
+
+  React.useEffect(() => {
     fetchRoomInfo();
 
-    socket.on("room update", () => {
-      console.log(`[RoomPage] room update point`);
-      fetchRoomInfo();
-    });
+    try {
+      socket.on("room update", () => {
+        fetchRoomInfo();
+      });
+    } catch (error) {
+      window.location.reload();
+    }
   }, []);
 
   React.useEffect(() => {
     if (joinedRoom) {
-      console.log("join complete");
       if (isAdmin) navigate("/teacher", { replace: true });
       else navigate("/student", { replace: true });
-      setJoinedRoom(false)
+      setJoinedRoom(false);
     }
-  }, [joinedRoom])
+  }, [joinedRoom]);
 
-  // const onCreateNewRoom = () => {
   const onCreateNewRoom = async () => {
-    console.log(roomName);
     const res = await createNewRoom(roomName, socket.id);
     if (res.err) setShowAlert(res.err);
     else {
       // update room list to all other online users
       socket.emit("room update");
-      console.log("conCreateNewRoom return item", JSON.stringify(res["res"]));
       setRoomId(JSON.stringify(res["res"]["id"]));
       if (isAdmin) navigate("/teacher", { replace: true });
       else navigate("/student", { replace: true });
@@ -102,77 +104,89 @@ function RoomPage({ curUser, isAdmin, setRoomId, socket }) {
   };
 
   const handleToggle = () => {
-    console.log("toggled");
     setRoomName("");
     setOpen(!open);
   };
-  //TODO: merge get room into one method with pagination and return an object that includes the total number of rooms
 
   if (loadRoomsComplete) {
-    // console.log(roomInfo);
     return (
       <Box display="flex" className="room-container">
-        <Stack spacing={4} sx={{alignItems: "center" }}>
+        <Stack spacing={4} sx={{ alignItems: "center" }}>
           <p className="title">Rooms</p>
-          {showAlert && <Alert variant="filled" severity="error">{showAlert}</Alert>}
+          {showAlert && (
+            <Alert variant="filled" severity="error">
+              {showAlert}
+            </Alert>
+          )}
           <Box
             display="flex"
             justifyContent="center"
             sx={{ bgcolor: "background.paper" }}
           >
             <List>
-              {roomInfo.map((room, index) => (
-                <ListItem key={room.host} sx={{ backgroundColor: "#C6DEFF", my: 2 }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        width: "80px"
-                      }}
-                      className="room-item"
+              {roomInfo.map((room) => (
+                <ListItem
+                  key={room.host}
+                  sx={{ backgroundColor: "#C6DEFF", my: 2 }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      width: "80px",
+                    }}
+                    className="room-item"
+                  >
+                    <ListItemIcon
+                      fontSize="large"
+                      sx={{ justifyContent: "center" }}
                     >
-                      <ListItemIcon
-                        fontSize="large"
-                        sx={{ justifyContent: "center" }}
-                      >
-                        {room.hasTeacher ? (
-                          <DataSaverOnIcon />
-                        ) : (
-                          <DataSaverOffIcon />
-                        )}
-                      </ListItemIcon>
-                      <p className="room-occupancy-text">
-                        {" "}
-                        {room.hasTeacher ? "class in progress" : "waiting"}
-                      </p>
-                    </Box>
-                    <ListItemText primary={"Name: " + room.roomName} secondary={"Host: " + room.host} sx={{mr: "10px", flexGrow: 1}}/>
-                    <Box sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        width: "70px"
-                      }}
-                      className="room-item">
-                      <ListItemIcon
-                        fontSize="large"
-                        sx={{ justifyContent: "center" }}
-                      >
-                        <PeopleIcon />
-                      </ListItemIcon>
-                      <p className="room-occupancy-text">
-                        {room.users.length}
-                      </p>
-                    </Box>
-                    <ListItemButton
-                      className="room-btn"
-                      value={room.host}
-                      sx={{ backgroundColor: "#CB6D51", maxWidth: "70px", borderRadius: "8px"}}
-                      onClick={() => selectRoom(room.host, room.id)}
+                      {room.hasTeacher ? (
+                        <DataSaverOnIcon />
+                      ) : (
+                        <DataSaverOffIcon />
+                      )}
+                    </ListItemIcon>
+                    <p className="room-occupancy-text">
+                      {" "}
+                      {room.hasTeacher ? "class in progress" : "waiting"}
+                    </p>
+                  </Box>
+                  <ListItemText
+                    primary={"Name: " + room.roomName}
+                    secondary={"Host: " + room.host}
+                    sx={{ mr: "10px", flexGrow: 1 }}
+                  />
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      width: "70px",
+                    }}
+                    className="room-item"
+                  >
+                    <ListItemIcon
+                      fontSize="large"
+                      sx={{ justifyContent: "center" }}
                     >
-                      Join
-                    </ListItemButton>
+                      <PeopleIcon />
+                    </ListItemIcon>
+                    <p className="room-occupancy-text">{room.users.length}</p>
+                  </Box>
+                  <ListItemButton
+                    className="room-btn"
+                    value={room.host}
+                    sx={{
+                      backgroundColor: "#CB6D51",
+                      maxWidth: "70px",
+                      borderRadius: "8px",
+                    }}
+                    onClick={() => selectRoom(room.host, room.id)}
+                  >
+                    Join
+                  </ListItemButton>
                 </ListItem>
               ))}
             </List>
