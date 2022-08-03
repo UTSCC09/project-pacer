@@ -50,12 +50,13 @@ const DEFAULT_EXPIRATION = 7200;
 
 const sessionMiddleware = session({
   secret: process.env.SECRET,
-  saveUninitialized: false,
+  saveUninitialized: true,
   resave: false,
   name: "pacer-session",
   cookie: {
     maxAge: 1000 * 60 * 60 * 2, // Two Hours
     sameSite: true,
+    httpOnly: true
   },
   // store: new RedisStore({ client: redisClient }),
   // store: new sessionStore({
@@ -471,7 +472,10 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
 app.get("/api/rooms/", isAuthenticated, function (req, res) {
   //TODO: adapt GET for pagination and firebase
   console.log(`from get rooms ${JSON.stringify(rooms)}`);
-  return res.json(rooms);
+  return res.json({
+    data: rooms,
+    size: rooms.length
+  });
 });
 
 app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {

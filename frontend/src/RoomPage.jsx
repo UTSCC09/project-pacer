@@ -64,7 +64,7 @@ function RoomPage({ curUser, isAdmin, setRoomId, socket }) {
       console.log(`from RoomPage-useEffect: ${JSON.stringify(rooms)}`);
       if (rooms.err) setShowAlert(rooms.err);
       else setRoomInfo(init => {
-        return rooms.res;
+        return rooms.res.data;
       });
       setLoadRoomsComplete(true);
     }
