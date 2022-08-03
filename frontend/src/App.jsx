@@ -54,19 +54,6 @@ const uploadFile = (f) => {
   );
 };
 
-// let subscriber = null
-// let endpoint = null
-// webhookService.subscribe("classtest", (err, res) => {
-//   if (err) console.log(err);
-//   console.log(res)
-//   subscriber = res.id
-//   webhookService.addEndpoint(subscriber, "http://localhost:8080/webhook/helprequesttest", ["help.requested"], (err, res) => {
-//     if (err) console.log(err);
-//     console.log(res)
-//     endpoint = res.id
-//   })
-// })
-
 
 function App() {
   const [curUser, setCurUser] = useState(() => "");

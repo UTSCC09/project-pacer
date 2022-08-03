@@ -142,10 +142,6 @@ const NewRoom = (function () {
   };
 })();
 
-const webhookRoutes = require("./routes/webhookRoutes");
-const { json } = require("body-parser");
-app.use("/api", webhookRoutes);
-
 const saltRounds = 10;
 
 app.get("/api/whoami", function (req, res) {
