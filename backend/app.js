@@ -56,7 +56,6 @@ const sessionMiddleware = session({
   cookie: {
     maxAge: 1000 * 60 * 60 * 2, // Two Hours
     sameSite: true,
-    secure: true,
   },
   // store: new RedisStore({ client: redisClient }),
   // store: new sessionStore({
@@ -459,7 +458,6 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
       id: user.id,
       username: user.username,
       role: user.role,
-      roomHost: user.roomHost,
       socketId,
     };
     room.users.push(userInfo)
@@ -512,7 +510,6 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
       id: user.id,
       username: user.username,
       role: user.role,
-      roomHost: rooms[room_idx].host,
       socketId,
     };
     rooms[room_idx].users.push(userInfo);
@@ -598,7 +595,7 @@ io.on('connection', async (socket) => {
   });
 
 
-  socket.on('fetch code', async (studentId, adminId, roomId) => {
+  socket.on('fetch code', async (studentId, adminId) => {
     // fetch all sockets
     const sockets = await io.fetchSockets()
       .catch((err) => { console.error(err); });

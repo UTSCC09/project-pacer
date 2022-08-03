@@ -76,7 +76,6 @@ function logout() {
 function App() {
   const [curUser, setCurUser] = useState(() => "");
   const [roomId, setRoomId] = useState(() => "");
-  const [userRoom, setUserRoom] = useState(() => null)
   const [isAdmin, setIsAdmin] = useState(() => "");
   const [loadingComplete, setLoadingComplete] = useState(() => false);
   const [socketFlag, setSocketFlag] = useState(false)
@@ -117,7 +116,6 @@ function App() {
       await authenticationService.currentUser.subscribe((x) => {
         console.log(x)
         setCurUser(x ? x.username : null);
-        setUserRoom(x ? x.roomHost : null);
         setRoomId(x ? x.roomHost : "");
         setIsAdmin(x && x.role === Role.Admin);
         setLoadingComplete(true);
@@ -129,7 +127,6 @@ function App() {
   if (loadingComplete) {
     console.log(curUser)
     console.log(isAdmin)
-    console.log(userRoom)
     return (
       <BrowserRouter history={history}>
         <SnackbarProvider maxSnack={3}>
@@ -138,10 +135,9 @@ function App() {
             <Route
               path="/student"
               element={
-                <PrivateRoute isAllowed={!!curUser && !isAdmin && !!userRoom}>
+                <PrivateRoute isAllowed={!!curUser && !isAdmin && !!String(roomId)}>
                   <StudentPage socket={socket}
                                curUser={curUser}
-                               userRoom={userRoom}
                                roomId={String(roomId)}
                                setSocketFlag={(e) => setSocketFlag(e)}
                   />
@@ -151,11 +147,10 @@ function App() {
             <Route
               path="/teacher"
               element={
-                <PrivateRoute isAllowed={!!curUser && isAdmin && !!userRoom}>
+                <PrivateRoute isAllowed={!!curUser && isAdmin && !!String(roomId)}>
                   {/* <TeacherPage fileUploadHandler={uploadFileFormHandler}/> */}
                   <TeacherPage  socket={socket}
                                 curUser={curUser}
-                                userRoom={userRoom}
                                 roomId={String(roomId)}
                                 setSocketFlag={(e) => setSocketFlag(e)}
                   />
@@ -166,12 +161,10 @@ function App() {
               exact
               path="/rooms"
               element={
-                <PrivateRoute isAllowed={!!curUser && !userRoom}>
+                <PrivateRoute isAllowed={!!curUser && !roomId}>
                   <RoomPage
                     curUser={curUser}
                     isAdmin={isAdmin}
-                    userRoom={userRoom}
-                    setUserRoom={(e) => setUserRoom(e)}
                     setRoomId={(e) => setRoomId(e)}
                     socket={socket}
                   />
@@ -185,7 +178,7 @@ function App() {
                 <LoginPage
                   curUser={curUser}
                   isAdmin={isAdmin}
-                  userRoom={userRoom}
+                  roomId={roomId}
                   setIsAdmin={(e) => setIsAdmin(e)}
                   socket={socket}
                 />

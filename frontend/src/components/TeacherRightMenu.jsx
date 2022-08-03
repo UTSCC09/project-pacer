@@ -115,7 +115,7 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
 
       socket.on = true;
       setDisplayStudent(true);
-      socket.emit("fetch code", studentCurSocket, socket.id, socket.userRoom);
+      socket.emit("fetch code", studentCurSocket, socket.id);
     } else if (socket.on) {
       socket.on = false;
       setDisplayStudent(false);

@@ -41,7 +41,7 @@ const drawerWidth = 200;
 let t = 0; //ns
 
 
-function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
+function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
   // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
   const [displayStudent, setDisplayStudent] = useState(() => false);

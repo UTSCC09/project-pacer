@@ -24,7 +24,7 @@ import DataSaverOnIcon from "@mui/icons-material/DataSaverOn";
 import PeopleIcon from '@mui/icons-material/People';
 import { useNavigate } from "react-router-dom";
 
-function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }) {
+function RoomPage({ curUser, isAdmin, setRoomId, socket }) {
   const [roomInfo, setRoomInfo] = React.useState(() => null);
   const [loadRoomsComplete, setLoadRoomsComplete] = React.useState(() => false);
   const [roomName, setRoomName] = React.useState(() => "");
@@ -54,7 +54,6 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
       socket.emit("room update");
       setRoomId(String(id));
       setJoinedRoom(true);
-      setUserRoom(host);
     }
   }
 
@@ -94,7 +93,6 @@ function RoomPage({ curUser, isAdmin, userRoom, setUserRoom, setRoomId, socket }
     else {
       // update room list to all other online users
       socket.emit("room update");
-      setUserRoom(curUser);
       console.log("conCreateNewRoom return item", JSON.stringify(res["res"]));
       setRoomId(JSON.stringify(res["res"]["id"]));
       if (isAdmin) navigate("/teacher", { replace: true });
