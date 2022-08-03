@@ -338,35 +338,35 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
 
     socket.emit("teacher join", roomId);
 
-    socket.on("connection broadcast", (SktId, role, curUser) => {
-      // add newly connected student
-      if (connectedUsers.includes({ curUser, SktId })) {
-        console.log(
-          `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
-        );
-      } else {
-        setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser, SktId }]);
-        console.log(
-          `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
-        );
-      }
-      // init remote window on student's end
-      setDisplayStudent(display => {
-        // emit teacher's code if not on review mode
-        if (!display){
-          setCode(currentCode => {
-            socket.emit("onLecChange", currentCode, roomId);
-            return currentCode;
-          });
-        } else { // emit student's code if on review mode
-          setStuCode(curStuCode => {
-            socket.emit("onLecChange", curStuCode, roomId);
-            return curStuCode;
-          })
-        }
-        return display;
-      });
-    });
+    // socket.on("connection broadcast", (SktId, role, curUser) => {
+    //   // add newly connected student
+    //   if (connectedUsers.includes({ curUser, SktId })) {
+    //     console.log(
+    //       `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
+    //     );
+    //   } else {
+    //     setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser, SktId }]);
+    //     console.log(
+    //       `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
+    //     );
+    //   }
+    //   // init remote window on student's end
+    //   setDisplayStudent(display => {
+    //     // emit teacher's code if not on review mode
+    //     if (!display){
+    //       setCode(currentCode => {
+    //         socket.emit("onLecChange", currentCode, roomId);
+    //         return currentCode;
+    //       });
+    //     } else { // emit student's code if on review mode
+    //       setStuCode(curStuCode => {
+    //         socket.emit("onLecChange", curStuCode, roomId);
+    //         return curStuCode;
+    //       })
+    //     }
+    //     return display;
+    //   });
+    // });
 
 
     socket.on("disconnection broadcast", (SktId, role, curUser) => {
@@ -403,19 +403,74 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
       console.log(`[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`);
     });
 
+    socket.on("connection broadcast", (SktId, role, curUser) => {
+      setConnectedUsers(eixstingUsers => {
+          const idx = eixstingUsers.findIndex(u => 
+            u.curUser === curUser
+          )
+          console.log("from connection broadcast idx ", idx);
+          if(idx >= 0){
+            console.log(
+              `[join broadcast]: user: ${curUser} already joined (socket id: ${SktId})`
+            );
+            return eixstingUsers;
+          } else {
+            console.log(
+              `[join broadcast]: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`
+            );
+            return [...eixstingUsers, { curUser, SktId }];
+          }
+      });
 
+      // init remote window on student's end
+      setDisplayStudent(display => {
+        // emit teacher's code if not on review mode
+        if (!display){
+          setCode(currentCode => {
+            socket.emit("onLecChange", currentCode, roomId);
+            return currentCode;
+          });
+        } else { // emit student's code if on review mode
+          setStuCode(curStuCode => {
+            socket.emit("onLecChange", curStuCode, roomId);
+            return curStuCode;
+          })
+        }
+        return display;
+      });
+    });
+
+
+    // socket.on("student join", (sSktId, username) => {
+    //   console.log(
+    //     "[TeacherPage - student join] joining student socket id: ", sSktId,
+    //     " and student name: ", username
+    //   );
+    //   // add connected student
+    //   if (!connectedUsers.includes({ curUser: username, sSktId }))
+    //     setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser: username, SktId: sSktId }]);
+    //   // init teacher code on student's window
+    //   socket.emit("onLecChange", code, roomId)
+    // });
     socket.on("student join", (sSktId, username) => {
       console.log(
         "[TeacherPage - student join] joining student socket id: ", sSktId,
         " and student name: ", username
       );
-      // add connected student
-      if (!connectedUsers.includes({ curUser: username, sSktId }))
-        setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser: username, SktId: sSktId }]);
-      // init teacher code on student's window
-      socket.emit("onLecChange", code, roomId)
-    });
 
+      setConnectedUsers(eixstingUsers => {
+        socket.emit("onLecChange", code, roomId);
+
+          const idx = eixstingUsers.findIndex(u => 
+            u.curUser === username
+          )
+          console.log("from connection broadcast idx ", idx);
+          if(idx < 0){
+            return [...eixstingUsers, { curUser: username, SktId: sSktId }];
+          }
+      })
+    });
+    
 
     socket.on("fetch init", (code, sid) => {
       // revisit

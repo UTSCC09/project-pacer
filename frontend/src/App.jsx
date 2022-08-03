@@ -100,8 +100,6 @@ function App() {
 
       console.log("once?")
       if(!socket.connected){
-
-        // socket.auth = { curUser }
         
         socket.connect()
         console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
