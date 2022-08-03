@@ -88,8 +88,6 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
 
     useEffect(() => {
         peer.on("stream", stream => {
-            console.log("this is streaming")
-            console.log(`stream is ${stream}`)
             ref.current.srcObject = stream;
         })
     }, []);
@@ -329,8 +327,6 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
   };
 
   useEffect(() => {
-
-    console.log(`from teacherPage: roomId ${roomId}`);
     
     // socket.roomId = roomId;
 
@@ -375,7 +371,6 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
         const userCopy = [...eixstingUsers];
         const idx = userCopy.findIndex((user) => user.SktId === SktId);
         if (idx >= 0) {
-          console.log("clearing");
           userCopy.splice(idx, 1);
         }
         return userCopy
@@ -400,15 +395,10 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
         }
         return init;
       });
-      console.log(`[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`);
     });
 
 
     socket.on("student join", (sSktId, username) => {
-      console.log(
-        "[TeacherPage - student join] joining student socket id: ", sSktId,
-        " and student name: ", username
-      );
       // add connected student
       if (!connectedUsers.includes({ curUser: username, sSktId }))
         setConnectedUsers(eixstingUsers => [...eixstingUsers, { curUser: username, SktId: sSktId }]);
@@ -481,35 +471,26 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
       });
     }
 
-    console.log("load teacher page complete");
     setLoadPageComplete((val) => true);
   }, []);
 
 
   useEffect(() => {
     if (callSystemInited) {
-      console.log("initing call system")
-      console.log(socket.id)
       socket.on("all users", (users) => {
-        console.log(users)
         const peers = [];
         users.forEach((userId) => {
           const peer = createPeer(userId, socket.id, callStream);
-          console.log(peer)
           peersRef.current.push({
             peerID: userId,
             peer,
           });
           peers.push(peer);
         });
-        console.log(peersRef.current)
-        console.log(`peers length is ${peers.length}`)
         setPeers(peers);
       });
 
       socket.on("user joined", (payload) => {
-        console.log("user joined")
-        console.log(`stream is ${callStream}`)
         const peer = addPeer(payload.signal, payload.callerID, callStream);
         peersRef.current.push({
           peerID: payload.callerID,
@@ -520,18 +501,11 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
       });
 
       socket.on("receiving returned signal", (payload) => {
-        console.log("receiving returned signal")
-        console.log(peersRef.current)
-        console.log(payload.id)
         const item = peersRef.current.find((p) => p.peerID === payload.id);
-        console.log(item)
         item.peer.signal(payload.signal);
       });
 
       socket.on("user disconnected audio", (socketId) => {
-        console.log("user disconnected audio")
-        console.log(peersRef.current)
-        console.log(socketId)
         const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
         if (itemIdx >= 0) {
           peersRef.current[itemIdx].peer.removeAllListeners();
@@ -542,7 +516,6 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
             return users.splice(peerIdx, 1)
           }); 
         }
-        console.log(peersRef.current)
       })
     }
   }, [callSystemInited])
@@ -572,7 +545,6 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
 
 
   const run = async () => {
-    console.log(code);
     const { out, err } = await runCode(code, language);
     setOut(out);
     setErr(err);
@@ -596,26 +568,21 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
 
   const setupCall = async () => {
     if (!callInprogress) {
-      console.log("seting up call");
       const localStream = await navigator.mediaDevices.getUserMedia({
         video: false,
         audio: true,
       });
-      console.log("hardware setup complete");
       setCallStream(localStream);
       setCallSystemInited(true);
       if (localAudio.current) {
         localAudio.current.srcObject = localStream;
-        console.log("done setting local stream");
       }
       socket.emit("joined chat", String(roomId));
       setCallInprogress(true);
     } else {
-      console.log("closing call");
       setCallStream(null);
       if (localAudio.current) {
         localAudio.current.srcObject = null;
-        console.log("done resetting local stream");
       }
       setCallInprogress(false);
       peersRef.current = []
@@ -626,7 +593,6 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
 
 
   function createPeer(userTarget, callerID, stream) {
-    console.log(`stream is ${stream}`)
     const peer = new Peer({
       initiator: true,
       trickle: false,
@@ -634,9 +600,6 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
     });
 
     peer.on("signal", (signal) => {
-      console.log(
-        `student call initiated. Calling from ${socket.id} to ${userTarget}`
-      );
       socket.emit("sending signal", { userTarget, callerID, signal });
     });
 
@@ -649,7 +612,6 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
 
 
   function addPeer(incomingSignal, callerID, stream) {
-    console.log(`stream is ${stream}`)
     const peer = new Peer({
       initiator: false,
       trickle: false,

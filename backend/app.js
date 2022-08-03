@@ -554,22 +554,6 @@ function deleteUserFromRoom(username) {
   }
 }
 
-
-
-// `Not Found` request handler
-// app.use((req, res, next) => {
-//   const error = new Error("Not Found");
-//   error.status = 404;
-//   throw error;
-// });
-
-// thrown erros handler
-// app.use((error, req, res, next) => {
-//   res.status(error.status || 500);
-//   res.json({ message: error.message || 'Internal Server Error' });
-// });
-
-
 io.on('connection', async (socket) => {
 
   console.log("[Server] a user connected, socket id is :" + socket.id);
@@ -635,9 +619,7 @@ io.on('connection', async (socket) => {
     socket.pr = studentId;
   });
 
-
-  // todo-kw: delete unused arg
-  socket.on("onChange", (value, id, roomId) => {
+  socket.on("onChange", (value, id) => {
     socket.to(id).emit("onChange", value, socket.id);
   });
 
@@ -645,12 +627,6 @@ io.on('connection', async (socket) => {
   socket.on('onLecChange', (value, roomId) => {
     socket.to(roomId).emit("onLecChange", value, socket.id);
   });
-
-
-  // socket.on("stop request", sid => {
-  //   socket.to(sid).emit("stop request");
-  // });
-
 
   socket.on("joined chat", (roomId) => {
     const roomIdx = rooms.findIndex(room => String(room.id) === roomId)
