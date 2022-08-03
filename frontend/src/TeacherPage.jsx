@@ -546,22 +546,25 @@ function TeacherPage({ socket, curUser, userRoom, roomId, setSocketFlag}) {
       console.log("initing call system")
       console.log(socket.id)
 
-      socket.on("all users", (users) => {
-        console.log(users)
-        const peers = [];
-        users.forEach((userId) => {
-          const peer = createPeer(userId, socket.id, callStream);
-          console.log(peer)
-          peersRef.current.push({
-            peerID: userId,
-            peer,
+      if(socket){
+        socket.on("all users", (users) => {
+          console.log(users)
+          const peers = [];
+          users.forEach((userId) => {
+            const peer = createPeer(userId, socket.id, callStream);
+            console.log(peer)
+            peersRef.current.push({
+              peerID: userId,
+              peer,
+            });
+            peers.push(peer);
           });
-          peers.push(peer);
+          console.log(peersRef.current)
+          console.log(`peers length is ${peers.length}`)
+          setPeers(peers);
         });
-        console.log(peersRef.current)
-        console.log(`peers length is ${peers.length}`)
-        setPeers(peers);
-      });
+      }
+
 
       socket.on("user joined", (payload) => {
         console.log("user joined")
