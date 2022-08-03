@@ -50,7 +50,7 @@ const DEFAULT_EXPIRATION = 7200;
 
 const sessionMiddleware = session({
   secret: process.env.SECRET,
-  saveUninitialized: true,
+  saveUninitialized: false,
   resave: false,
   name: "pacer-session",
   cookie: {
@@ -273,7 +273,7 @@ app.post(
     const user = users.find((x) => x.username === username);
     if (!user) return res.status(401).json("invalid credentials");
     if (user && user.role !== role)
-      return res.status(401).json("Incorrect role selected");
+      return res.status(403).json("Incorrect role selected");
     bcrypt.compare(password, user.password, function (err, result) {
       if (err) return res.status(500).json(err);
       if (!result) {
