@@ -50,14 +50,12 @@ const DEFAULT_EXPIRATION = 7200;
 
 const sessionMiddleware = session({
   secret: process.env.SECRET,
-  saveUninitialized: false,
-  resave: true,
+  saveUninitialized: true,
+  resave: false,
   name: "pacer-session",
   cookie: {
     maxAge: 1000 * 60 * 60 * 2, // Two Hours
     sameSite: true,
-    httpOnly: true,
-    secure: true,
   },
   // store: new RedisStore({ client: redisClient }),
   // store: new sessionStore({
