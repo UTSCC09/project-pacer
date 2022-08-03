@@ -42,6 +42,7 @@ const Audio = ({peer}) => {
     );
 }
 
+
 function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
   // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
@@ -66,6 +67,7 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
   const [callSystemInited, setCallSystemInited] = useState(() => false);
   const [callInprogress, setCallInprogress] = useState(() => false);
   const [peers, setPeers] = useState(() => []);
+  const [codeSaved, setCodeSaved] = useState(() => false);
 
   const localAudio = useRef();
   const peersRef = useRef([]);
@@ -85,30 +87,29 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
 
   // for cloud sync (via fb) [experimental - TODO]:
   // todo-kw: uncomment this
-  // useEffect(() => {
-  //   setTimeout(() => {
-  //     if (t == 1) {
-  //       t = 0;
-  //       const f = new File([code], codeFilename);
-  //       uploadFile(f);
-  //     } else {
-  //       t++;
-  //     }
-  //   }, 1000);
-  // });
+  useEffect(() => {
+    if (!codeSaved) {
+      const f = new File([code], codeFilename);
+      uploadFile(f);
+      setCodeSaved(true)
+      setTimeout(() => {
+        setCodeSaved(false)
+      }, 2000);
+    }
+  }, [code]);
 
   // for file downloading (via fb):
-  const loadCode = () => {
-    downloadFile(codePath).then((res) => {
-      setCode(res.code);
-    });
-  }
+  // const loadCode = () => {
+  //   downloadFile(codePath).then((res) => {
+  //     setCode(res.code);
+  //   });
+  // }
 
   // for file uploading (via fb):
-  const saveCode = () => {
-    const f = new File([code], codeFilename);
-    uploadFile(f);
-  }
+  // const saveCode = () => {
+  //   const f = new File([code], codeFilename);
+  //   uploadFile(f);
+  // }
 
   // for file maintenance (via fb):
   const getOldestOfTwoInUsersFileDir = () => {
@@ -315,8 +316,6 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
   };
 
   useEffect(() => {
-
-    console.log(`from teacherPage: roomId ${roomId}`);
     
     // socket.roomId = roomId;
 
@@ -385,7 +384,6 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
         }
         return init;
       });
-      console.log(`[disconnection broadcast]: ${role} - ${curUser} (socket id: ${SktId})`);
     });
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
@@ -584,14 +582,12 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
       });
     }
 
-    console.log("load teacher page complete");
     setLoadPageComplete((val) => true);
   }, []);
 
 
   useEffect(() => {
     if (callSystemInited) {
-      
     }
   }, [callSystemInited])
 
@@ -619,9 +615,8 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
   };
 
 
-  const run = () => {
-    console.log(code);
-    const { out, err } = runCode(code, language);
+  const run = async () => {
+    const { out, err } = await runCode(code, language);
     setOut(out);
     setErr(err);
     socket.emit("teacher: execution", out, err, roomId);
@@ -634,9 +629,9 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
   };
 
 
-  const runStuCode = () => {
+  const runStuCode = async () => {
     console.log(stuCode);
-    const { out, err } = runCode(stuCode, language);
+    const { out, err } = await runCode(stuCode, language);
     setStuOut(out);
     setStuErr(err);
   };
@@ -645,7 +640,6 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
   const setupCall = async () => {
     console.log("there")
     if (!callInprogress) {
-      console.log("seting up call");
       const localStream = await navigator.mediaDevices.getUserMedia({
         video: false,
         audio: true,
@@ -656,17 +650,14 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
       setCallSystemInited(true);
       if (localAudio.current) {
         localAudio.current.srcObject = localStream;
-        console.log("done setting local stream");
       }
       socket.emit("joined chat", String(roomId));
       setCallInprogress(true);
     } else {
-      console.log("closing call");
       setCallStream(null);
       audioTrack.current = null
       if (localAudio.current) {
         localAudio.current.srcObject = null;
-        console.log("done resetting local stream");
       }
       setCallInprogress(false);
       peersRef.current = []
@@ -677,7 +668,6 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
 
 
   function createPeer(userTarget, callerID, stream) {
-    console.log(`stream is ${stream}`)
     const peer = new Peer({
       initiator: true,
       trickle: false,
@@ -685,9 +675,6 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
     });
 
     peer.on("signal", (signal) => {
-      console.log(
-        `student call initiated. Calling from ${socket.id} to ${userTarget}`
-      );
       socket.emit("sending signal", { userTarget, callerID, signal });
     });
 
@@ -700,7 +687,6 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
 
 
   function addPeer(incomingSignal, callerID, stream) {
-    console.log(`stream is ${stream}`)
     const peer = new Peer({
       initiator: false,
       trickle: false,
@@ -827,7 +813,7 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag}) {
                     Run
                   </Button>
                   }
-                  <Storage saveCode={saveCode} loadCode={loadCode} uploadFileFormHandler={uploadFileFormHandler}></Storage>
+                  <Storage uploadFileFormHandler={uploadFileFormHandler}></Storage>
                 </Stack>
               </Grid>
               <Grid item xs={12}>

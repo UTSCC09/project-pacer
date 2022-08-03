@@ -23,7 +23,6 @@ import RoomPage from "./RoomPage";
 function App() {
   const [curUser, setCurUser] = useState(() => "");
   const [roomId, setRoomId] = useState(() => "");
-  const [userRoom, setUserRoom] = useState(() => null);
   const [isAdmin, setIsAdmin] = useState(() => "");
   const [loadingComplete, setLoadingComplete] = useState(() => false);
   const [socketFlag, setSocketFlag] = useState(() => false);
@@ -39,7 +38,6 @@ function App() {
     async function fetchUserInfo() {
       await authenticationService.currentUser.subscribe((x) => {
         setCurUser(x ? x.username : null);
-        setUserRoom(x ? x.roomHost : null);
         setRoomId(x ? x.roomHost : "");
         setIsAdmin(x && x.role === Role.Admin);
         setLoadingComplete(true);
@@ -52,72 +50,64 @@ function App() {
     return (
       <BrowserRouter history={history}>
         <SnackbarProvider maxSnack={3}>
-          <CssBaseline>
-            <Routes>
-              <Route
-                path="/student"
-                element={
-                  <PrivateRoute isAllowed={!!curUser && !isAdmin && !!userRoom}>
-                    <StudentPage
-                      socket={socket}
-                      curUser={curUser}
-                      userRoom={userRoom}
-                      roomId={String(roomId)}
-                      setSocketFlag={(e) => setSocketFlag(e)}
-                    />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/teacher"
-                element={
-                  <PrivateRoute isAllowed={!!curUser && isAdmin && !!userRoom}>
-                    <TeacherPage
-                      socket={socket}
-                      curUser={curUser}
-                      userRoom={userRoom}
-                      roomId={String(roomId)}
-                      setSocketFlag={(e) => setSocketFlag(e)}
-                    />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                exact
-                path="/rooms"
-                element={
-                  <PrivateRoute isAllowed={!!curUser && !userRoom}>
-                    <RoomPage
+        <CssBaseline>
+          <Routes>
+            <Route
+              path="/student"
+              element={
+                <PrivateRoute isAllowed={!!curUser && !isAdmin && !!String(roomId)}>
+                  <StudentPage socket={socket}
+                               curUser={curUser}
+                               roomId={String(roomId)}
+                               setSocketFlag={(e) => setSocketFlag(e)}
+                  />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/teacher"
+              element={
+                <PrivateRoute isAllowed={!!curUser && isAdmin && !!String(roomId)}>
+                  {/* <TeacherPage fileUploadHandler={uploadFileFormHandler}/> */}
+                  <TeacherPage  socket={socket}
+                                curUser={curUser}
+                                roomId={String(roomId)}
+                                setSocketFlag={(e) => setSocketFlag(e)}
+                  />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              exact
+              path="/rooms"
+              element={
+                <PrivateRoute isAllowed={!!curUser && !roomId}>
+                   <RoomPage
                       curUser={curUser}
                       isAdmin={isAdmin}
-                      userRoom={userRoom}
-                      setUserRoom={(e) => setUserRoom(e)}
                       setRoomId={(e) => setRoomId(e)}
                       socket={socket}
                       setSocketFlag={(e) => setSocketFlag(e)}
                     />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                exact
-                path="/login"
-                element={
-                  <LoginPage
-                    curUser={curUser}
-                    isAdmin={isAdmin}
-                    userRoom={userRoom}
-                    setIsAdmin={(e) => setIsAdmin(e)}
-                    socket={socket}
-                  />
-                }
-              />
-              <Route path="*" element={<Navigate to="/login" />} />
-            </Routes>
-            <textarea className="hidden" id="python-decoder"></textarea>
-            <div className="hidden" id="python-out"></div>
-            <div className="hidden" id="python-err"></div>
-          </CssBaseline>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              exact
+              path="/login"
+              element={
+                <LoginPage
+                  curUser={curUser}
+                  isAdmin={isAdmin}
+                  roomId={roomId}
+                  setIsAdmin={(e) => setIsAdmin(e)}
+                  socket={socket}
+                />
+              }
+            />
+            <Route path="*" element={<Navigate to="/login" />} />
+          </Routes>
+        </CssBaseline>
         </SnackbarProvider>
       </BrowserRouter>
     );

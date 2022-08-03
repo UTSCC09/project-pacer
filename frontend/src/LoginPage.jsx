@@ -19,7 +19,7 @@ import { Input, InputLabel } from '@mui/material';
 
 let adminIdentified = false;
 
-function LoginPage({curUser, isAdmin, userRoom, setIsAdmin, socket}) {
+function LoginPage({curUser, isAdmin, roomId, setIsAdmin, socket}) {
   const [username, setUsername] = useState(() => '');
   const [password, setPassword] = useState(() => '');
   // todo: pass socket id as a student attribute
@@ -41,7 +41,7 @@ function LoginPage({curUser, isAdmin, userRoom, setIsAdmin, socket}) {
     adminIdentified = false
     if (curUser) {
       console.log("already logged in")
-      if (userRoom) {
+      if (roomId) {
         if (isAdmin) 
         navigate("/teacher", { replace: true });
         else navigate('/student', { replace: true });

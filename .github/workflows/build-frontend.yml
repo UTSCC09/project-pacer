@@ -3,8 +3,6 @@ name: Publish React Skeleton to GHCR
 on:
   push:
     # Only run this workflow if it is a commit to master.
-    branches:
-      - **
     # Only run this workflow if the commit has modified files from frontend
     paths:
       - frontend/**

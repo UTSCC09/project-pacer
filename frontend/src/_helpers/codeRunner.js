@@ -1,10 +1,6 @@
-var stringToHTML = function (str) {
-  var parser = new DOMParser();
-  var doc = parser.parseFromString(str, "text/html");
-  return doc.body;
-};
 
-function runCode(code, language) {
+
+async function runCode(code, language) {
   let out = null
   let err = null
   if (language === "javascript") {
@@ -18,6 +14,12 @@ function runCode(code, language) {
       err = String(error)
     }
   } else if (language === "python") {
+    // let pyodide = await loadPyodide();
+    // try {
+    //   out = pyodide.runPython(code)
+    // } catch (error) {
+    //   err = error
+    // }
     const pythonDecoder = document.getElementById("python-decoder");
     pythonDecoder.value = `${code}`;
     pythonDecoder.dispatchEvent(new Event("input"));
@@ -26,6 +28,7 @@ function runCode(code, language) {
     out = pythonOut.innerHTML;
     const pythonErr = document.getElementById("python-err");
     console.log("err: " + pythonErr.innerHTML);
+    console.log(pythonErr.innerHTML)
     err = pythonErr.innerHTML
   } else {
   }

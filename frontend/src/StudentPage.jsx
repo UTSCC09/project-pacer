@@ -51,8 +51,7 @@ const Audio = ({peer}) => {
   );
 }
 
-function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
-  console.log(socket.id)
+function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
   // code mirror config
   const [language, setLanguage] = useState(() => "javascript");
   // code display and transmission
@@ -70,11 +69,10 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   const [codeFilename, setCodeFilename] = useState("");
   // audio call
   const [callStream, setCallStream] = useState(() => null);
-  const [caller, setCaller] = useState(() => "");
-  const [callerSignal, setCallerSignal] = useState(() => null);
   const [callSystemInited, setCallSystemInited] = useState(() => false);
   const [callInprogress, setCallInprogress] = useState(() => false);
   const [peers, setPeers] = useState(() => []);
+  const [codeSaved, setCodeSaved] = useState(() => false);
 
 
   const localAudio = useRef();
@@ -95,32 +93,32 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
 
   // for cloud sync (via fb) [experimental - TODO]:
   // todo-kw: uncomment this
-  // useEffect(() => {
-  //   setTimeout(() => {
-  //     if (t == 1) {
-  //       t = 0;
-  //       const f = new File([code], codeFilename);
-  //       uploadFile(f);
-  //     } else {
-  //       t++;
-  //     }
-  //   }, 1000);
-  // });
+  useEffect(() => {
+    if (!codeSaved) {
+      const f = new File([code], codeFilename);
+      uploadFile(f);
+      setCodeSaved(true)
+      setTimeout(() => {
+        setCodeSaved(false)
+      }, 2000);
+    }
+  }, [code]);
+
 
   // for file downloading (via fb):
-  const loadCode = () => {
-    downloadFile(codePath).then((res) => {
-      // new
-      if (flag) socket.emit("onChange", res.code, socket.tid, roomId);
-      setCode(res.code);
-    });
-  }
+  // const loadCode = () => {
+  //   downloadFile(codePath).then((res) => {
+  //     // new
+  //     if (flag) socket.emit("onChange", res.code, socket.tid, roomId);
+  //     setCode(res.code);
+  //   });
+  // }
 
   // for file uploading (via fb):
-  const saveCode = () => {
-    const f = new File([code], codeFilename);
-    uploadFile(f);
-  }
+  // const saveCode = () => {
+  //   const f = new File([code], codeFilename);
+  //   uploadFile(f);
+  // }
 
   // for file maintenance (via fb):
   const getOldestOfTwoInUsersFileDir = () => {
@@ -261,8 +259,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
           rej();
         },
         () => {
-          // when the file is uploaded successfully:
-          //getDownloadURL(uploadFileTaskStatus.snapshot.ref).then((url) => console.log(url));
           res({ file: f, codePath: cp });
         }
       );
@@ -324,18 +320,14 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
 
   useEffect(() => {
 
-    console.log(`from student: roomId ${roomId}`);
-
     socket.emit("set attributes", "student", curUser, roomId);
 
     socket.on("connection broadcast", (SktId, role, curUser) => {
-      console.log(`connection broadcast: new user: ${curUser} (socket id: ${SktId}) joined as ${role}`);
     });
 
     socket.on("disconnection broadcast", (SktId, role, curUser, curSid) => {
       if (role === 'teacher') socket.tid = "";
       const itemIdx = peersRef.current.findIndex((p) => p.peerID === SktId);
-      console.log(itemIdx)
         if (itemIdx >= 0) {
           console.log(itemIdx)
           setPeers((users) => {
@@ -349,7 +341,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
           peersRef.current[itemIdx].peer.destroy();
           peersRef.current.splice(itemIdx, 1)
         } 
-      console.log(peersRef.current)
       console.log(`disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`);
     });
 
@@ -379,7 +370,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
     });
 
     socket.on("teacher: execution", (out, err) => {
-      console.log(`Teacher's execution: results ${out}; error: ${err}`);
       setTeaOut(out);
       setTeaErr(err);
     });
@@ -476,7 +466,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       });
     }
 
-    console.log("load student page complete");
   }, []);
 
 
@@ -488,7 +477,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
 
   useEffect(() => {
     if (callSystemInited) {
-    
     }
   }, [callSystemInited])
 
@@ -501,8 +489,8 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   };
 
 
-  const run = () => {
-    const { out, err } = runCode(code, language);
+  const run = async () => {
+    const { out, err } = await runCode(code, language);
     setOut(out);
     setErr(err);
   };
@@ -516,7 +504,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
   const setupCall = async () => {
     console.log("there")
     if (!callInprogress) {
-      console.log("seting up call");
       const localStream = await navigator.mediaDevices.getUserMedia({
         video: false,
         audio: true,
@@ -527,17 +514,14 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
       setCallSystemInited(true);
       if (localAudio.current) {
         localAudio.current.srcObject = localStream;
-        console.log("done setting local stream");
       }
       socket.emit("joined chat", String(roomId));
       setCallInprogress(true);
     } else {
-      console.log("closing call");
       setCallStream(null);
       audioTrack.current = null
       if (localAudio.current) {
         localAudio.current.srcObject = null;
-        console.log("done resetting local stream");
       }
       setCallInprogress(false);
       peersRef.current = []
@@ -618,8 +602,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
               <Grid item xs={12}>
                 <p>Teacher Screen:</p>
               </Grid>
-              {/* server display */}
-              {/* <CodeMirror value="" height="600px" theme="dark" hint="true" /> */}
               <Grid item xs={12}>
                 <CodeMirror
                   value={lecCode}
@@ -655,7 +637,6 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
                 <p>Student Screen:</p>
               </Grid>
               <Grid item xs={12}>
-                {/* client display */}
                 <CodeMirror
                   value={code}
                   height="600px"
@@ -678,7 +659,7 @@ function StudentPage({ socket, curUser, userRoom, roomId, setSocketFlag }) {
                     Run
                   </Button>
                   }
-                  <Storage saveCode={saveCode} loadCode={loadCode} uploadFileFormHandler={uploadFileFormHandler}></Storage>
+                  <Storage uploadFileFormHandler={uploadFileFormHandler}></Storage>
                 </Stack>
               </Grid>
               <Grid item xs={12}>

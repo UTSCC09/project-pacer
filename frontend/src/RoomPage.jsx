@@ -27,7 +27,6 @@ import { useNavigate } from "react-router-dom";
 function RoomPage({
   curUser,
   isAdmin,
-  setUserRoom,
   setRoomId,
   socket,
   setSocketFlag,
@@ -58,15 +57,15 @@ function RoomPage({
       socket.emit("room update");
       setRoomId(String(id));
       setJoinedRoom(true);
-      setUserRoom(host);
     }
   }
+  
   async function fetchRoomInfo() {
     const rooms = await getAllRooms();
     if (rooms.err) setShowAlert(rooms.err);
     else
       setRoomInfo((init) => {
-        return rooms.res;
+        return rooms.res.data;
       });
     setLoadRoomsComplete(true);
   }
@@ -97,7 +96,6 @@ function RoomPage({
     else {
       // update room list to all other online users
       socket.emit("room update");
-      setUserRoom(curUser);
       setRoomId(JSON.stringify(res["res"]["id"]));
       if (isAdmin) navigate("/teacher", { replace: true });
       else navigate("/student", { replace: true });

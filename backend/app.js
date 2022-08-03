@@ -43,7 +43,7 @@ dotenv.config();
 const app = express();
 
 const http = require("http");
-const PORT = 8080;
+const PORT = 3000;
 const version = "1.0.0";
 
 const DEFAULT_EXPIRATION = 7200;
@@ -71,7 +71,7 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "https://pacer.codes",
     credentials: true,
   },
 });
@@ -80,7 +80,7 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.json());
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "https://pacer.codes",
     credentials: true,
   })
 );
@@ -89,8 +89,6 @@ const isAuthenticated = function (req, res, next) {
   if (!req.session.username) return res.status(401).json("access denied");
   next();
 };
-
-app.get("/api", (req, res) => res.send({ version }));
 
 const Role = {
   Admin: "Admin",
@@ -273,7 +271,7 @@ app.post(
     const user = users.find((x) => x.username === username);
     if (!user) return res.status(401).json("invalid credentials");
     if (user && user.role !== role)
-      return res.status(401).json("Incorrect role selected");
+      return res.status(403).json("Incorrect role selected");
     bcrypt.compare(password, user.password, function (err, result) {
       if (err) return res.status(500).json(err);
       if (!result) {
@@ -451,7 +449,6 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
       id: user.id,
       username: user.username,
       role: user.role,
-      roomHost: user.roomHost,
       socketId,
     };
     room.users.push(userInfo)
@@ -465,7 +462,10 @@ app.post("/api/rooms/", isAuthenticated, function (req, res) {
 app.get("/api/rooms/", isAuthenticated, function (req, res) {
   //TODO: adapt GET for pagination and firebase
   console.log(`from get rooms ${JSON.stringify(rooms)}`);
-  return res.json(rooms);
+  return res.json({
+    data: rooms,
+    size: rooms.length
+  });
 });
 
 app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
@@ -504,7 +504,6 @@ app.patch("/api/rooms/:host/", isAuthenticated, function (req, res) {
       id: user.id,
       username: user.username,
       role: user.role,
-      roomHost: rooms[room_idx].host,
       socketId,
     };
     rooms[room_idx].users.push(userInfo);
@@ -541,29 +540,6 @@ function deleteUserFromRoom(username) {
     }
   }
 }
-
-
-
-// `Not Found` request handler
-// app.use((req, res, next) => {
-//   const error = new Error("Not Found");
-//   error.status = 404;
-//   throw error;
-// });
-
-// thrown erros handler
-// app.use((error, req, res, next) => {
-//   res.status(error.status || 500);
-//   res.json({ message: error.message || 'Internal Server Error' });
-// });
-// io.use((socket, next) => {
-//   const username = socket.handshake.auth.curUser;
-//   if (!username) {
-//     return next(new Error("invalid username"));
-//   }
-//   socket.username = username;
-//   next();
-// });
 
 // convert a connect middleware to a Socket.IO middleware
 const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
@@ -632,7 +608,7 @@ io.on('connection', async (socket) => {
   });
 
 
-  socket.on('fetch code', async (studentId, adminId, roomId) => {
+  socket.on('fetch code', async (studentId, adminId) => {
     // fetch all sockets
     const sockets = await io.fetchSockets()
       .catch((err) => { console.error(err); });
@@ -649,9 +625,7 @@ io.on('connection', async (socket) => {
     socket.pr = studentId;
   });
 
-
-  // todo-kw: delete unused arg
-  socket.on("onChange", (value, id, roomId) => {
+  socket.on("onChange", (value, id) => {
     socket.to(id).emit("onChange", value, socket.id);
   });
 
@@ -659,12 +633,6 @@ io.on('connection', async (socket) => {
   socket.on('onLecChange', (value, roomId) => {
     socket.to(roomId).emit("onLecChange", value, socket.id);
   });
-
-
-  // socket.on("stop request", sid => {
-  //   socket.to(sid).emit("stop request");
-  // });
-
 
   socket.on("joined chat", (roomId) => {
     const roomIdx = rooms.findIndex(room => String(room.id) === roomId)
