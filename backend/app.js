@@ -609,11 +609,22 @@ function deleteUserFromRoom(username) {
 //   res.status(error.status || 500);
 //   res.json({ message: error.message || 'Internal Server Error' });
 // });
+// io.use((socket, next) => {
+//   const username = socket.handshake.auth.curUser;
+//   if (!username) {
+//     return next(new Error("invalid username"));
+//   }
+//   socket.username = username;
+//   next();
+// });
+
 
 
 io.on('connection', async (socket) => {
 
   console.log("[Server] a user connected, socket id is :" + socket.id);
+  
+  // console.log("server current handshake user:", socket.handshake.auth.curUser);
 
   socket.on("set attributes", (role, curUser, roomId) => {
     socket.role = role;

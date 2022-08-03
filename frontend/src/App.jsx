@@ -97,8 +97,12 @@ function App() {
   // console.log("[form App]socket.id: " ,socket.connected, socket.id);
   useEffect(() => {
     if (!socketFlag) {
+
       console.log("once?")
       if(!socket.connected){
+
+        // socket.auth = { curUser }
+        
         socket.connect()
         console.log(`APP - current socket id: ${socket.id}, ${socket.connected}`)
       } else {
@@ -109,7 +113,6 @@ function App() {
   }, [socketFlag])
 
   useEffect(() => {
-    
 
     async function fetchUserInfo() {
       const user = await getCurrentUser()
