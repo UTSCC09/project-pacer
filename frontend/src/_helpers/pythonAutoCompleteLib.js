@@ -10,7 +10,6 @@ import {
 } from "./autocompleteKeywords/javaKeys";
 
 function buildAutoCompleteLib(keywords, builtins) {
-  console.log("building");
   const keys = keywords.concat(builtins);
   const lib = [];
   keys.forEach((key) => {

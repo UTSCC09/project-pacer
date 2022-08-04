@@ -373,7 +373,6 @@ function TeacherPage({ socket, curUser, roomId, setSocketFlag }) {
         socket.emit("onLecChange", code, roomId);
         const idx = eixstingUsers.findIndex((u) => u.curUser === username);
         if (idx < 0) {
-          console.log(username);
           return [...eixstingUsers, { curUser: username, SktId: sSktId }];
         }
         return eixstingUsers;

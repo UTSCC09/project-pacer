@@ -6,12 +6,9 @@ export const getCurrentUser = async () => {
       credentials: "include",
     });
     const data = await response.json();
-    console.log(data);
     currentUserSubject.next(data);
     return data;
-  } catch (error) {
-    console.log(error);
-  }
+  } catch (error) {}
 };
 
 const currentUserSubject = new BehaviorSubject();
@@ -55,7 +52,6 @@ function signin(username, password, role, callback) {
     { username, password, role },
     function (err, res) {
       if (err) return callback(err, null);
-      console.log(res);
       currentUserSubject.next(res);
       return callback(null, res);
     }
@@ -78,8 +74,6 @@ function signup(username, password, role, callback) {
 function logout() {
   // remove user from local storage to log user out
   send("POST", "https://api.pacer.codes/api/signout", {}, function (err) {
-    if (err) return console.log(err);
-    console.log("logging out");
     currentUserSubject.next(null);
   });
 }
