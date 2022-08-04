@@ -1,4 +1,4 @@
-#demo-simple-select-label{
+#demo-simple-select-label {
   margin-top: 10px;
 }
 
@@ -8,6 +8,15 @@
   margin-right: 20px;
 }
 
-.hidden{
-  display: none
+.hidden {
+  display: none;
+}
+
+.placeholder {
+  color: #1976d2;
+  font-family: "Helvetica Neue", sans-serif;
+  padding: 50px 0 50px;
+  font-size: 70px;
+  font-weight: lighter;
+  text-align: center;
 }

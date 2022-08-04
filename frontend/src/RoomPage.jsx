@@ -227,7 +227,7 @@ function RoomPage({
       </Box>
     );
   } else {
-    return <p>fetching room data</p>;
+    return <p className="placeholder">Setting up</p>;
   }
 }
 
