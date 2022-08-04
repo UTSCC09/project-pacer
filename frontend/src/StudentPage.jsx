@@ -1,11 +1,7 @@
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import Peer from "simple-peer";
 import CodeMirror from "@uiw/react-codemirror";
-import InputLabel from "@mui/material/InputLabel";
-import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
 import Stack from "@mui/material/Stack";
-import Select, { SelectChangeEvent } from "@mui/material/Select";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
@@ -15,41 +11,41 @@ import StudentRightMenu from "./components/StudentRightMenu";
 import Storage from "./components/Storage";
 // for file up/downloading (via fb):
 import { storage } from "./_components/FireBase";
-import { ref, uploadBytesResumable, getDownloadURL, listAll, deleteObject, getMetadata } from "@firebase/storage";
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  listAll,
+  deleteObject,
+  getMetadata,
+} from "@firebase/storage";
 import { upperPythonKeys, lowerPythonKeys, javaKeys } from "./_helpers";
 
-import { EditorState, Compartment } from "@codemirror/state";
 import { python, pythonLanguage } from "@codemirror/lang-python";
 import { CompletionContext } from "@codemirror/autocomplete";
-import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
+import { javascript } from "@codemirror/lang-javascript";
 import { java, javaLanguage } from "@codemirror/lang-java";
 import { authenticationService } from "./_services";
 import runCode from "./_helpers/codeRunner";
 
 import React from "react";
-// import { socket } from "./_services";
 import CodeExecutionResWidgit from "./components/CodeExecutionResWidgit";
 import "./CodePage.css";
 
 const drawerWidth = 160;
-// for cloud sync (via fb) [experimental - TODO]:
-let t = 0; // ns
+let t = 0;
 
-const Audio = ({peer}) => {
+const Audio = ({ peer }) => {
   const ref = useRef();
 
   useEffect(() => {
-      console.log("hi lksdfhlewafjlknsd kjsdfsfeds")
-      peer.on("stream", stream => {
-          console.log("this is streaming")
-          ref.current.srcObject = stream;
-      })
+    peer.on("stream", (stream) => {
+      ref.current.srcObject = stream;
+    });
   }, []);
 
-  return (
-      <audio playsInline autoPlay ref={ref} />
-  );
-}
+  return <audio playsInline autoPlay ref={ref} />;
+};
 
 function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
   // code mirror config
@@ -57,7 +53,9 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
   // code display and transmission
   // like a cache: keeping this since downloading & uploading the file on each update is very inefficient
   const [code, setCode] = useState(() => "");
-  const [lecCode, setLecCode] = useState(() => "console.log('hello students!');");
+  const [lecCode, setLecCode] = useState(
+    () => "console.log('hello students!');"
+  );
   const [flag, setFlag] = useState(() => false);
   // execution
   const [out, setOut] = useState(() => null);
@@ -65,8 +63,8 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
   const [teaOut, setTeaOut] = useState(() => null);
   const [teaErr, setTeaErr] = useState(() => null);
   // save and load
-  const [codePath, setCodePath] = useState(""); // set init val to ""
-  const [codeFilename, setCodeFilename] = useState("");
+  const [codePath, setCodePath] = useState(() => "");
+  const [codeFilename, setCodeFilename] = useState(() => "");
   // audio call
   const [callStream, setCallStream] = useState(() => null);
   const [callSystemInited, setCallSystemInited] = useState(() => false);
@@ -74,11 +72,9 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
   const [peers, setPeers] = useState(() => []);
   const [codeSaved, setCodeSaved] = useState(() => false);
 
-
   const localAudio = useRef();
   const peersRef = useRef([]);
   const audioTrack = useRef();
-
 
   let extensions = [javascript({ jsx: true })];
   if (language === "javascript") {
@@ -91,110 +87,96 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
     extensions[1] = globalJavaScriptCompletions;
   }
 
-  // for cloud sync (via fb) [experimental - TODO]:
-  // todo-kw: uncomment this
   useEffect(() => {
     if (!codeSaved) {
       const f = new File([code], codeFilename);
       uploadFile(f);
-      setCodeSaved(true)
+      setCodeSaved(true);
       setTimeout(() => {
-        setCodeSaved(false)
+        setCodeSaved(false);
       }, 2000);
     }
   }, [code]);
-
-
-  // for file downloading (via fb):
-  // const loadCode = () => {
-  //   downloadFile(codePath).then((res) => {
-  //     // new
-  //     if (flag) socket.emit("onChange", res.code, socket.tid, roomId);
-  //     setCode(res.code);
-  //   });
-  // }
-
-  // for file uploading (via fb):
-  // const saveCode = () => {
-  //   const f = new File([code], codeFilename);
-  //   uploadFile(f);
-  // }
 
   // for file maintenance (via fb):
   const getOldestOfTwoInUsersFileDir = () => {
     return new Promise(function (res, rej) {
       const cp = `/files/users/${authenticationService.currentUser.source._value.username}`;
       const fileStorageRef = ref(storage, cp);
-      listAll(fileStorageRef).then(function(files) {
-        const userFiles = [];
-        files.items.forEach(function(fileRef) {
-          userFiles.push(fileRef);
-        });
-        if (userFiles.length == 2) {
-          const cp2 = `/files/users/${authenticationService.currentUser.source._value.username}/${userFiles[0].name}`;
-          const fileStorageRef2 = ref(storage, cp2);
-          getMetadata(fileStorageRef2).then((metadata1) => {
-            const cp3 = `/files/users/${authenticationService.currentUser.source._value.username}/${userFiles[1].name}`;
-            const fileStorageRef3 = ref(storage, cp3);
-            getMetadata(fileStorageRef3).then((metadata2) => {
-              const d0 = new Date(metadata1.timeCreated);
-              const d1 = new Date(metadata2.timeCreated);
-              if (d0 <= d1) {
-                res({ fileName: userFiles[0].name });
-              } else {
-                res({ fileName: userFiles[1].name });
-              }
-            }).catch((err2) => {
-              console.log(err2);
-              rej();
-            });
-          }).catch((err1) => {
-            console.log(err1);
-            rej();
+      listAll(fileStorageRef)
+        .then(function (files) {
+          const userFiles = [];
+          files.items.forEach(function (fileRef) {
+            userFiles.push(fileRef);
           });
-        } else {
-          console.log("Seek adminastrive assistance."); // user has unexpected files in their folder
+          if (userFiles.length == 2) {
+            const cp2 = `/files/users/${authenticationService.currentUser.source._value.username}/${userFiles[0].name}`;
+            const fileStorageRef2 = ref(storage, cp2);
+            getMetadata(fileStorageRef2)
+              .then((metadata1) => {
+                const cp3 = `/files/users/${authenticationService.currentUser.source._value.username}/${userFiles[1].name}`;
+                const fileStorageRef3 = ref(storage, cp3);
+                getMetadata(fileStorageRef3)
+                  .then((metadata2) => {
+                    const d0 = new Date(metadata1.timeCreated);
+                    const d1 = new Date(metadata2.timeCreated);
+                    if (d0 <= d1) {
+                      res({ fileName: userFiles[0].name });
+                    } else {
+                      res({ fileName: userFiles[1].name });
+                    }
+                  })
+                  .catch(() => {
+                    rej();
+                  });
+              })
+              .catch(() => {
+                rej();
+              });
+          } else {
+            rej();
+          }
+        })
+        .catch(function () {
           rej();
-        }
-      }).catch(function(err) {
-        console.log(err);
-        rej();
-      });
+        });
     });
   };
-  
+
   // for file maintenance (via fb) (deletes the oldest of the 2 files in a user's dir):
   const refreshUsersFileDir = () => {
     return new Promise(function (res, rej) {
       const cp = `/files/users/${authenticationService.currentUser.source._value.username}`;
       const fileStorageRef = ref(storage, cp);
-      listAll(fileStorageRef).then(function(files) {
-        const userFiles = [];
-        files.items.forEach(function(fileRef) {
-          userFiles.push(fileRef);
-        });
-        if (userFiles.length == 2) {
-          getOldestOfTwoInUsersFileDir().then((r) => {
-            const cp2 = `/files/users/${authenticationService.currentUser.source._value.username}/${r.fileName}`;
-            const fileStorageRef2 = ref(storage, cp2);
-            deleteObject(fileStorageRef2).then(() => {
-              res();
-            }).catch((err2) => {
-              console.log(err2);
-              rej();
-            });
-          }).catch((err1) => {
-            console.log(err1);
-            rej();
+      listAll(fileStorageRef)
+        .then(function (files) {
+          const userFiles = [];
+          files.items.forEach(function (fileRef) {
+            userFiles.push(fileRef);
           });
-        } else {
-          console.log("Seek adminastrive assistance."); // user has unexpected files in their folder
+          if (userFiles.length == 2) {
+            getOldestOfTwoInUsersFileDir()
+              .then((r) => {
+                const cp2 = `/files/users/${authenticationService.currentUser.source._value.username}/${r.fileName}`;
+                const fileStorageRef2 = ref(storage, cp2);
+                deleteObject(fileStorageRef2)
+                  .then(() => {
+                    res();
+                  })
+                  .catch(() => {
+                    rej();
+                  });
+              })
+              .catch(() => {
+                rej();
+              });
+          } else {
+            rej();
+          }
+        })
+        .catch(function () {
           rej();
-        }
-      }).catch(function(err) {
-        console.log(err);
-        rej();
-      });
+        });
     });
   };
 
@@ -203,7 +185,6 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
     event.preventDefault();
     uploadFile(event.target.files[0]).then((res) => {
       res.file.text().then((code) => {
-        console.log(`[FILE] - reached 197 ${code}`);
         if (flag) socket.emit("onChange", code, socket.tid, roomId);
         setCode(code);
         setCodePath(res.codePath);
@@ -218,21 +199,24 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
     return new Promise(function (res, rej) {
       const cp = `/files/users/${authenticationService.currentUser.source._value.username}`;
       const fileStorageRef = ref(storage, cp);
-      listAll(fileStorageRef).then(function(files) {
-        const userFiles = [];
-        files.items.forEach(function(fileRef) {
-          userFiles.push(fileRef);
-        });
-        if (userFiles.length == 1) {
-          res({ fileName: userFiles[0].name, codePath: userFiles[0]._location.path });
-        } else {
-          console.log("Seek adminastrive assistance."); // user has unexpected files in their folder
+      listAll(fileStorageRef)
+        .then(function (files) {
+          const userFiles = [];
+          files.items.forEach(function (fileRef) {
+            userFiles.push(fileRef);
+          });
+          if (userFiles.length == 1) {
+            res({
+              fileName: userFiles[0].name,
+              codePath: userFiles[0]._location.path,
+            });
+          } else {
+            rej();
+          }
+        })
+        .catch(function () {
           rej();
-        }
-      }).catch(function(err) {
-        console.log(err);
-        rej();
-      });
+        });
     });
   };
 
@@ -240,7 +224,6 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
   const uploadFile = (f) => {
     return new Promise(function (res, rej) {
       if (!f) {
-        console.log("Upload failed. Try a different file.");
         rej();
       }
       const cp = `/files/users/${authenticationService.currentUser.source._value.username}/${f.name}`;
@@ -255,7 +238,6 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
           }
         },
         (err) => {
-          console.log(err);
           rej();
         },
         () => {
@@ -271,16 +253,14 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
       let xhr = new XMLHttpRequest();
       // handle xhr response:
       xhr.responseType = "text";
-      xhr.onload = (event) => {
+      xhr.onload = () => {
         if (xhr.status == 200) {
           res({ code: xhr.response });
         } else {
-          console.log(xhr.status);
           rej();
         }
       };
       xhr.onerror = () => {
-        console.log(xhr.status);
         rej();
       };
       xhr.open("GET", url);
@@ -301,52 +281,47 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
     return new Promise(function (res, rej) {
       const cp = `/files/users/${authenticationService.currentUser.source._value.username}`;
       const fileStorageRef = ref(storage, cp);
-      listAll(fileStorageRef).then(function(files) {
-        const userFiles = [];
-        files.items.forEach(function(fileRef) {
-          userFiles.push(fileRef);
+      listAll(fileStorageRef)
+        .then(function (files) {
+          const userFiles = [];
+          files.items.forEach(function (fileRef) {
+            userFiles.push(fileRef);
+          });
+          if (userFiles.length == 0) {
+            res(true);
+          } else {
+            res(false);
+          }
+        })
+        .catch(function () {
+          rej();
         });
-        if (userFiles.length == 0) {
-          res(true);
-        } else {
-          res(false);
-        }
-      }).catch(function(err) {
-        console.log(err);
-        rej();
-      });
     });
   };
 
   useEffect(() => {
-
     socket.emit("set attributes", "student", curUser, roomId);
 
-    socket.on("connection broadcast", (SktId, role, curUser) => {
-    });
-
-    socket.on("disconnection broadcast", (SktId, role, curUser, curSid) => {
-      if (role === 'teacher') socket.tid = "";
+    socket.on("disconnection broadcast", (SktId, role) => {
+      if (role === "teacher") socket.tid = "";
       const itemIdx = peersRef.current.findIndex((p) => p.peerID === SktId);
-        if (itemIdx >= 0) {
-          console.log(itemIdx)
-          setPeers((users) => {
-            const peerIdx = users.findIndex((p) => peersRef.current[itemIdx].peer === p);
-            console.log(peerIdx)
-            console.log(users)
-            users.splice(peerIdx, 1)
-            return users
-          });
-          peersRef.current[itemIdx].peer.removeAllListeners();
-          peersRef.current[itemIdx].peer.destroy();
-          peersRef.current.splice(itemIdx, 1)
-        } 
-      console.log(`disconnection broadcast: ${role} - ${curUser} (socket id: ${SktId})`);
+      if (itemIdx >= 0) {
+        setPeers((users) => {
+          const peerIdx = users.findIndex(
+            (p) => peersRef.current[itemIdx].peer === p
+          );
+          users.splice(peerIdx, 1);
+          return users;
+        });
+        peersRef.current[itemIdx].peer.removeAllListeners();
+        peersRef.current[itemIdx].peer.destroy();
+        peersRef.current.splice(itemIdx, 1);
+      }
     });
 
     socket.on("teacher join", (tid) => {
       socket.tid = tid;
-      socket.emit('student join', curUser, roomId);
+      socket.emit("student join", curUser, roomId);
     });
 
     socket.on("fetch request", () => {
@@ -357,15 +332,15 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
       setFlag(false);
     });
 
-    socket.on("onChange", (value, tid) => {
-      setFlag(flag => {
+    socket.on("onChange", (value) => {
+      setFlag((flag) => {
         if (flag) setCode(value);
         return flag;
       });
     });
 
     socket.on("onLecChange", (value, tid) => {
-      if(!socket.tid) socket.tid = tid;
+      if (!socket.tid) socket.tid = tid;
       setLecCode(value);
     });
 
@@ -374,11 +349,7 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
       setTeaErr(err);
     });
 
-    console.log("initing call system")
-    console.log(socket.id)
     socket.on("all users", (users) => {
-      console.log(users)
-      console.log(audioTrack.current)
       const peers = [];
       users.forEach((userId) => {
         if (userId !== socket.id) {
@@ -387,18 +358,18 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
             peerID: userId,
             peer,
           });
-        peers.push(peer);
+          peers.push(peer);
         }
-          
       });
-      console.log(`peers are ${peers}`)
-      console.log(`peer ref is ${peersRef.current}`)
       setPeers(peers);
     });
 
     socket.on("user joined", (payload) => {
-      console.log("user joined")
-      const peer = addPeer(payload.signal, payload.callerID, audioTrack.current);
+      const peer = addPeer(
+        payload.signal,
+        payload.callerID,
+        audioTrack.current
+      );
       peersRef.current.push({
         peerID: payload.callerID,
         peer,
@@ -408,34 +379,25 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
     });
 
     socket.on("receiving returned signal", (payload) => {
-      console.log("receiving returned signal")
-      console.log(peersRef.current)
-      console.log(payload.id)
       const item = peersRef.current.find((p) => p.peerID === payload.id);
-      console.log(item)
       item.peer.signal(payload.signal);
     });
 
     socket.on("user disconnected audio", (socketId) => {
-      console.log("user disconnected audio")
-      console.log(peersRef.current)
-      console.log(socketId)
       const itemIdx = peersRef.current.findIndex((p) => p.peerID === socketId);
       if (itemIdx >= 0) {
-        console.log(itemIdx)
         setPeers((users) => {
-          const peerIdx = users.findIndex((p) => peersRef.current[itemIdx].peer === p);
-          console.log(peerIdx)
-          console.log(users)
-          users.splice(peerIdx, 1)
-          return users
+          const peerIdx = users.findIndex(
+            (p) => peersRef.current[itemIdx].peer === p
+          );
+          users.splice(peerIdx, 1);
+          return users;
         });
         peersRef.current[itemIdx].peer.removeAllListeners();
         peersRef.current[itemIdx].peer.destroy();
-        peersRef.current.splice(itemIdx, 1)
+        peersRef.current.splice(itemIdx, 1);
       }
-      console.log(peersRef.current)
-    })
+    });
 
     // for file downloading (via fb):
     if (code === "" && codePath === "" && codeFilename === "") {
@@ -461,25 +423,15 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
               setCodePath(res.codePath);
               setCodeFilename(res.fileName);
             });
-          })
+          });
         }
       });
     }
-
   }, []);
 
-
   useEffect(() => {
-    if(flag)
-      socket.emit("fetch init", code, roomId);
-  }, [flag])
-
-
-  useEffect(() => {
-    if (callSystemInited) {
-    }
-  }, [callSystemInited])
-
+    if (flag) socket.emit("fetch init", code, roomId);
+  }, [flag]);
 
   const onChange = (value, viewUpdate) => {
     const editor = viewUpdate.state.values[0].prevUserEvent;
@@ -488,13 +440,11 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
     setCode(value);
   };
 
-
   const run = async () => {
     const { out, err } = await runCode(code, language);
     setOut(out);
     setErr(err);
   };
-
 
   const clearExecutionRes = () => {
     setOut(null);
@@ -502,14 +452,12 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
   };
 
   const setupCall = async () => {
-    console.log("there")
     if (!callInprogress) {
       const localStream = await navigator.mediaDevices.getUserMedia({
         video: false,
         audio: true,
       });
-      audioTrack.current = localStream
-      console.log("hardware setup complete");
+      audioTrack.current = localStream;
       setCallStream(localStream);
       setCallSystemInited(true);
       if (localAudio.current) {
@@ -519,17 +467,16 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
       setCallInprogress(true);
     } else {
       setCallStream(null);
-      audioTrack.current = null
+      audioTrack.current = null;
       if (localAudio.current) {
         localAudio.current.srcObject = null;
       }
       setCallInprogress(false);
-      peersRef.current = []
-      setPeers([])
-      socket.emit("disconnect audio", String(roomId))
+      peersRef.current = [];
+      setPeers([]);
+      socket.emit("disconnect audio", String(roomId));
     }
   };
-
 
   function createPeer(userTarget, callerID, stream) {
     const peer = new Peer({
@@ -539,15 +486,8 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
     });
 
     peer.on("signal", (signal) => {
-      console.log(
-        `student call initiated. Calling from ${socket.id} to ${userTarget}`
-      );
       socket.emit("sending signal", { userTarget, callerID, signal });
     });
-
-    peer.on('close', () => {
-      console.log("initiator closed")
-    })
 
     return peer;
   }
@@ -562,10 +502,6 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
     peer.on("signal", (signal) => {
       socket.emit("returning signal", { signal, callerID });
     });
-
-    peer.on('close', () => {
-      console.log("new peer closed")
-    })
 
     peer.signal(incomingSignal);
 
@@ -594,11 +530,7 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
         <Toolbar />
         <Grid container spacing={2}>
           <Grid item xs={6}>
-          <Stack
-              direction="column"
-              spacing={2}
-              sx={{maxWidth: "100%"}}
-            >
+            <Stack direction="column" spacing={2} sx={{ maxWidth: "100%" }}>
               <Grid item xs={12}>
                 <p>Teacher Screen:</p>
               </Grid>
@@ -613,20 +545,16 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
                 />
               </Grid>
               <Grid item xs={12}>
-                  <CodeExecutionResWidgit
-                    out={teaOut}
-                    err={teaErr}
-                    clear={clearTeaExecutionRes}
-                  />
+                <CodeExecutionResWidgit
+                  out={teaOut}
+                  err={teaErr}
+                  clear={clearTeaExecutionRes}
+                />
               </Grid>
             </Stack>
           </Grid>
           <Grid item xs={6}>
-            <Stack
-              direction="column"
-              spacing={2}
-              sx={{maxWidth: "100%"}}
-            >
+            <Stack direction="column" spacing={2} sx={{ maxWidth: "100%" }}>
               <Grid item xs={12}>
                 <EditorOptionsBar
                   language={language}
@@ -652,14 +580,16 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
                   direction="row"
                   justifyContent="center"
                   alignItems="space-evenly"
-                  sx={{maxWidth: "100%"}}
+                  sx={{ maxWidth: "100%" }}
                 >
-                  {language==="java" ? null : 
-                  <Button onClick={run} variant="contained">
-                    Run
-                  </Button>
-                  }
-                  <Storage uploadFileFormHandler={uploadFileFormHandler}></Storage>
+                  {language === "java" ? null : (
+                    <Button onClick={run} variant="contained">
+                      Run
+                    </Button>
+                  )}
+                  <Storage
+                    uploadFileFormHandler={uploadFileFormHandler}
+                  ></Storage>
                 </Stack>
               </Grid>
               <Grid item xs={12}>
@@ -673,12 +603,14 @@ function StudentPage({ socket, curUser, roomId, setSocketFlag }) {
           </Grid>
         </Grid>
       </Box>
-      <StudentRightMenu drawerWidth={drawerWidth} 
-                        socket={socket}
-                        roomId={roomId}
-                        setSocketFlag={setSocketFlag}
-                        setupCall={() => setupCall()}
-                        callInprogress={callInprogress} />
+      <StudentRightMenu
+        drawerWidth={drawerWidth}
+        socket={socket}
+        roomId={roomId}
+        setSocketFlag={setSocketFlag}
+        setupCall={() => setupCall()}
+        callInprogress={callInprogress}
+      />
       <Stack direction="row">
         {LocalAudio}
         {peers.map((peer, index) => {

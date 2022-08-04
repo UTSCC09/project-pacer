@@ -1,6 +1,5 @@
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
-import CssBaseline from "@mui/material/CssBaseline";
 import Divider from "@mui/material/Divider";
 import Drawer from "@mui/material/Drawer";
 import PersonIcon from "@mui/icons-material/Person";
@@ -11,106 +10,86 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import CallIcon from '@mui/icons-material/Call';
-import CloseIcon from '@mui/icons-material/Close';
+import CallIcon from "@mui/icons-material/Call";
+import CloseIcon from "@mui/icons-material/Close";
 import { Button, Stack, styled } from "@mui/material";
-import { authenticationService, socket } from "../_services";
-// [kw]
-import React, { useEffect } from 'react';
-import Notifications from './Notifications';
+import { authenticationService } from "../_services";
+import React from "react";
+import Notifications from "./Notifications";
 
 const CustomEntry = styled(ListItem)({
-  backgroundColor: 'var(--color)',
-  '& .MuiSlider-thumb': {
+  backgroundColor: "var(--color)",
+  "& .MuiSlider-thumb": {
     [`&:hover, &.Mui-focusVisible`]: {
-      boxShadow: '0px 0px 0px 8px var(--box-shadow)',
+      boxShadow: "0px 0px 0px 8px var(--box-shadow)",
     },
     [`&.Mui-active`]: {
-      boxShadow: '0px 0px 0px 14px var(--box-shadow)',
+      boxShadow: "0px 0px 0px 14px var(--box-shadow)",
     },
   },
 });
 
 const connectedState = {
-  '--color': '#4caf50',
-  '--box-shadow': 'rgb(76, 175, 80, .16)',
+  "--color": "#4caf50",
+  "--box-shadow": "rgb(76, 175, 80, .16)",
 };
 
 const requestingHelpState = {
-  '--color': '#FF8C00',
-  '--box-shadow': 'rgb(76, 175, 80, .16)',
+  "--color": "#FF8C00",
+  "--box-shadow": "rgb(76, 175, 80, .16)",
 };
 
 const defaultState = {
-  '--color': '#FFF',
-  '--box-shadow': 'rgb(25, 118, 210, .16)',
+  "--color": "#FFF",
+  "--box-shadow": "rgb(25, 118, 210, .16)",
 };
 
-
-function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, connectedUsers, setConnectedUsers, socket, roomId, setSocketFlag, setupCall, callInprogress }) {
-  const [notificationToggle, setNotificationToggle] = React.useState(() => null);
+function TeacherRightMenu({
+  drawerWidth,
+  setDisplayStudent,
+  setStudentName,
+  connectedUsers,
+  setConnectedUsers,
+  socket,
+  roomId,
+  setSocketFlag,
+  setupCall,
+  callInprogress,
+}) {
+  const [notificationToggle, setNotificationToggle] = React.useState(
+    () => null
+  );
   const [helpMsg, setHelpMsg] = React.useState(() => "default msg");
   const [userState, setUserState] = React.useState(() => {
-    let res = {}
-    connectedUsers.forEach(e => {
-      res[e.SktId] = defaultState
+    let res = {};
+    connectedUsers.forEach((e) => {
+      res[e.SktId] = defaultState;
     });
-    console.log(res)
-    return res
+    return res;
   });
-  // const [isTriggered, setIsTriggered] = React.useState(() => "")
-
-  // React.useEffect(() => {
-  //   let timer = null
-  //   if (isTriggered) {
-  //     timer = setTimeout(() => {
-  //       setUserState((next) => {
-  //         if (next[isTriggered] === requestingHelpState) {
-  //           next[isTriggered] = defaultState
-  //           console.log("triggered")
-  //           return next
-  //         }
-  //       })
-  //       setIsTriggered(false)
-  //     })
-  //   }
-  //   return () => clearTimeout(timer);
-  // }, [isTriggered])
-
 
   React.useEffect(() => {
-    // todo-kw: revisit
-    // if (socket){
-      socket.on("help request", (stuId, username) => {
-        console.log(
-          `[TeacherPage - help request] student [${username}] need help; student socket id: ${stuId} `
-        );
-        setUserState((existing) => {
-          if (existing[stuId] !== connectedState) {
-            existing[stuId] = requestingHelpState
-            console.log(existing)
-            // setIsTriggered(stuId)
-          }
-          return existing
-        });
-        const msg = `Help requested from student ${username}`
-        setHelpMsg(oldmsg => msg)
-        setNotificationToggle(oldState => !oldState)
+    socket.on("help request", (stuId, username) => {
+      setUserState((existing) => {
+        if (existing[stuId] !== connectedState) {
+          existing[stuId] = requestingHelpState;
+        }
+        return existing;
       });
-    // }
-  }, [])
-
+      const msg = `Help requested from student ${username}`;
+      setHelpMsg((oldmsg) => msg);
+      setNotificationToggle((oldState) => !oldState);
+    });
+  }, []);
 
   function loadStudentSession(studentName, studentCurSocket) {
-    if (!socket.sid || socket.sid !== studentCurSocket){
-      console.log(`else right menu: ${socket.sid}`);
+    if (!socket.sid || socket.sid !== studentCurSocket) {
       setUserState((existing) => {
-        Object.keys(existing).forEach(key => {
+        Object.keys(existing).forEach((key) => {
           existing[key] = defaultState;
         });
-        existing[studentCurSocket] = connectedState
-        console.log(existing)
-        return existing
+        existing[studentCurSocket] = connectedState;
+        return existing;
       });
       setStudentName(studentName);
 
@@ -120,61 +99,67 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
     } else if (socket.on) {
       socket.on = false;
       setDisplayStudent(false);
-      // socket.emit("stop request", socket.sid);
 
       setUserState((existing) => {
-        existing[studentCurSocket] = defaultState
-        return existing
+        existing[studentCurSocket] = defaultState;
+        return existing;
       });
     } else {
       socket.on = true;
       setDisplayStudent(true);
 
       setUserState((existing) => {
-        Object.keys(existing).forEach(key => {
+        Object.keys(existing).forEach((key) => {
           existing[key] = defaultState;
         });
-        existing[studentCurSocket] = connectedState
-        console.log(existing)
-        return existing
+        existing[studentCurSocket] = connectedState;
+        return existing;
       });
     }
   }
 
-
-  function logoutHandler(){
-
-    socket.emit("disconnect audio", roomId)
+  function logoutHandler() {
+    socket.emit("disconnect audio", roomId);
     socket.emit("room update");
     setConnectedUsers([]);
-  
+
     socket.removeAllListeners();
     socket.disconnect();
 
-    setSocketFlag(false)
+    setSocketFlag(false);
     authenticationService.logout();
   }
-
 
   const drawer = (
     <div>
       <Toolbar />
       <Divider />
       <List>
-        {connectedUsers.map((text, index) => (
-          <CustomEntry key={text.SktId} style={userState[text.SktId]} disablePadding>
-            <ListItemButton value={text.SktId} onClick={() => loadStudentSession(text.curUser, text.SktId, )}>
+        {connectedUsers.map((text) => (
+          <CustomEntry
+            key={text.SktId}
+            style={userState[text.SktId]}
+            disablePadding
+          >
+            <ListItemButton
+              value={text.SktId}
+              onClick={() => loadStudentSession(text.curUser, text.SktId)}
+            >
               <ListItemIcon>
                 <PersonIcon />
               </ListItemIcon>
-              <ListItemText primary={text.curUser}/>
+              <ListItemText primary={text.curUser} />
             </ListItemButton>
           </CustomEntry>
         ))}
       </List>
       <Divider />
-      <button className="call-button" onClick={() => setupCall()} >
-        {callInprogress ? <CloseIcon fontSize="large"/> : <CallIcon fontSize="large"/>}
+      <button className="call-button" onClick={() => setupCall()}>
+        {callInprogress ? (
+          <CloseIcon fontSize="large" />
+        ) : (
+          <CallIcon fontSize="large" />
+        )}
       </button>
     </div>
   );
@@ -195,21 +180,20 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
           </Typography>
           <Stack direction="row">
             <p className="romm-user-info">{`roomId: ${roomId}`}</p>
-          <Button
-            position="fixed"
-            component="div"
-            className="logoutButton"
-            variant="contained"
-            color="error"
-            sx={{
-              color: "#fff",
-              zIndex: (theme) => theme.zIndex.drawer + 2,
-            }}
-            onClick={logoutHandler}
-            //onClick={authenticationService.logout}
-          >
-            Logout
-          </Button>
+            <Button
+              position="fixed"
+              component="div"
+              className="logoutButton"
+              variant="contained"
+              color="error"
+              sx={{
+                color: "#fff",
+                zIndex: (theme) => theme.zIndex.drawer + 2,
+              }}
+              onClick={logoutHandler}
+            >
+              Logout
+            </Button>
           </Stack>
         </Toolbar>
       </AppBar>
@@ -233,7 +217,7 @@ function TeacherRightMenu({ drawerWidth, setDisplayStudent, setStudentName, conn
           {drawer}
         </Drawer>
       </Box>
-    <Notifications msg={helpMsg} variant="info" open={notificationToggle} />
+      <Notifications msg={helpMsg} variant="info" open={notificationToggle} />
     </Box>
   );
 }

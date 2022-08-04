@@ -2,13 +2,13 @@ import { BehaviorSubject } from "rxjs";
 
 export const getCurrentUser = async () => {
   try {
-    const response = await fetch("http://localhost:8080/api/whoami", {
+    const response = await fetch("https://api.pacer.codes/api/whoami", {
       credentials: "include",
     });
     const data = await response.json();
     console.log(data);
     currentUserSubject.next(data);
-    return data
+    return data;
   } catch (error) {
     console.log(error);
   }
@@ -23,7 +23,7 @@ function send(method, url, data, callback) {
   };
   if (!["GET", "DELETE"].includes(method)) {
     config.headers = {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     };
     config.body = JSON.stringify(data);
   }
@@ -51,7 +51,7 @@ export const authenticationService = {
 function signin(username, password, role, callback) {
   send(
     "POST",
-    "http://localhost:8080/api/signin",
+    "https://api.pacer.codes/api/signin",
     { username, password, role },
     function (err, res) {
       if (err) return callback(err, null);
@@ -65,7 +65,7 @@ function signin(username, password, role, callback) {
 function signup(username, password, role, callback) {
   send(
     "POST",
-    "http://localhost:8080/api/signup",
+    "https://api.pacer.codes/api/signup",
     { username, password, role },
     function (err, res) {
       if (err) return callback(err, null);
@@ -77,7 +77,7 @@ function signup(username, password, role, callback) {
 
 function logout() {
   // remove user from local storage to log user out
-  send("POST", "http://localhost:8080/api/signout", {}, function (err) {
+  send("POST", "https://api.pacer.codes/api/signout", {}, function (err) {
     if (err) return console.log(err);
     console.log("logging out");
     currentUserSubject.next(null);

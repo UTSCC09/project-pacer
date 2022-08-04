@@ -1,46 +1,49 @@
-import AppBar from '@mui/material/AppBar';
-import Box from '@mui/material/Box';
-import CssBaseline from '@mui/material/CssBaseline';
-import Divider from '@mui/material/Divider';
-import Drawer from '@mui/material/Drawer';
-import HelpIcon from '@mui/icons-material/SupportAgent';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import { Button, Stack } from '@mui/material';
+import AppBar from "@mui/material/AppBar";
+import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
+import Drawer from "@mui/material/Drawer";
+import HelpIcon from "@mui/icons-material/SupportAgent";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
+import { Button, Stack } from "@mui/material";
 
 import CallIcon from "@mui/icons-material/Call";
-import CloseIcon from '@mui/icons-material/Close';
+import CloseIcon from "@mui/icons-material/Close";
 
-import { authenticationService } from '../_services';
-// [kw]
-import React from 'react';
-import Notifications from './Notifications';
+import { authenticationService } from "../_services";
+import React from "react";
+import Notifications from "./Notifications";
 
-// function StudentRightMenu({drawerWidth}) {
-function StudentRightMenu({drawerWidth, socket, roomId, setSocketFlag, setupCall, callInprogress}) {
-  const [notificationToggle, setNotificationToggle] = React.useState(() => null);
+function StudentRightMenu({
+  drawerWidth,
+  socket,
+  roomId,
+  setSocketFlag,
+  setupCall,
+  callInprogress,
+}) {
+  const [notificationToggle, setNotificationToggle] = React.useState(
+    () => null
+  );
 
   function requestHelp() {
-    console.log("help requested")
-    // new
     socket.emit("help request", roomId);
-    setNotificationToggle(!notificationToggle)
+    setNotificationToggle(!notificationToggle);
   }
 
-  function logoutHandler(){
-    // socket.emit("room update");
-    socket.emit("disconnect audio", roomId)
+  function logoutHandler() {
+    socket.emit("disconnect audio", roomId);
     socket.emit("room update");
     socket.removeAllListeners();
     socket.disconnect();
     authenticationService.logout();
 
-    setSocketFlag(false)
+    setSocketFlag(false);
   }
 
   const drawer = (
@@ -48,17 +51,21 @@ function StudentRightMenu({drawerWidth, socket, roomId, setSocketFlag, setupCall
       <Toolbar />
       <Divider />
       <List>
-        <ListItem key='Request Help' disablePadding>
+        <ListItem key="Request Help" disablePadding>
           <ListItemButton onClick={() => requestHelp()}>
             <ListItemIcon>
               <HelpIcon />
             </ListItemIcon>
-            <ListItemText primary='Request Help' />
+            <ListItemText primary="Request Help" />
           </ListItemButton>
         </ListItem>
       </List>
       <button className="call-button" onClick={setupCall}>
-        {callInprogress ? <CloseIcon fontSize="large"/> : <CallIcon fontSize="large"/>}
+        {callInprogress ? (
+          <CloseIcon fontSize="large" />
+        ) : (
+          <CallIcon fontSize="large" />
+        )}
       </button>
     </div>
   );
@@ -70,7 +77,7 @@ function StudentRightMenu({drawerWidth, socket, roomId, setSocketFlag, setupCall
         sx={{
           width: { sm: `100%` },
           ml: { sm: `${drawerWidth}px` },
-          zIndex: (theme) => theme.zIndex.drawer + 1
+          zIndex: (theme) => theme.zIndex.drawer + 1,
         }}
       >
         <Toolbar sx={{ justifyContent: "space-between" }}>
@@ -79,19 +86,21 @@ function StudentRightMenu({drawerWidth, socket, roomId, setSocketFlag, setupCall
           </Typography>
           <Stack direction="row">
             <p className="romm-user-info">{`roomId: ${roomId}`}</p>
-          <Button position="fixed" component="div" className="logoutButton"
-          variant="contained"
-          color="error"
-          sx={{
-            color: "#fff",
-            zIndex: (theme) => theme.zIndex.drawer + 2,
-          }}
-          onClick={logoutHandler}
-          // onClick={authenticationService.logout}
-        >
-          Logout
-        </Button>
-        </Stack>
+            <Button
+              position="fixed"
+              component="div"
+              className="logoutButton"
+              variant="contained"
+              color="error"
+              sx={{
+                color: "#fff",
+                zIndex: (theme) => theme.zIndex.drawer + 2,
+              }}
+              onClick={logoutHandler}
+            >
+              Logout
+            </Button>
+          </Stack>
         </Toolbar>
       </AppBar>
       <Box
@@ -102,8 +111,11 @@ function StudentRightMenu({drawerWidth, socket, roomId, setSocketFlag, setupCall
         <Drawer
           variant="permanent"
           sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            display: { xs: "none", sm: "block" },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: drawerWidth,
+            },
           }}
           anchor="right"
           open
@@ -111,9 +123,13 @@ function StudentRightMenu({drawerWidth, socket, roomId, setSocketFlag, setupCall
           {drawer}
         </Drawer>
       </Box>
-    <Notifications msg="Help Requested!" variant="success" open={notificationToggle} />
+      <Notifications
+        msg="Help Requested!"
+        variant="success"
+        open={notificationToggle}
+      />
     </Box>
   );
 }
 
-export default StudentRightMenu
+export default StudentRightMenu;

@@ -25,7 +25,6 @@ import PeopleIcon from "@mui/icons-material/People";
 import { useNavigate } from "react-router-dom";
 
 function RoomPage({
-  curUser,
   isAdmin,
   setRoomId,
   socket,
@@ -64,7 +63,7 @@ function RoomPage({
     const rooms = await getAllRooms();
     if (rooms.err) setShowAlert(rooms.err);
     else
-      setRoomInfo((init) => {
+      setRoomInfo(() => {
         return rooms.res.data;
       });
     setLoadRoomsComplete(true);

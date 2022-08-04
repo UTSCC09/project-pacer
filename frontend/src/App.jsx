@@ -15,9 +15,6 @@ import LoginPage from "./LoginPage";
 import { CssBaseline } from "@mui/material";
 import TeacherPage from "./TeacherPage";
 
-import { storage } from "./_components/FireBase";
-import { ref } from "@firebase/storage";
-import { ref as uploadBytesResumable, getDownloadURL } from "@firebase/storage";
 import RoomPage from "./RoomPage";
 
 function App() {
@@ -47,7 +44,6 @@ function App() {
     fetchUserInfo();
   }, []);
 
-  console.log(roomId)
   if (loadingComplete) {
     return (
       <BrowserRouter history={history}>
@@ -91,7 +87,6 @@ function App() {
                 element={
                   <PrivateRoute isAllowed={!!curUser && !roomId}>
                     <RoomPage
-                      curUser={curUser}
                       isAdmin={isAdmin}
                       setRoomId={(e) => setRoomId(e)}
                       socket={socket}
