@@ -29,7 +29,7 @@ dotenv.config();
 const app = express();
 
 const http = require("http");
-const PORT = 8080;
+const PORT = 3000;
 
 const sessionMiddleware = session({
   secret: process.env.SECRET,
@@ -49,7 +49,7 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "https://pacer.codes",
     credentials: true,
   },
 });
@@ -58,7 +58,7 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.json());
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "https://pacer.codes",
     credentials: true,
   })
 );
